@@ -197,7 +197,7 @@ def filter_entity_symbols(args, list_of_all_aliases, benchmark_qids, entity_symb
     qid2title = {}
     stats["raw_qids"] = len(entity_symbols.get_all_qids())
     stats["qids_not_in_all_aliases"] = len(all_qids_local)
-    all_qids_local = all_qids_local.update(benchmark_qids)
+    all_qids_local.update(benchmark_qids)
     for qid in all_qids_local:
         qid2title[qid] = entity_symbols.get_title(qid)
     # Get max candidates and max alias len

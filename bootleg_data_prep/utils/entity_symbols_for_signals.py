@@ -9,10 +9,10 @@ import numpy as np
 from bootleg_data_prep.utils import data_prep_utils as prep_utils
 from bootleg_data_prep.utils.constants import QIDCOUNT, ENTITYWORDS, TYPEWORDS, VOCAB, VOCABFILE, ALIAS2QID, QID2TYPEID_HY, \
     QID2TYPEID_WD, RELMAPPING, CTXRELS, QID2TYPEID_REL, RELATIONWORDS
-from bootleg.symbols.entity_symbols import EntitySymbols
-from bootleg.symbols.type_symbols import TypeSymbols
-from bootleg.utils import utils as utils
-from bootleg.utils.classes.record_trie_collection import RecordTrieCollection
+from bootleg_data_prep.utils.classes.record_trie_collection import RecordTrieCollection
+from bootleg_data_prep.utils.classes.type_symbols import TypeSymbols
+from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils import utils as utils
 
 """
 This is basically an entity symbols class except it only carries what it needs to generate slices. It's adds type information as well for the slice

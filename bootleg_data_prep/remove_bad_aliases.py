@@ -27,9 +27,9 @@ import ujson as json
 from jsonlines import jsonlines
 from tqdm import tqdm
 
-import bootleg.utils.utils as utils
+import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
 
 # RAIDERS 8: python3 -m contextual_embeddings.bootleg_data_prep.remove_bad_aliases --sentence_dir /lfs/raiders8/0/lorr1/sentences_copy --title_to_qid /lfs/raiders8/0/lorr1/title_to_all_ids.jsonl

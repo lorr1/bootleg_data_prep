@@ -13,7 +13,7 @@ import sys
 import ujson as json
 
 sys.path.append(os.path.join(sys.path[0], "../"))
-from bootleg.utils import utils
+from bootleg_data_prep.utils import utils
 from nltk.tokenize import RegexpTokenizer
 import argparse
 

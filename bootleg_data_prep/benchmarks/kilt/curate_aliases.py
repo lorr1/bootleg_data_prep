@@ -28,7 +28,7 @@ import glob
 
 from tqdm import tqdm
 
-from bootleg.utils import utils
+from bootleg_data_prep.utils import utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 
 """

@@ -16,7 +16,7 @@ from collections import defaultdict
 import jsonlines
 import ujson as json
 
-import bootleg.utils.utils as utils
+import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 
 

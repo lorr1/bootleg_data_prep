@@ -8,7 +8,7 @@ import ujson as json
 from jsonlines import jsonlines
 from tqdm import tqdm
 
-from bootleg.utils import utils
+from bootleg_data_prep.utils import utils
 
 
 def parse_args():

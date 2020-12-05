@@ -11,12 +11,13 @@ import ujson as json
 from collections import defaultdict
 from datetime import datetime
 import os
-from bootleg.utils import utils
 from nltk.corpus import stopwords
 import nltk
 from nltk import PorterStemmer
 import string
 import unicodedata
+
+from bootleg_data_prep.utils import utils
 
 PUNC = string.punctuation
 STOPWORDS = set(stopwords.words('english'))

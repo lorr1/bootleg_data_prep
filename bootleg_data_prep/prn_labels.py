@@ -17,7 +17,7 @@ import numpy as np
 from tqdm import tqdm
 
 # data prep
-from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
 pronoun_map = {
     'him': 1,

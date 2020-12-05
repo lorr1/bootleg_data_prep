@@ -11,8 +11,8 @@ import time
 from jsonlines import jsonlines
 from tqdm import tqdm
 
-from bootleg.symbols.entity_symbols import EntitySymbols
-from bootleg.utils import utils
+from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils import utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 
 

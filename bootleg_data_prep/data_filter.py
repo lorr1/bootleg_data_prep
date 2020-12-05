@@ -25,12 +25,13 @@ import time
 
 from tqdm import tqdm
 
-import bootleg.utils.utils as utils
+import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 # DO NOT REMOVE THIS IMPORT STATEMENT
 import bootleg_data_prep.utils.my_filter_funcs as my_filter_funcs
-from bootleg.symbols.entity_symbols import EntitySymbols
 # DO NOT REMOVE THIS NEXT LINE
+from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+
 FILTER_FILE = "my_filter_funcs"
 
 def parse_args():

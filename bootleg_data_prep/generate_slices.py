@@ -23,11 +23,11 @@ import os
 import shutil
 import time
 
-import bootleg.utils.utils as utils
+import bootleg_data_prep.utils.utils as utils
 from bootleg_data_prep.utils.constants import PAIR_IDX_MATTER, \
     POSSIBLE_SLICE_FOLDERS, TAILONLY, NOHEADCAND, NOSINGLE, NOCTX, TORSOONLY, HEADONLY, TOESONLY
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 import bootleg_data_prep.utils.slice_definitions as slice_utils
 import bootleg_data_prep.utils.entity_symbols_for_signals as es_for_signals
 

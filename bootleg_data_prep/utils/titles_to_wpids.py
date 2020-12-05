@@ -8,8 +8,7 @@ import time
 import shutil
 import html
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg.utils import utils
-
+from bootleg_data_prep.utils import utils
 
 def parse_args():
     parser = argparse.ArgumentParser()

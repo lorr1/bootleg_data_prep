@@ -1,3 +1,5 @@
+UNK_AL = '_unk_'
+
 ALIAS2QID = "alias2qid"
 # _hy is for hyena types
 QID2TYPEID_HY = "qid2typeid_hy"

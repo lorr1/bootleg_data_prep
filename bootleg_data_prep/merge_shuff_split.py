@@ -19,7 +19,7 @@ import time
 import ujson as json
 from tqdm import tqdm
 
-import bootleg.utils.utils as utils
+import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 
 

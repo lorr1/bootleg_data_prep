@@ -11,10 +11,6 @@ python3 -m contextual_embeddings.bootleg_data_prep.prep_generate_slices_part2 --
 import argparse
 import glob
 import logging
-from gensim import corpora, matutils, models, similarities
-from gensim.utils import simple_preprocess
-import gensim
-import sys
 from sklearn.feature_extraction import text
 import numpy as np
 import jsonlines
@@ -22,17 +18,16 @@ import marisa_trie
 import ujson as json
 import multiprocessing
 import os
-import shutil
 import time
 
 from collections import defaultdict
 from nltk import FreqDist
 from tqdm import tqdm
 
-import bootleg.utils.utils as utils
+import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.utils.constants import ENTITYWORDS, TYPEWORDS, RELATIONWORDS, VOCABFILE, VOCAB
-from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 import bootleg_data_prep.utils.entity_symbols_for_signals as esfs
 
 QIDEXISTS = "qidexist"

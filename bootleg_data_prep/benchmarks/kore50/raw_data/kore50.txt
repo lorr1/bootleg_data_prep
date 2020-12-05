@@ -1,0 +1,829 @@
+-DOCSTART- (1 CEL01)
+David	B	David	David_Beckham
+and
+Victoria	B	Victoria	Victoria_Beckham
+named
+their
+children
+Brooklyn	B	Brooklyn	--NME--
+,
+Romeo	B	Romeo	--NME--
+,
+Cruz	B	Cruz	--NME--
+,
+and
+Harper	B	Harper Seven	--NME--
+Seven	I	Harper Seven	--NME--
+.
+
+-DOCSTART- (2 CEL02)
+David	B	David	David_Beckham
+and
+Victoria	B	Victoria	Victoria_Beckham
+added
+spice
+to
+their
+marriage
+.
+
+-DOCSTART- (3 CEL03)
+Tiger	B	Tiger	Tiger_Woods
+was
+lost
+in
+the
+woods
+when
+he
+got
+divorced
+from
+Elin	B	Elin	Elin_Nordegren
+.
+
+-DOCSTART- (4 CEL04)
+Tiger	B	Tiger	Tiger_Woods
+lost
+the
+US	B	US Open	U.S._Open_(golf)
+Open	I	US Open	U.S._Open_(golf)
+.
+
+-DOCSTART- (5 CEL05)
+Madonna	B	Madonna	Madonna_(entertainer)
+played
+Eva	B	Eva	Eva_Perón
+and
+was
+seen
+with
+Carlos	B	Carlos	Carlos_Leon	Q4343020
+.
+
+-DOCSTART- (6 CEL06)
+In
+this
+musical
+,
+Madonna	B	Madonna	Madonna_(entertainer)
+played
+the
+role
+of
+the
+First	B	First Lady	First_Ladies_and_Gentlemen_of_Argentina
+Lady	I	First Lady	First_Ladies_and_Gentlemen_of_Argentina
+.
+
+-DOCSTART- (7 CEL07)
+Angelina	B	Angelina	Angelina_Jolie
+,
+her
+father
+Jon	B	Jon	Jon_Voight
+,
+and
+her
+partner
+Brad	B	Brad	Brad_Pitt
+never
+played
+together
+in
+the
+same
+movie
+.
+
+-DOCSTART- (8 CEL08)
+Heidi	B	Heidi	Heidi_Klum
+and
+her
+husband
+Seal	B	Seal	Seal_(musician)
+live
+in
+Vegas	B	Vegas	Las_Vegas
+.
+
+-DOCSTART- (9 CEL09)
+Paris	B	Paris	Paris_Hilton
+and
+Kim	B	Kim	Kim_Kardashian
+are
+both
+wealthy
+It
+Girls
+who
+had
+sex
+tapes
+on
+the
+Internet
+.
+
+-DOCSTART- (10 CEL10)
+Justin	B	Justin	Justin_Bieber
+,
+Stefani	B	Stefani	Lady_Gaga
+,
+and
+Kate	B	Kate	Katy_Perry
+are
+among
+the
+most
+popular
+people
+on
+both
+MTV	B	MTV	MTV
+and
+Twitter	B	Twitter	Twitter
+.
+
+-DOCSTART- (11 MUS01)
+Dylan	B	Dylan	Bob_Dylan
+performed
+Hurricane	B	Hurricane	Hurricane_(Bob_Dylan_song)
+about
+the
+black
+fighter
+Carter	B	Carter	Rubin_Carter
+,
+from
+his
+album
+Desire	B	Desire	Desire_(Bob_Dylan_album)
+.
+
+-DOCSTART- (12 MUS02)
+Desire	B	Desire	Desire_(Bob_Dylan_album)
+contains
+a
+duet
+with
+Harris	B	Harris	Emmylou_Harris
+in
+the
+song
+Joey	B	Joey	Joey_(Bob_Dylan_song)
+.
+
+-DOCSTART- (13 MUS03)
+Three
+of
+the
+greatest
+guitarists
+started
+their
+career
+in
+a
+single
+band
+:
+Clapton	B	Clapton	Eric_Clapton
+,
+Beck	B	Beck	Jeff_Beck
+,
+and
+Page	B	Page	Jimmy_Page
+.
+
+-DOCSTART- (14 MUS04)
+Allen	B	Allen	Paul_Allen
+founded
+the
+EMP	B	EMP	Museum_of_Pop_Culture
+in
+Seattle	B	Seattle	Seattle
+,
+which
+featured
+exhibitions
+about
+Hendrix	B	Hendrix	Jimi_Hendrix
+and
+Dylan	B	Dylan	Bob_Dylan
+,
+but
+also
+about
+various
+science
+fiction
+movies
+.
+
+-DOCSTART- (15 MUS05)
+Despite
+featuring
+some
+of
+the
+most
+promininent
+musicians
+of
+their
+decade
+---
+like
+Sinatra	B	Sinatra	Frank_Sinatra
+,
+Dylan	B	Dylan	Bob_Dylan
+,
+Joel	B	Joel	Billy_Joel
+,
+and
+Santana	B	Santana	Carlos_Santana
+---
+Columbia	B	Columbia	Columbia_Records
+was
+aquired
+by
+Sony	B	Sony	Sony_Music
+in
+the
+1980s
+.
+
+-DOCSTART- (16 MUS06)
+After
+unsuccessful
+years
+,
+aging
+country
+star
+Cash	B	Cash	Johnny_Cash
+made
+a
+grandiose
+comeback
+with
+his
+American Recordings	B	American Recordings	American_Recordings_(album)
+,
+recorded
+at
+his
+home
+with
+the
+help
+of
+Rubin	B	Rubin	Rick_Rubin
+.
+
+-DOCSTART- (17 MUS07)
+The
+group
+formed
+by
+Homme	B	Homme	Josh_Homme
+,
+Grohl	B	Grohl	Dave_Grohl
+,
+and
+Jones	B	Jones	John_Paul_Jones_(musician)
+was
+supposed
+to
+be
+named
+Caligula
+,
+but
+the
+name
+was
+already
+taken.
+
+-DOCSTART- (18 MUS08)
+Jobs	B	Jobs	Steve_Jobs
+and
+Baez	B	Baez	Joan_Baez
+dated
+in
+the
+late
+1970s
+,
+and
+she
+performed
+at
+his
+Stanford	B	Stanford	Stanford_University
+memorial
+.
+
+-DOCSTART- (19 MUS09)
+The
+Isle of Wight festival	B	Isle of Wight festival	Isle_of_Wight_Festival
+in
+1970
+was
+the
+biggest
+at
+its
+time
+,
+surpassing
+Woodstock	B	Woodstock	Woodstock
+with
+acts
+like
+Davis	B	Davis	Miles_Davis
+,
+Chicago	B	Chicago	Chicago_(band)
+,
+and
+Mitchell	B	Mitchell	Joni_Mitchell
+.
+
+-DOCSTART- (20 MUS10)
+Eric	B	Eric	Eric_Clapton
+preferred
+to
+play
+Blues	B	Blues	Blues
+instead
+of
+Rock	B	Rock	Rock_music
+,
+so
+he
+joined
+Mayall	B	Mayall	John_Mayall
+'s
+band
+.
+
+-DOCSTART- (21 BUS01)
+After
+the
+death
+of
+Steve	B	Steve	Steve_Jobs
+,
+the
+former
+CEO
+of
+Apple	B	Apple	Apple_Inc.
+,
+his
+commencement
+speech
+at
+Stanford	B	Stanford	Stanford_University
+was
+watched
+thousands
+of
+times
+.
+
+-DOCSTART- (22 BUS02)
+In
+1980
+,
+Steve	B	Steve	Steve_Ballmer
+dropped
+out
+of
+Stanford	B	Stanford	Stanford_University
+to
+join
+Microsoft	B	Microsoft	Microsoft
+,
+the
+company
+behind
+the
+Windows	B	Windows	Microsoft_Windows
+operating
+system
+.
+
+-DOCSTART- (23 BUS03)
+Cairo	B	Cairo	Cairo_(operating_system)
+was
+the
+code
+name
+for
+a
+project
+at
+Microsoft	B	Microsoft	Microsoft
+from
+1991
+to
+1996
+.
+Its
+charter
+was
+to
+build
+technologies
+for
+a
+next
+generation
+operating
+system
+that
+would
+fulfill
+the
+vision
+of
+Bill	B	Bill	Bill_Gates
+.
+
+-DOCSTART- (24 BUS04)
+Steve	B	Steve	Steve_Jobs
+,
+Bill	B	Bill	Bill_Gates
+,
+Sergey	B	Sergey	Sergey_Brin
+,
+and
+Larry	B	Larry	Larry_Page
+have
+drawn
+a
+great
+deal
+of
+admiration
+these
+days
+for
+their
+pioneering
+successes
+that
+changed
+the
+world
+we
+live
+in
+.
+
+-DOCSTART- (25 BUS05)
+Karl	B	Karl	Karl_Albrecht
+and
+Theo	B	Theo	Theo_Albrecht
+made
+their
+extreme
+fortunes
+selling
+low-price
+groceries
+.
+
+-DOCSTART- (26 BUS06)
+While
+Apple	B	Apple	Apple_Inc.
+is
+an
+electronics
+company
+,
+Mango	B	Mango	Mango_(retailer)
+is
+a
+clothing
+one
+and
+Orange	B	Orange	Orange_S.A.
+is
+a
+communication
+one
+.
+
+-DOCSTART- (27 BUS07)
+Sam	B	Sam	Sam_Zell
+,
+the
+co-founder
+of
+Equity	B	Equity International	Equity_International
+International	I	Equity International	Equity_International
+,
+was
+given
+the
+nickname
+of
+"
+the
+grave
+dancer
+"
+because
+of
+his
+ability
+to
+buy
+businesses
+that
+others
+thought
+were
+dead
+.
+
+-DOCSTART- (28 BUS08)
+Pixar	B	Pixar	Pixar
+produced
+Cars	B	Cars	Cars_(film)
+,
+and
+John	B	John	John_Lasseter
+directed
+it
+.
+
+-DOCSTART- (29 BUS09)
+Mars	B	Mars	Mars_(chocolate_bar)
+,
+Galaxy	B	Galaxy	Galaxy_(chocolate_bar)
+,
+and
+Bounty	B	Bounty	Bounty_(chocolate_bar)
+are
+all
+chocolate
+.
+
+-DOCSTART- (30 BUS10)
+Bosch	B	Bosch	Robert_Bosch_GmbH
+and
+Sharp	B	Sharp	Sharp_Corporation
+are
+both
+home
+appliances
+producing
+companies
+.
+
+-DOCSTART- (31 SPO01)
+City	B	City	Manchester_City_F.C.
+won
+3:2
+against
+the
+Spurs	B	Spurs	Tottenham_Hotspur_F.C.
+.
+
+-DOCSTART- (32 SPO02)
+The
+Gunners	B	Gunners	Arsenal_F.C.
+now
+play
+their
+home
+matches
+at
+the
+Emirates	B	Emirates	Emirates_Stadium
+.
+
+-DOCSTART- (33 SPO03)
+Atletico	B	Atletico	Atlético_Madrid
+has
+beaten
+its
+archrival
+Real	B	Real	Real_Madrid_CF
+.
+
+-DOCSTART- (34 SPO04)
+Müller	B	Müller	Thomas_Müller
+scored
+a
+hattrick
+against
+England	B	England	England_national_football_team
+.
+
+-DOCSTART- (35 SPO05)
+Thomas	B	Thomas	Thomas_Müller
+and
+Mario	B	Mario	Mario_Gómez
+are
+strikers
+playing
+in
+Munich	B	Munich	FC_Bayern_Munich
+.
+
+-DOCSTART- (36 SPO06)
+Haug	B	Haug	Norbert_Haug
+congratulated
+Red	B	Red Bull	FC_Red_Bull_Salzburg
+Bull	I	Red Bull	FC_Red_Bull_Salzburg
+.
+
+-DOCSTART- (37 SPO07)
+Völler	B	Völler	Rudi_Völler
+will
+never
+forget
+the
+match
+against
+Oranje	B	Oranje	Netherlands_national_football_team
+in
+San	B	San Siro	San_Siro
+Siro	I	San Siro	San_Siro
+.
+
+-DOCSTART- (38 SPO08)
+Landgraf	B	Landgraf	Willi_Landgraf
+and
+Meijer	B	Meijer	Erik_Meijer_(footballer)
+played
+at
+the
+Tivoli	B	Tivoli	New_Tivoli
+.
+
+-DOCSTART- (39 SPO09)
+Yabo	B	Yabo	Reinhold_Yabo
+plays
+for
+Aachen	B	Aachen	Alemannia_Aachen
+.
+
+-DOCSTART- (40 SPO10)
+Hertha	B	Hertha	Hertha_BSC
+won
+against
+Dortmund	B	Dortmund	Borussia_Dortmund
+.
+
+-DOCSTART- (41 POL01)
+Nixon	B	Nixon	Richard_Nixon
+resigned
+after
+Watergate	B	Watergate	Watergate_scandal
+despite
+his
+success
+in
+the
+Ping-Pong	B	Ping-Pong Diplomacy	Ping-pong_diplomacy
+Diplomacy	I	Ping-Pong Diplomacy	Ping-pong_diplomacy
+with
+China	B	China	China
+.
+
+-DOCSTART- (42 POL02)
+The	B	The Sun	The_Sun_(United_Kingdom)
+Sun	I	The Sun	The_Sun_(United_Kingdom)
+and
+The	B	The Times	The_Times
+Times	I	The Times	The_Times
+reported
+that
+Greece	B	Greece	Greece
+will
+have
+to
+leave
+the
+Euro	B	Euro	Eurozone
+soon
+.
+
+-DOCSTART- (43 POL03)
+The
+Enola	B	Enola Gay	Enola_Gay
+Gay	I	Enola Gay	Enola_Gay
+bombed
+Hiroshima	B	Hiroshima	Hiroshima
+at
+the
+end
+of
+Second	B	Second World War	World_War_II
+World	I	Second World War	World_War_II
+War	I	Second World War	World_War_II
+.﻿
+
+-DOCSTART- (44 POL04)
+The
+RAF	B	RAF	Red_Army_Faction
+was
+a
+terrorist
+group
+led
+by
+Baader	B	Baader	Andreas_Baader
+and
+Meinhof	B	Meinhof	Ulrike_Meinhof
+that
+killed
+Schleyer	B	Schleyer	Hanns_Martin_Schleyer
+.﻿
+
+-DOCSTART- (45 POL05)
+Onassis	B	Onassis	Jacqueline_Kennedy_Onassis
+married
+Kennedy	B	Kennedy	John_F._Kennedy
+on
+October
+20
+,
+1968
+.
+
+-DOCSTART- (46 POL06)
+Armstrong	B	Armstrong	Neil_Armstrong
+was
+the
+first
+man
+on
+the
+Moon	B	Moon	Moon
+.
+
+-DOCSTART- (47 POL07)
+Erich	B	Erich	Erich_Honecker
+was
+born
+in
+Neunkirchen	B	Neunkirchen	Neunkirchen,_Saarland
+.
+
+-DOCSTART- (48 POL08)
+Macedonia	B	Macedonia	Macedonia_(Greece)
+is
+a
+province
+of
+Greece	B	Greece	Greece
+.
+
+-DOCSTART- (49 POL09)
+Obama	B	Obama	Barack_Obama
+welcomed
+Merkel	B	Merkel	Angela_Merkel
+upon
+her
+arrival
+at
+JFK	B	JFK	John_F._Kennedy_International_Airport
+.
+
+-DOCSTART- (50 POL10)
+Kennedy	B	Kennedy	John_P._Kennedy
+was
+also
+an
+active
+politician
+,
+yet
+he
+is
+most
+known
+for
+his
+writings
+,
+some
+of
+which
+he
+published
+under
+the
+name
+of
+Mark
+Littleton
+.

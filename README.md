@@ -8,12 +8,12 @@ You will also need access to https://github.com/neelguha/wikidata-processor. Con
 ## Running
 For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. Replace this with your working directory. Note that the term "mention" and "alias" are used interchangably. We have more detailed descriptions of what each of the following functions do in the main folder's `README.MD`.
 
-0. _Download and extract wikidata_ (place in `/lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json`) and process. This will allow us to more easily query for metadata.
+0. **Download and extract wikidata** (place in `/lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json`) and process. This will allow us to more easily query for metadata.
 
     Expected Time: 15 hours
     `python3 -m processor.process_dump --input_file /lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json --out_dir /lfs/raiders8/0/lorr1/wikidata_sv/processed_batches --language_id sv --num_processes 40`
 
-1. _Make working folder and download wikipedia._
+1. **Make working folder and download wikipedia.**
     ```
     mkdir sv_data
     cd sv_data
@@ -36,7 +36,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     We expect `ls sv_data` to output
     `pageids  sentences  svwiki-20201120-pages-articles-multistream.xml`
 
-2. _Get mapping of all wikipedia ids to QIDs._
+2. **Get mapping of all wikipedia ids to QIDs.**
 
     Expected Time: 20 minutes
     ```
@@ -62,7 +62,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         
     If you run this, you should now have `augmented_alias_map_large.jsonl` in `sv_data`.
 
-3. _Curate alias and candidate mappings._ We mine aliases from Wikipedia hyperlinks. The `min_frequency` param controls the number of times and alias needs to be seen with an entity to count as a potential candidate. We also map all page titles (including redirect) to the QIDs and then merge these QIDs with those from Wikidata.
+3. **Curate alias and candidate mappings.** We mine aliases from Wikipedia hyperlinks. The `min_frequency` param controls the number of times and alias needs to be seen with an entity to count as a potential candidate. We also map all page titles (including redirect) to the QIDs and then merge these QIDs with those from Wikidata.
 
     *Input*: sentence directory (`--sentence_dir`), Wikidata aliases (`--wd_aliases`), mapping of QIDs to Wikipedia titles (`--title_to_qid`)
     
@@ -92,7 +92,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         --processes 10
     ```
 
-4. _Extract KG and Types._ This extract Wikidata metadata for Bootleg models.
+4. **Extract KG and Types.** This extract Wikidata metadata for Bootleg models.
 
     Expected Time: less than 1 hour.
     ```
@@ -138,8 +138,8 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     
     Note that if you'd like to filter the type system or something else, you can. We also support adding a coarser grained type system (we use Hyena) if desired. They are left blank by default.
     
-    (Optional) _Weak labeling._ Our weak labelling pipeline is still being iterated on and optimized. We support labelling pronouns and alternate names of entities. These are the files `add_labels_single_func.py` and `prn_labels.py`. If you'd like to use these, let Laurel know. We hope to release optimized and more modifiable versions of these files by the end of Dec.
-    
+    (Optional) **Weak labeling.** Our weak labelling pipeline is still being iterated on and optimized. We support labelling pronouns and alternate names of entities. These are the files `add_labels_single_func.py` and `prn_labels.py`. If you'd like to use these, let Laurel know. We hope to release optimized and more modifiable versions of these files by the end of Dec.
+<!---
     [comment]: <> Add alternate names will read in the Wikipedia data from the last step along with entity dump and add mentions to sentences based on two heuristics. (1) If an alias for QIDX appears on QIDX's Wikipedia page, assume that alias points to QIDX. (2) If aliasY uniquely (or very often) points to QIDY on QIDX's Wikipedia page, add mentions of aliasY in the rest of the page and have them point to QIDY. Further, by default, we perform alias permutation where the aliases of added mentions are chosen to be highly conflicting aliases. To turn this off add (`--no_permute_alias`). If you do not want to use heuristic (2), add (--`no_coref`).
     
     [comment]: <> *Input*: data from step 2
@@ -151,6 +151,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     [comment]: <> *Input*: data from step 3
     
     [comment]: <> *Output*: the same Wikipedia chunks with pronouns will be in `<output_dir>`.
+-->
 
 5. **Filter data.** This will flatten the document data we've used this far into a sentences and remove sentences that pass some filtering criteria. The `false_filter` means we remove no sentences from the training data but arbitrary filters can be added in `my_filter_funcs.py`. This also will filter the entity dump so that QIDs are removed if they are not a candidate for any alias of any gold QID in the dataset. These QIDs are essentially unseen during training so we remove them to reduce memory requirements of the model. We can add these back afterwards by assigning them the embedding of some rare entity. The `disambig_qids` and `benchmark_qids` params are for removing disambiguation pages and making sure all benchmark QIDs are kept in the dump. We lastly truncate candidate lists to only have `mac_candidates` candidates.
 
@@ -173,7 +174,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         --disambig_file '' --benchmark_qids ''
     ```
 
-6. Split data. This will split data by Wikipedia pages (by default). With `--split 10`, 10% of pages will go to test, 10% to dev, and 80% to train.
+6. **Split data.** This will split data by Wikipedia pages (by default). With `--split 10`, 10% of pages will go to test, 10% to dev, and 80% to train.
 
     *Input*: data from step 5
     
@@ -187,7 +188,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         --split 10
     ```
 
-7. Slice data (optional). This prepares our data for fast generation of slices that can be used to monitor the model while it's running. The prep steps read in all the training data and computes bag of words for each gold type and relation seen and filters by TFIDF (used for affordance slice). The final step is the fastest for quick iteration on slice definitions.
+7. **Slice data** (optional). This prepares our data for fast generation of slices that can be used to monitor the model while it's running. The prep steps read in all the training data and computes bag of words for each gold type and relation seen and filters by TFIDF (used for affordance slice). The final step is the fastest for quick iteration on slice definitions.
     
     *Input*: data from step 6
     

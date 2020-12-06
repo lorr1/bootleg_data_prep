@@ -11,6 +11,8 @@ python3 -m contextual_embeddings.bootleg_data_prep.prep_generate_slices_part2 --
 import argparse
 import glob
 import logging
+import shutil
+
 from sklearn.feature_extraction import text
 import numpy as np
 import jsonlines
@@ -26,7 +28,7 @@ from tqdm import tqdm
 
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg_data_prep.utils.constants import ENTITYWORDS, TYPEWORDS, RELATIONWORDS, VOCABFILE, VOCAB
+from bootleg_data_prep.utils.constants import TYPEWORDS, RELATIONWORDS, VOCABFILE, VOCAB
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 import bootleg_data_prep.utils.entity_symbols_for_signals as esfs
 
@@ -65,7 +67,6 @@ def parse_args():
 def create_entity_symbols_for_slices(args, entity_symbols):
     entity_dump_dir = os.path.join(args.data_dir, f"{args.subfolder_name}", "entity_db/entity_mappings")
     tri_collection, qid2typeid_hy, qid2typeid_wd, qid2typeid_rel, rel_mapping, rel_tri, rel_vocab_inv = esfs.load_tri_collection(args, entity_symbols)
-    entity_words = esfs.init_entity_words()
     affordance_types = esfs.init_type_words()
     affordance_rel_types = esfs.init_type_words()
     # We could load vocab if we wanted, but we don't need it for anything
@@ -88,7 +89,6 @@ def create_entity_symbols_for_slices(args, entity_symbols):
         contextual_rel_vocab_inv=rel_vocab_inv,
         affordance_types=affordance_types,
         affordance_rel_types=affordance_rel_types,
-        entity_words=entity_words,
         vocab=vocab)
     logging.info(f"Finished building entity symbols")
     return entity_dump_for_slices
@@ -190,14 +190,12 @@ def subprocess_get_word_bags(all_args):
     start_time = time.time()
     idx, total, temp_outdir, args, in_filepath = all_args
     # create output files:
-    out_fname_bag = os.path.join(temp_outdir, os.path.splitext(os.path.basename(in_filepath))[0] + f"_{ENTITYWORDS}.json")
     out_fname_types = os.path.join(temp_outdir, os.path.splitext(os.path.basename(in_filepath))[0] + f"_{TYPEWORDS}.json")
     out_fname_relations = os.path.join(temp_outdir, os.path.splitext(os.path.basename(in_filepath))[0] + f"_{RELATIONWORDS}.json")
     out_fname_qid_exist = os.path.join(temp_outdir, os.path.splitext(os.path.basename(in_filepath))[0] + f"_{QIDEXISTS}.json")
     out_fname_type_exist = os.path.join(temp_outdir, os.path.splitext(os.path.basename(in_filepath))[0] + f"_{TYPEEXIST}.json")
     out_fname_relations_exist = os.path.join(temp_outdir, os.path.splitext(os.path.basename(in_filepath))[0] + f"_{RELATIONEXIST}.json")
-    print(f"Starting {idx}/{total}. Reading in {in_filepath}. Ouputting to {out_fname_bag} and {out_fname_types}")
-    entity_words = defaultdict(list)
+    print(f"Starting {idx}/{total}. Reading in {in_filepath}. Ouputting to {out_fname_types}")
     type_words = defaultdict(list)
     rel_words = defaultdict(list)
     qid_counts = FreqDist()
@@ -206,18 +204,12 @@ def subprocess_get_word_bags(all_args):
     with jsonlines.open(in_filepath, 'r') as in_file:
         for sent_idx, sent_obj in enumerate(in_file):
             tokens = sent_obj["sentence_tokens"]
-            # tokens_pos = sent_obj["sentence_tokens_pos"]
-            # verb_unigrams = sent_obj["verb_unigrams"]
-            # verb_unigrams_pos = sent_obj["verb_unigrams_pos"]
-            # verb_bigrams = sent_obj["verb_bigrams"]
-            # verb_bigrams_pos = sent_obj["verb_bigrams_pos"]
             qid_spans = sent_obj["spans"]
             if type(qid_spans[0]) is str:
                 qid_spans = [list(map(int, s.split(":"))) for s in qid_spans]
             assert len(qid_spans[0]) == 2, f"Bad Spans {sent_obj}"
             for qid, spans in zip(sent_obj["qids"], qid_spans):
                 qid_counts[qid] += 1
-                entity_words[qid].append(tokens)
                 if entity_symbols_plus_global.qid_in_qid2typeid_wd(qid):
                     types = entity_symbols_plus_global.get_types_wd(qid)
                     # filtered_unigrams = prep_utils.filter_seq_by_span(verb_unigrams, verb_unigrams_pos, spans, threshold=5)
@@ -263,15 +255,14 @@ def subprocess_get_word_bags(all_args):
     # utils.dump_json_file(out_fname_relations, agg_rel_words)
     for k in list(rel_words.keys()):
         rel_words[k] = rel_words[k][:500]
-    utils.dump_json_file(out_fname_bag, entity_words)
     utils.dump_json_file(out_fname_types, type_words)
     utils.dump_json_file(out_fname_relations, rel_words)
     utils.dump_json_file(out_fname_qid_exist, qid_counts)
     utils.dump_json_file(out_fname_type_exist, type_counts)
     utils.dump_json_file(out_fname_relations_exist, rel_counts)
 
-    print(f"Finished {idx}/{total}. Written to {out_fname_bag} and {out_fname_types} and {out_fname_relations}. {time.time() - start_time} seconds."
-          f"Found a total of {len(entity_words)} qids for words and {len(type_words)} types.")
+    print(f"Finished {idx}/{total}. Written to {out_fname_types} and {out_fname_relations}. {time.time() - start_time} seconds."
+          f"Found a total of {len(type_words)} types and {len(rel_words)} relations.")
     return None
 
 
@@ -498,14 +489,12 @@ def main():
 
     # Prep output folders
     # '''
-    out_dir_word = prep_utils.get_outdir(load_dir, os.path.join("entity_db/entity_mappings", f"entity_{ENTITYWORDS}"), remove_old=True)
     out_dir_types = prep_utils.get_outdir(load_dir, os.path.join("entity_db/entity_mappings", f"entity_{TYPEWORDS}"), remove_old=True)
     out_dir_rels = prep_utils.get_outdir(load_dir, os.path.join("entity_db/entity_mappings", f"entity_{RELATIONWORDS}"), remove_old=True)
-    logging.info(f"Saving entity words and type words in {out_dir_word} and {out_dir_types} and {out_dir_rels}")
+    logging.info(f"Saving entity words and type words in {out_dir_types} and {out_dir_rels}")
     # There are other stats in stats, so don't remove stats
     out_dir_temp = prep_utils.get_outdir(load_dir, os.path.join("stats", "bags_temp"), remove_old=True)
     out_dir_temp_tfidf = prep_utils.get_outdir(load_dir, os.path.join("stats", "bags_temp/tfidf_res"), remove_old=True)
-    vars(args)[f'saved_data_folder_{ENTITYWORDS}'] = out_dir_word
     vars(args)[f'saved_data_folder_{TYPEWORDS}'] = out_dir_types
     vars(args)[f'saved_data_folder_{RELATIONWORDS}'] = out_dir_rels
     vars(args)[f'save_data_folder_{VOCABFILE}'] = vocab_out_file
@@ -545,32 +534,7 @@ def main():
     # Counts of words associated with QIDs
     # Each file is mapping of qid to list of list of tokens in each sentence it appears
     # '''
-    if os.path.exists(os.path.join(out_dir_temp, "AGG_ENTITY_WORDS_FINAL.json")):
-        print(f"Loading agg entity words final")
-        agg_entity_words = utils.load_json_file(os.path.join(out_dir_temp, "AGG_ENTITY_WORDS_FINAL.json"))
-    else:
-        qid_word_files = glob.glob(f"{out_dir_temp}/*_{ENTITYWORDS}.json")
-        list_of_qids_dicts = [utils.load_json_file(f) for f in tqdm(qid_word_files, desc="Loading entity files")]
-        agg_entity_words = aggregate_list_of_tokens(list_of_qids_dicts)
-        utils.dump_json_file(os.path.join(out_dir_temp, "AGG_ENTITY_WORDS_FINAL.json"), agg_entity_words)
 
-    # temp = defaultdict(int)
-    # for q in tqdm(agg_entity_words):
-    #     wds = set()
-    #     for s in agg_entity_words[q]:
-    #         for i in s:
-    #             wds.add(i)
-    #     for w in wds:
-    #         temp[w] += 1
-    #
-    # vocab_temp = marisa_trie.Trie().mmap(vocab_out_file)
-    # inv_vocab = {vocab_temp[k]:k for k in vocab_temp}
-
-    tifidf_entity_words = compute_tfidf(agg_entity_words, vocab_out_file, args.top_k_entity_words, out_dir_temp_tfidf, args.processes)
-    save_as_trie(args, tifidf_entity_words, out_dir_word, ENTITYWORDS, args.top_k_entity_words)
-    # '''
-    print("Done with entity tfidf")
-    # '''
     # Counts of verbs associated with types
     if os.path.exists(os.path.join(out_dir_temp, "AGG_TYPE_WORDS_FINAL.json")):
         print(f"Loading agg type words final")
@@ -602,7 +566,7 @@ def main():
     print(f"Done gathering counts and aggregating...")
     # remove temp
     print(f"Removing temporary files from f{out_dir_temp}")
-    # shutil.rmtree(out_dir_temp)
+    shutil.rmtree(out_dir_temp)
     print(f"Finished prep_generate_slices in {time.time() - gl_start} seconds.")
 
 

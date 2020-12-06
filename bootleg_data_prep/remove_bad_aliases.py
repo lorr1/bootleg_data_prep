@@ -41,7 +41,7 @@ def parse_args():
     parser.add_argument('--out_subdir', type=str, default='alias_filtered_sentences', help='Subdirectory to save filtered sentences.')
     parser.add_argument('--title_to_qid', type=str, default='/lfs/raiders10/0/lorr1/title_to_all_ids.jsonl', help='Mapping of pageids to and titles to QIDs.')
     parser.add_argument('--alias_filter', type = str, default = 'alias_to_qid_filter.json', help = 'Path to JSON with alias filter (maps each alias to a set of appropriate QIDs). Inside curate_aliases_subdir.')
-    parser.add_argument('--benchmark_qids', default = "data/utils/benchmark_qids.json", type =str, help = "File of list of QIDS that should be kept in entity dump. This is to ensure the trained model has entity embeddings for these.")
+    parser.add_argument('--benchmark_qids', default = "", type =str, help = "File of list of QIDS that should be kept in entity dump. This is to ensure the trained model has entity embeddings for these.")
     parser.add_argument('--processes', type=int, default=int(50))
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
     args = parser.parse_args()

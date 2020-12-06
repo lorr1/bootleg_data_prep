@@ -243,21 +243,6 @@ def get_same_relations_among_candidates(qids, aliases, entity_symbols_plus):
                 aliases_to_predict_final.add(i)
     return sorted(list(aliases_to_predict_final))
 
-def get_type_in_season_set(qids, entity_symbols_plus):
-    types_of_intersect = {4, 12, 31, 41, 110, 277, 296, 361, 367, 431, 551, 611, 852, 874, 913, 936, 1035, 1465, 1507, 1601, 2128, 2372, 2569,
-                          2737, 2808, 3061, 3094, 3514, 3662, 3788, 3984, 4068, 4550, 4662, 4817, 5017, 5029, 5492, 5508, 6074, 6162, 6547,
-                          6626, 7176, 7177, 7180, 8611, 8992, 9459, 9817, 10398, 10460, 10629, 11687, 11958, 12475, 13111, 13223, 13373, 13617,
-                          14191, 15039, 15218, 15367, 15625, 16294, 16605, 16733, 16789, 17398, 18284, 18364, 18427, 19014, 19332, 21686, 23319,
-                          24464, 24688, 24794, 26161, 26834}
-    aliases_to_predict_final = set()
-    for i, qid in enumerate(qids):
-        if not entity_symbols_plus.qid_in_qid2typeid_wd(qid):
-            continue
-        gold_types = set(entity_symbols_plus.get_types_wd(qid))
-        if len(gold_types.intersection(types_of_intersect)) > 1:
-            aliases_to_predict_final.add(i)
-    return sorted(list(aliases_to_predict_final))
-
 
 # For example: qids [Q1, Q2, Q3] and only Q2 had no type or kg, then output would be [1] as index into QIDs
 def get_no_type_no_kg(qids, entity_symbols_plus):
@@ -286,30 +271,6 @@ def get_no_kg(qids, entity_symbols_plus):
             aliases_to_predict_final.add(i)
     return sorted(list(aliases_to_predict_final))
 
-
-# Returns a true/false list on if QID has no textual cues or not. The TRUE QIDs are the one we keep.
-def do_qids_have_no_textual_cues(qids, sentence_ids, entity_symbols_plus):
-    entity_words = entity_symbols_plus.entity_words
-    # Vocab is a trie with values being a list of length 1 tuples
-    qids_to_ret = [False]*len(qids)
-    if entity_words is None:
-        entity_words = {}
-    for i, qid in enumerate(qids):
-        # May happen if QID is part of test/dev data; bag of words is over train only
-        if qid not in entity_words:
-            qids_to_ret[i] = True
-            continue
-        word_ids = entity_words[qid]
-        # Record tie allows lists of objects, but as we know the max, we control the list ourselves and have a single value map to a tuple
-        assert len(word_ids) == 1
-        word_ids = word_ids[0]
-        # Will return a tuple of word_ids; -1 means NULL word
-        # ids = [w_id for w_id in word_ids if w_id != -1]
-        # sentence_ids will never have a -1
-        assert -1 not in sentence_ids
-        if len(set(word_ids).intersection(sentence_ids)) <= 2:
-            qids_to_ret[i] = True
-    return qids_to_ret
 
 def do_qids_meet_count(qids, entity_symbols_plus, tail_threshold, torso_threshold):
     qids_to_ret = {k: [False for _ in range(len(qids))] for k in [TAILONLY, TORSOONLY, HEADONLY, TOESONLY]}

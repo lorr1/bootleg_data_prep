@@ -139,6 +139,8 @@ def subprocess(all_args):
             del sent_obj["verb_bigrams"]
             del sent_obj["verb_bigrams_pos"]
             del sent_obj["allowed_comma_pos"]
+            del sent_obj["sentence_tokens"]
+            del sent_obj["sentence_tokens_pos"]
             # Converts slice indexes into a probability over each alias
             slice_dict_to_write = make_slice_dict_probabilistic(slice_dict, len(sent_obj['aliases']))
             sent_obj["slices"] = slice_dict_to_write
@@ -157,26 +159,17 @@ def generate_slice_dict(sent_obj, test_stats_dict, tail_threshold, torso_thresho
     aliases_to_measure = sent_obj['aliases']
     spans_to_measure = sent_obj["spans"]
     tokens = sent_obj["sentence_tokens"]
-    # verb_unigrams = sent_obj["verb_unigrams"]
-    # verb_unigrams_pos = sent_obj["verb_unigrams_pos"]
-    # verb_bigrams = sent_obj["verb_bigrams"]
-    # verb_bigrams_pos = sent_obj["verb_bigrams_pos"]
-    # allowed_comma_pos = set(sent_obj["allowed_comma_pos"])
-
 
     # st = time.time()
     # This is used as a filter at the very end to remove head QIDs and to remove other QIDs that can be disambiguated via text
     non_head_cand_qids = [qid != entity_symbols_plus_global.get_qid_cands(al)[0] for al, qid in zip(aliases_to_measure, qids_to_measure)]
     non_single_cand_qids = [len(entity_symbols_plus_global.get_qid_cands(al)) > 1 for al in aliases_to_measure]
-    non_contextual_qids = slice_utils.do_qids_have_no_textual_cues(qids_to_measure, tokens, entity_symbols_plus_global)
     body_part_qids = slice_utils.do_qids_meet_count(qids_to_measure, entity_symbols_plus_global, tail_threshold=tail_threshold, torso_threshold=torso_threshold)
 
-    body_part_qids[NOCTX] = non_contextual_qids
     body_part_qids[NOSINGLE] = non_single_cand_qids
     body_part_qids[NOHEADCAND] = non_head_cand_qids
 
     total_remaining = {
-        NOCTX: sum(non_contextual_qids),
         NOSINGLE: sum(non_single_cand_qids),
         NOHEADCAND: sum(non_head_cand_qids),
         TAILONLY: sum(body_part_qids[TAILONLY]),
@@ -215,13 +208,6 @@ def generate_slice_dict(sent_obj, test_stats_dict, tail_threshold, torso_thresho
     aliases_to_predict_no_ty_no_kg = slice_utils.get_no_type_no_kg(qids_to_measure, entity_symbols_plus_global)
     alias2pred_subslices = generate_body_slices(all_alias2pred_idx, body_part_qids, aliases_to_predict_no_ty_no_kg)
     slices = update_slices(slices, "noTnoR", alias2pred_subslices)
-
-    #**************************
-    # TYPES FOR SEASONS
-    #**************************
-    aliases_to_predict_season = slice_utils.get_type_in_season_set(qids_to_measure, entity_symbols_plus_global)
-    alias2pred_subslices = generate_body_slices(all_alias2pred_idx, body_part_qids, aliases_to_predict_season)
-    slices = update_slices(slices, "season", alias2pred_subslices)
 
     #**************************
     # CONSISTENCY
@@ -278,13 +264,6 @@ def generate_slice_dict(sent_obj, test_stats_dict, tail_threshold, torso_thresho
     # st = time.time()
 
     #**************************
-    # ENTITY AFFORDANCE
-    #**************************
-    alias_to_predict_entity = [i for i in range(len(qids_to_measure)) if non_contextual_qids[i] is False]
-    alias2pred_subslices = generate_body_slices(all_alias2pred_idx, body_part_qids, alias_to_predict_entity)
-    slices = update_slices(slices, "ent_aff", alias2pred_subslices)
-
-    #**************************
     # KG SIGNAL EXISTS
     #**************************
     aliases_to_predict_kg = slice_utils.get_kg_signal(qids_to_measure, aliases_to_measure, entity_symbols_plus_global)
@@ -294,24 +273,21 @@ def generate_slice_dict(sent_obj, test_stats_dict, tail_threshold, torso_thresho
 
 # Generate 7 subslices for the alias_idx: ALL, NO_HEAD+TORSO, NO_HEAD+TAIL, NO_HEAD+TOES, NO_HEAD+CTX+TORSO, NO_HEAD+CTX+TAIL, NO_HEAD+CTX+TOES
 def generate_body_slices(all_alias2pred_idx, body_part_qids, alias_idx):
-    res_subslices = {"all": [], f"{TORSOONLY}": [], f"{TAILONLY}": [], f"{TOESONLY}": [],
-                     f"{NOSINGLE}_all": [], f"{NOSINGLE}_{TORSOONLY}": [], f"{NOSINGLE}_{TAILONLY}": [], f"{NOSINGLE}_{TOESONLY}": [],
-                     f"{NOHEADCAND}_all": [], f"{NOHEADCAND}_{TORSOONLY}": [], f"{NOHEADCAND}_{TAILONLY}": [], f"{NOHEADCAND}_{TOESONLY}": [],
-                     f"{NOSINGLE}_{NOCTX}_all": [], f"{NOSINGLE}_{NOCTX}_{TORSOONLY}": [], f"{NOSINGLE}_{NOCTX}_{TAILONLY}": [], f"{NOSINGLE}_{NOCTX}_{TOESONLY}": []}
+    res_subslices = {
+        "all": [], f"{HEADONLY}": [], f"{TORSOONLY}": [], f"{TAILONLY}": [], f"{TOESONLY}": [],
+        f"{NOSINGLE}_all": [], f"{NOSINGLE}_{HEADONLY}": [], f"{NOSINGLE}_{TORSOONLY}": [], f"{NOSINGLE}_{TAILONLY}": [], f"{NOSINGLE}_{TOESONLY}": [],
+        f"{NOHEADCAND}_all": [], f"{NOHEADCAND}_{HEADONLY}": [], f"{NOHEADCAND}_{TORSOONLY}": [], f"{NOHEADCAND}_{TAILONLY}": [], f"{NOHEADCAND}_{TOESONLY}": [],
+        }
     for i in alias_idx:
         res_subslices["all"].append(all_alias2pred_idx[i])
         if body_part_qids[NOSINGLE][i] is True:
             res_subslices[f"{NOSINGLE}_all"].append(all_alias2pred_idx[i])
-            if body_part_qids[NOCTX][i] is True:
-                res_subslices[f"{NOSINGLE}_{NOCTX}_all"].append(all_alias2pred_idx[i])
         if body_part_qids[NOHEADCAND][i] is True:
             res_subslices[f"{NOHEADCAND}_all"].append(all_alias2pred_idx[i])
         if body_part_qids[TOESONLY][i] is True:
             res_subslices[f"{TOESONLY}"].append(all_alias2pred_idx[i])
             if body_part_qids[NOSINGLE][i] is True:
                 res_subslices[f"{NOSINGLE}_{TOESONLY}"].append(all_alias2pred_idx[i])
-                if body_part_qids[NOCTX][i] is True:
-                    res_subslices[f"{NOSINGLE}_{NOCTX}_{TOESONLY}"].append(all_alias2pred_idx[i])
             if body_part_qids[NOHEADCAND][i] is True:
                 res_subslices[f"{NOHEADCAND}_{TOESONLY}"].append(all_alias2pred_idx[i])
         # NOT MUTUALLY EXCLUSIVE WITH TOES
@@ -319,18 +295,20 @@ def generate_body_slices(all_alias2pred_idx, body_part_qids, alias_idx):
             res_subslices[f"{TAILONLY}"].append(all_alias2pred_idx[i])
             if body_part_qids[NOSINGLE][i] is True:
                 res_subslices[f"{NOSINGLE}_{TAILONLY}"].append(all_alias2pred_idx[i])
-                if body_part_qids[NOCTX][i] is True:
-                    res_subslices[f"{NOSINGLE}_{NOCTX}_{TAILONLY}"].append(all_alias2pred_idx[i])
             if body_part_qids[NOHEADCAND][i] is True:
                 res_subslices[f"{NOHEADCAND}_{TAILONLY}"].append(all_alias2pred_idx[i])
-        elif body_part_qids[TORSOONLY][i] is True:
+        if body_part_qids[TORSOONLY][i] is True:
             res_subslices[f"{TORSOONLY}"].append(all_alias2pred_idx[i])
             if body_part_qids[NOSINGLE][i] is True:
                 res_subslices[f"{NOSINGLE}_{TORSOONLY}"].append(all_alias2pred_idx[i])
-                if body_part_qids[NOCTX][i] is True:
-                    res_subslices[f"{NOSINGLE}_{NOCTX}_{TORSOONLY}"].append(all_alias2pred_idx[i])
             if body_part_qids[NOHEADCAND][i] is True:
                 res_subslices[f"{NOHEADCAND}_{TORSOONLY}"].append(all_alias2pred_idx[i])
+        if body_part_qids[HEADONLY][i] is True:
+            res_subslices[f"{HEADONLY}"].append(all_alias2pred_idx[i])
+            if body_part_qids[NOSINGLE][i] is True:
+                res_subslices[f"{NOSINGLE}_{HEADONLY}"].append(all_alias2pred_idx[i])
+            if body_part_qids[NOHEADCAND][i] is True:
+                res_subslices[f"{NOHEADCAND}_{HEADONLY}"].append(all_alias2pred_idx[i])
     return res_subslices
 
 def update_slices(slices, key, res_subslices):

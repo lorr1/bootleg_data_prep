@@ -108,10 +108,11 @@ Note that if you'd like to filter the type system or something else, you can. We
     --train_in_candidates \
     --subfolder_name full_wiki \
     --max_candidates 30 \
-    --sentence_filter_func sentence_filter_short \
+    --sentence_filter_func false_filter \
     --orig_dir alias_filtered_sentences \
+    --no_filter_disambig_entities \
     --data_dir /lfs/raiders8/0/lorr1/sv_data/data/wiki_dump \
-    --disambig_file ''`
+    --disambig_file '' --benchmark_qids ''`
 
 6. Split Data
 This will split data by Wikipedia page (by default).

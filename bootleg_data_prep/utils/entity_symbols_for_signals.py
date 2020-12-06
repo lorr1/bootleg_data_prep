@@ -7,7 +7,7 @@ import marisa_trie
 import numpy as np
 
 from bootleg_data_prep.utils import data_prep_utils as prep_utils
-from bootleg_data_prep.utils.constants import QIDCOUNT, ENTITYWORDS, TYPEWORDS, VOCAB, VOCABFILE, ALIAS2QID, QID2TYPEID_HY, \
+from bootleg_data_prep.utils.constants import QIDCOUNT, TYPEWORDS, VOCAB, VOCABFILE, ALIAS2QID, QID2TYPEID_HY, \
     QID2TYPEID_WD, RELMAPPING, CTXRELS, QID2TYPEID_REL, RELATIONWORDS
 from bootleg_data_prep.utils.classes.record_trie_collection import RecordTrieCollection
 from bootleg_data_prep.utils.classes.type_symbols import TypeSymbols
@@ -24,10 +24,6 @@ def init_type_words():
     return {}
 
 
-def init_entity_words():
-    return {}
-
-
 def get_constants_file(dir):
     utils.ensure_dir(os.path.join(dir, f"entity_constants"))
     return os.path.join(dir, f"entity_constants/entity_constants.json")
@@ -41,12 +37,6 @@ def get_contextual_rel_dir(dir):
 
 def get_qid_count_dir(dir):
     res_dir = os.path.join(dir, f"entity_{QIDCOUNT}")
-    utils.ensure_dir(res_dir)
-    return res_dir
-
-
-def get_entity_words_dir(dir):
-    res_dir = os.path.join(dir, f"entity_{ENTITYWORDS}")
     utils.ensure_dir(res_dir)
     return res_dir
 
@@ -92,16 +82,6 @@ def load_qid_count(dir):
     return None
 
 
-def load_entity_words(dir):
-    config_file = os.path.join(dir, "config.json")
-    if utils.exists_dir(config_file):
-        entity_words_config = utils.load_json_file(config_file)
-        entity_words = marisa_trie.RecordTrie(entity_words_config["fmt"]).mmap(os.path.join(dir, f'{ENTITYWORDS}.marisa'))
-        return entity_words
-    else:
-        return None
-
-
 def load_type_words(dir):
     config_file = os.path.join(dir, "config.json")
     if utils.exists_dir(config_file):
@@ -137,7 +117,7 @@ class EntitySymbolsForSlice:
     def __init__(self, entity_dump_dir, entity_symbols, qid_count,
                  tri_collection, max_types, max_types_rel, max_relations, max_candidates, qid2typeid_hy,
                  qid2typeid_wd, qid2typeid_rel, rel_mapping, contextual_rel,
-                 contextual_rel_vocab_inv, affordance_types, affordance_rel_types, entity_words,
+                 contextual_rel_vocab_inv, affordance_types, affordance_rel_types,
                  vocab):
 
         self.entity_dump_dir = entity_dump_dir
@@ -181,7 +161,6 @@ class EntitySymbolsForSlice:
         self.max_candidates = max_candidates
         self.affordance_types = affordance_types
         self.affordance_rel_types = affordance_rel_types
-        self.entity_words = entity_words
         self.contextual_rel_vocab_inv = contextual_rel_vocab_inv
         self.contextual_rel = contextual_rel
         self.vocab = vocab
@@ -261,14 +240,11 @@ class EntitySymbolsForSlice:
         qid_count = load_qid_count(get_qid_count_dir(entity_dump_dir))
         tri_collection = RecordTrieCollection(load_dir=get_tri_dir(entity_dump_dir))
         contextual_rel = load_contextual_rels(get_contextual_rel_dir(entity_dump_dir))
-        print(f"Reading in existing entity word bags from {get_entity_words_dir(entity_dump_dir)}")
-        entity_words = load_entity_words(get_entity_words_dir(entity_dump_dir))
         vocab = load_vocab(get_words_dir(entity_dump_dir))
         affordance_types = load_type_words(get_type_words_dir(entity_dump_dir))
         affordance_rel_types = load_rel_type_words(get_rel_type_words_dir(entity_dump_dir))
         print(f"TYPE AFF IS NONE {affordance_types is None}")
         print(f"REL TYPE AFF IS NONE {affordance_rel_types is None}")
-        print(f"ENT AFF IS NONE {entity_words is None}")
         assert tri_collection is not None, f"Can't load this way with a None tri_collections as the type mappings are empty"
         entity_symbols = None
         qid2typeid_hy = {}
@@ -278,7 +254,7 @@ class EntitySymbolsForSlice:
         esp = cls(entity_dump_dir, entity_symbols, qid_count,
                  tri_collection, max_types, max_types_rel, max_relations, max_candidates, qid2typeid_hy,
                  qid2typeid_wd, qid2typeid_rel, rel_mapping, contextual_rel,
-                 contextual_rel_vocab_inv, affordance_types, affordance_rel_types, entity_words,
+                 contextual_rel_vocab_inv, affordance_types, affordance_rel_types,
                  vocab)
         return esp
 
@@ -313,7 +289,6 @@ class EntitySymbolsForSlice:
         del state['qid_count']
         del state['tri_collection']
         del state['contextual_rel']
-        del state['entity_words']
         del state['affordance_types']
         del state['affordance_rel_types']
         del state['vocab']
@@ -324,14 +299,11 @@ class EntitySymbolsForSlice:
         self.qid_count = load_qid_count(get_qid_count_dir(self.entity_dump_dir))
         self.tri_collection = RecordTrieCollection(load_dir=get_tri_dir(self.entity_dump_dir))
         self.contextual_rel = load_contextual_rels(get_contextual_rel_dir(self.entity_dump_dir))
-        print(f"Reading in existing entity word bags from {get_entity_words_dir(self.entity_dump_dir)}")
-        self.entity_words = load_entity_words(get_entity_words_dir(self.entity_dump_dir))
         self.vocab = load_vocab(get_words_dir(self.entity_dump_dir))
         self.affordance_types = load_type_words(get_type_words_dir(self.entity_dump_dir))
         self.affordance_rel_types = load_rel_type_words(get_rel_type_words_dir(self.entity_dump_dir))
         print(f"TYPE AFF IS NONE {self.affordance_types is None}")
         print(f"REL TYPE AFF IS NONE {self.affordance_rel_types is None}")
-        print(f"ENT AFF IS NONE {self.entity_words is None}")
 
 
 def load_relations(args, rel_file, all_qids):
@@ -472,20 +444,7 @@ def load_word_bags(args):
     if affordance_rel_types is None:
         affordance_rel_types = {}
     print(f"{len(affordance_rel_types)} for relation affordance_types")
-    # Add in QID bag of words; This is a tri from QID to tuple of word vocab IDs.
-    # The values are padded so that -1 means there were not enough words associated with that QID
-    # to make the full length (see prep_generate_slice.top_k_words)
-    entity_words_path = get_entity_words_dir(entity_dump_dir)
-    print(f"Reading in existing entity word bags from {entity_words_path}")
-    try:
-        entity_words = load_entity_words(entity_words_path)
-    except Exception as e:
-        print(f"Failed to read in bag of words tri: {e}")
-        entity_words = {}
-    if entity_words is None:
-        entity_words = {}
-    print(f"{len(entity_words)} for entity_words")
-    return affordance_types, affordance_rel_types, entity_words
+    return affordance_types, affordance_rel_types
 
 def load_qid_counts(args, entity_dump_dir):
     utils.ensure_dir(get_qid_count_dir(entity_dump_dir))
@@ -531,14 +490,14 @@ def create_entity_symbols_for_slices(args, entity_symbols=None):
     # Note that tri_collection may be None upon return. If so, it gets reconstructed in EntitySymbolsForSlice
     tri_collection, qid2typeid_hy, qid2typeid_wd, qid2typeid_rel, rel_mapping, rel_tri, rel_vocab_inv = load_tri_collection(args, entity_symbols)
     # Stores information about what words are associated with each QID and with each single type and type combination
-    affordance_types, affordance_rel_types, entity_words = load_word_bags(args)
-    # Has a mapping of all indexes used in affordance_types and entity_words to their word counterparts
+    affordance_types, affordance_rel_types = load_word_bags(args)
+    # Has a mapping of all indexes used in affordance_types to their word counterparts
     vocab = load_vocab(get_words_dir(entity_dump_dir))
     print("TYPE QID LENGTHS WIKIDATA", len(qid2typeid_wd), "HYENA", len(qid2typeid_hy), "RELATIONS", len(qid2typeid_rel))
     entity_dump_for_slices = EntitySymbolsForSlice(entity_dump_dir, entity_symbols, qid_count, tri_collection,
                                                    args.max_types, args.max_types_rel, args.max_relations, entity_symbols.max_candidates,
                                                    qid2typeid_hy, qid2typeid_wd, qid2typeid_rel,
-                                                   rel_mapping, rel_tri, rel_vocab_inv, affordance_types, affordance_rel_types, entity_words, vocab)
+                                                   rel_mapping, rel_tri, rel_vocab_inv, affordance_types, affordance_rel_types, vocab)
     print(f"Finished building entity symbols")
     return entity_dump_for_slices
 

@@ -133,8 +133,10 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     ```
     
     At the end, you should have
-    `ls sv_data/embs`
-    `kg_adj_1129.txt  kg_relation_types_1129.json  kg_triples_1129.txt  relation_to_typeid_1129.json  wikidatatitle_to_typeid_1129.json  wikidatatitle_to_typeqid_1129.json  wikidata_types_1129.json`
+    ```
+    ls sv_data/embs
+    >>> kg_adj_1129.txt  kg_relation_types_1129.json  kg_triples_1129.txt  relation_to_typeid_1129.json  wikidatatitle_to_typeid_1129.json  wikidatatitle_to_typeqid_1129.json  wikidata_types_1129.json
+   ```
     
     Note that if you'd like to filter the type system or something else, you can. We also support adding a coarser grained type system (we use Hyena) if desired. They are left blank by default.
     
@@ -160,7 +162,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     *Output*: in `/lfs/raiders8/0/lorr1/sv_data/data/<subfolder_name>/` folder, there will filtered output data. In `/lfs/raiders8/0/lorr1/sv_data/data/<subfolder_name>_stats/` folder, there will be two sets of statistics. One calculated over all mentions (with weak labeling), and one over just mentions from the original Wikipedia data (gold).
     
     Expected Time: less than 1 hour.
-    # subfolder_name is whatever you want to call the folder of the data
+    
     ```
     python3 -m bootleg_data_prep.data_filter \
         --processes 10 \

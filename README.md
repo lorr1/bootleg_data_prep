@@ -8,12 +8,12 @@ You will also need access to https://github.com/neelguha/wikidata-processor. Con
 ## Running
 For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. Replace this with your working directory. Note that the term "mention" and "alias" are used interchangably. We have more detailed descriptions of what each of the following functions do in the main folder's `README.MD`.
 
-0. Download and extract wikidata (place in `/lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json`) and process. This will allow us to more easily query for metadata.
+0. _Download and extract wikidata_ (place in `/lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json`) and process. This will allow us to more easily query for metadata.
 
 Expected Time: 15 hours
 `python3 -m processor.process_dump --input_file /lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json --out_dir /lfs/raiders8/0/lorr1/wikidata_sv/processed_batches --language_id sv --num_processes 40`
 
-1. Make working folder and download wikipedia.
+1. _Make working folder and download wikipedia._
 ```
 mkdir sv_data
 cd sv_data
@@ -36,7 +36,7 @@ Final end time 14728.023938179016s
 We expect `ls sv_data` to output
 `pageids  sentences  svwiki-20201120-pages-articles-multistream.xml`
 
-2. Get mapping of all wikipedia ids to QIDs.
+2. _Get mapping of all wikipedia ids to QIDs._
 
 Expected Time: 20 minutes
 `python3 -m processor.bootleg.get_title_to_ids \
@@ -58,7 +58,17 @@ Expected Time: less than 1 hour
     
 If you run this, you should now have `augmented_alias_map_large.jsonl` in `sv_data`.
 
-3. Curate alias and candidate mappings. We mine aliases from Wikipedia hyperlinks. The `min_frequency` param controls the number of times and alias needs to be seen with an entity to count as a potential candidate. We then merge these aliases with any from Wikidata (if used) and refilter the data to only include valid aliases and QIDs, mapping the Wikipedia entity page titles to QIDs.
+3. _Curate alias and candidate mappings._ We mine aliases from Wikipedia hyperlinks. The `min_frequency` param controls the number of times and alias needs to be seen with an entity to count as a potential candidate. We also map all page titles (including redirect) to the QIDs and then merge these QIDs with those from Wikidata.
+
+*Input*: sentence directory (`--sentence_dir`), Wikidata aliases (`--wd_aliases`), mapping of QIDs to Wikipedia titles (`--title_to_qid`)
+
+*Output*: in `/lfs/raiders8/0/lorr1/sv_data/data/wiki_dump/curate_aliases/` folder, there will be a variety of json outputs regarding what QIDs we filter and why. The necessary output is `alias_to_qid_filter.json` that is used in the next stage.
+
+The next step is to remove bad mentions. We will read in all sentences from Wikipedia and use the previously build alias to QID mapping. This step will go through Wikipedia data and map anchor links to their QIDs. It will drop an anchor link if there is some span issue with the alias, the alias is empty (in the case of odd encoding issues leaving the alias empty), the alias isn't in our set, the title doens't have a QID, the QID is -1, or the QID isn't associated with that alias. We then build our first entity dump by including all QIDs seen in anchor links and all Wikipedia QIDs. We score each entity candidate for each alias based on the global entity popularity.  
+
+*Input*: sentence directory (`--sentence_dir`), previous alias to QID map (`--alias_filter`), mapping of QIDs to Wikipedia titles (`--title_to_qid`)
+
+*Output*: in `/lfs/raiders8/0/lorr1/sv_data/data/wiki_dump/alias_filtered_sentences/` folder, there will be a variety of json outputs regarding what QIDs and aliases we filter and why. We also collect QID counts (`qid_counts.json`) and alias to QID counts (`alias_to_qid_count.json`) from the filtered data. There is also Wikipedia data chunks for the next stage.
 
 Expected Time: less than 1 hour
 - `python3 -m bootleg_data_prep.curate_aliases \
@@ -76,9 +86,7 @@ Expected Time: less than 1 hour
     --benchmark_qids '' \
     --processes 10`
 
-Output expected is `alias_filtered_sentences  curate_aliases  curate_aliases_config.json  remove_bad_aliases_config.json` inside `sv_data`.
-
-4. Extract KG and Types.
+4. _Extract KG and Types._ This extract Wikidata metadata for Bootleg models.
 
 Expected Time: less than 1 hour.
 `python3 -m processor.bootleg.get_all_wikipedia_triples \
@@ -120,10 +128,28 @@ At the end, you should have
 
 Note that if you'd like to filter the type system or something else, you can. We also support adding a coarser grained type system (we use Hyena) if desired. They are left blank by default.
 
-(Optional weak labeling: our weak labelling pipeline is still being iterated on and optimized. We support labelling pronouns and alternate names of entities. These are the files `add_labels_single_func.py` and `prn_labels.py`. If you'd like to use these, let Laurel know. We hope to release optimized and more modifiable versions of these files by the end of Dec.)
+(Optional) _Weak labeling._ Our weak labelling pipeline is still being iterated on and optimized. We support labelling pronouns and alternate names of entities. These are the files `add_labels_single_func.py` and `prn_labels.py`. If you'd like to use these, let Laurel know. We hope to release optimized and more modifiable versions of these files by the end of Dec.
 
-5. Filter data.
-This will flatten the document data we've used this far into a sentences and remove sentences that pass some filtering criteria. The `false_filter` means we remove no sentences from the training data. This also will filter the entity dump so that QIDs are removed if they are not a candidate for any alias of any gold QID in the dataset. These QIDs are essentially unseen during training so we remove them to reduce memory requirements of the model. We can add these back afterwards by assigning them the embedding of some rare entity. The `disambig_qids` and `benchmark_qids` params are for removing disambiguation pages and making sure all benchmark QIDs are kept in the dump.
+# Add alternate names will read in the Wikipedia data from the last step along with entity dump and add mentions to sentences based on two heuristics. (1) If an alias for QIDX appears on QIDX's Wikipedia page, assume that alias points to QIDX. (2) If aliasY uniquely (or very often) points to QIDY on QIDX's Wikipedia page, add mentions of aliasY in the rest of the page and have them point to QIDY. Further, by default, we perform alias permutation where the aliases of added mentions are chosen to be highly conflicting aliases. To turn this off add (`--no_permute_alias`). If you do not want to use heuristic (2), add (--`no_coref`).
+
+# *Input*: data from step 2
+
+# *Output*: in `<subfolder_name>/` folder, there will be a variety of json outputs regarding QID (`filtered_qid_count.json`) counts, alias to QID (`filtered_aliases_to_qid_count.json`) counts from the weakly labelled data, QID (`filtered_qids_to_qids.json`) and alias (`filtered_aliases_to_alias.json`) cooccurrence counts, as well. There is also augmented Wikipedia data chunks.
+
+# Pronoun coref will read in the Wikipedia data form the last step and weakly label pronouns in the data if the pronoun matches the gender of the QID whose page we are on. This is only applicable to people Wikipedia pages. If the `--swap_titles` flag is turned on, the pronoun text in the sentence will be swapped with the QID page title. We use the alias associated with the QID that is the most conflicting (has the most candidates). This is run via `python3 -m bootleg_data_prep.prn_labels <input_dir> <output_dir> <input_dir>/entity_db/entity_mappings` where the last path is to the entity dump you want to use. 
+
+# *Input*: data from step 3
+
+# *Output*: the same Wikipedia chunks with pronouns will be in `<output_dir>`.
+
+
+
+5. _Filter data._
+This will flatten the document data we've used this far into a sentences and remove sentences that pass some filtering criteria. The `false_filter` means we remove no sentences from the training data but arbitrary filters can be added in `my_filter_funcs.py`. This also will filter the entity dump so that QIDs are removed if they are not a candidate for any alias of any gold QID in the dataset. These QIDs are essentially unseen during training so we remove them to reduce memory requirements of the model. We can add these back afterwards by assigning them the embedding of some rare entity. The `disambig_qids` and `benchmark_qids` params are for removing disambiguation pages and making sure all benchmark QIDs are kept in the dump. We lastly truncate candidate lists to only have `mac_candidates` candidates.
+
+*Input*: data from step 4
+
+*Output*: in `/lfs/raiders8/0/lorr1/sv_data/data/<subfolder_name>/` folder, there will filtered output data. In `/lfs/raiders8/0/lorr1/sv_data/data/<subfolder_name>_stats/` folder, there will be two sets of statistics. One calculated over all mentions (with weak labeling), and one over just mentions from the original Wikipedia data (gold).
 
 Expected Time: less than 1 hour.
 # subfolder_name is whatever you want to call the folder of the data
@@ -141,15 +167,29 @@ Expected Time: less than 1 hour.
 6. Split data.
 This will split data by Wikipedia pages (by default). With `--split 10`, 10% of pages will go to test, 10% to dev, and 80% to train.
 
+*Input*: data from step 5
+
+*Output*: in `/lfs/raiders8/0/lorr1/sv_data/data/<subfolder_name>/` folder, there will now be train, test, and dev split folders.
+
 Expected Time: 30 minutes.
 `python3 -m bootleg_data_prep.merge_shuff_split \
     --data_dir /lfs/raiders8/0/lorr1/sv_data/data/wiki_dump \
     --subfolder_name full_wiki \
     --split 10`
 
-7. Slice data (optional). This prepares our data for fast generation of slices that can be used to monitor the model while it's running. The final step is the fastest for quick iteration on slice definitions.
+7. Slice data (optional). This prepares our data for fast generation of slices that can be used to monitor the model while it's running. The prep steps read in all the training data and computes bag of words for each gold type and relation seen and filters by TFIDF (used for affordance slice). The final step is the fastest for quick iteration on slice definitions.
 
-Expected Time: 3 hours.
+*Input*: data from step 6
+
+*Output*: in `/lfs/raiders8/0/lorr1/sv_data/data/wiki_dump/<subfolder_name>/entity_dump` folder, there will be a bag of words folder that stores the Marisa Trie for the TFIDF collections. 
+
+Out final step reads in all data and generates slices based on the slice definitions in `utils/slice_definitions.py` and the slice function in `generate_slices.py`.
+
+*Input*: data from step 6
+
+*Output*: in `/lfs/raiders8/0/lorr1/sv_data/data/wiki_dump/<subfolder_name>_0_-1_final/` folder, there will now be train, test, and dev files along with slices of dev and test.
+
+Expected Time: 4 hours.
 - `python3 -m bootleg_data_prep.prep_generate_slices_part1 \
     --data_dir /lfs/raiders8/0/lorr1/sv_data/data/wiki_dump \
     --subfolder_name full_wiki \

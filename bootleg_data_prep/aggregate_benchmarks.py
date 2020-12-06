@@ -1,5 +1,5 @@
 '''
-This file: Aggregates QIDS from across all benchmarks. Make sure to have generated unfilterd jsonls for each of the benchmarks (see README.MD in benchmarks/)
+This file: Aggregates QIDS from across all benchmarks. Make sure to have generated unfilterd jsonls for each of the benchmarks (see README.md in benchmarks/)
 
 Example run command:
 python3.6 -m contextual_embeddings.bootleg_data_prep.aggregate_benchmarks

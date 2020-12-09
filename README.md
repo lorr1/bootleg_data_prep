@@ -246,7 +246,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     `cp -r sv_data/data/wiki_dump/full_wiki_final_-1_0 <path_to_model_training_data>/full_wiki_train`
 
 ## Run Bootleg Model
-See the Bootleg repo for more instructions. An example config is below to run Bootleg using our `emmental` branch. For speed, you might want to sample data to make the test and dev datasets smaller for eval during training (see `bootleg_emmental/utils/preprocessing/sample_eval_data.py`). See the README on the `emmental` branch for setup instructions. Comments in the YAML file indicate what you need to fill out.
+See the Bootleg repo for more instructions. An example config is below to run Bootleg using our `emmental_master` branch. For speed, you might want to sample data to make the test and dev datasets smaller for eval during training (see `bootleg_emmental/utils/preprocessing/sample_eval_data.py`). See the README on the `emmental` branch for setup instructions. Comments in the YAML file indicate what you need to fill out.
 
 Note if you are using a different language, you might want to use a different BERT backend.
 

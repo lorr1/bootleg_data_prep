@@ -114,7 +114,10 @@ def glob_files(path):
 
 def save_config(args, filename="config.json"):
     vars(args)["current_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    utils.dump_json_file(filename=os.path.join(args.data_dir, filename), contents=vars(args))
+    if hasattr(args, "out_subdir"):
+        utils.dump_json_file(filename=os.path.join(args.data_dir, args.out_subdir, filename), contents=vars(args))
+    else:
+        utils.dump_json_file(filename=os.path.join(args.data_dir, filename), contents=vars(args))
 
 def get_outfname(in_filepath, ending="jsonl"):
     # Gets basename and removes jsonl

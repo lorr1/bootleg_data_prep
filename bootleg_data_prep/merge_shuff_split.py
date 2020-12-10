@@ -137,8 +137,8 @@ def main():
         spl = hash_key % 100
         for key in splits:
             if spl in splits[key]:
-                # remove all non-gold aliases
-                if args.without_weak_label:
+                # if the split is not train, remove all non-gold aliases
+                if (args.without_weak_label):
                     line, removed = keep_only_gold_aliases(line)
                     total_removed += removed
                 # update train stats
@@ -161,7 +161,7 @@ def main():
 
     utils.dump_json_file(out_file_with, alias_qid_with)
     utils.dump_json_file(out_file_without, alias_qid_without)
-    print(f"Finished writing files in {time.time() - start} seconds. Removed {total_removed} non-gold aliases.")
+    print(f"Finished writing files in {time.time() - start} seconds. Removed {total_removed} non-gold aliases from dev and test and train.")
     # Closing files
     for key in tqdm(splits):
         counters[key][1].close()

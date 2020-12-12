@@ -53,7 +53,7 @@ def parse_args():
     parser.add_argument('--no_coref', action='store_true', help = 'Turn on to not do coref.')
     parser.add_argument('--no_permute_alias', action='store_true', help = 'Turn on to not use alias swapping. Swapping avoids aliases with a single qid (trivial), and ensures that labeled aliases have the qid in the top 30 (to avoid being dropped).')
     parser.add_argument('--no_acronyms', action='store_true', help = 'Turn on to not do any acronym mining.')
-    parser.add_argument('--no_weak_labeling', action='store_true', help = 'If set, will not do ANY weak labeling at all')
+    parser.add_argument('--no_weak_labeling', action='store_true', help = 'If set, will not do ANY weak labeling at all. However, it CAN still do permuting for the gold labels unless you also turn on --no_permute_alias')
     parser.add_argument('--processes', type=int, default=int(0.8*multiprocessing.cpu_count()))
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
 

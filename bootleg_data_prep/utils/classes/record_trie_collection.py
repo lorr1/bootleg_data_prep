@@ -5,6 +5,8 @@ import numpy as np
 import marisa_trie
 from typing import Dict, Any, List, Tuple, Callable
 
+from tqdm import tqdm
+
 from bootleg_data_prep.utils import utils
 
 
@@ -87,11 +89,10 @@ class RecordTrieCollection:
 
             self._fmt_types = fmt_types
             self._max_values = max_values
-            self._stoi: Dict[str, int] = vocabulary
+            self._stoi: marisa_trie = vocabulary
             self._itos: np.ndarray = self.get_itos()
             self._record_tris = {}
             for tri_name in self._fmt_types:
-                print("FOUND TRI NAME", tri_name)
                 self._record_tris[tri_name] = self.build_trie(input_dicts[tri_name], self._fmt_types[tri_name], self._max_values[tri_name])
             self._loaded_from_dir = None
 
@@ -108,18 +109,30 @@ class RecordTrieCollection:
                 self._record_tris[tri_name].save(os.path.join(save_dir, f'record_trie_{tri_name}.marisa'))
 
     def load(self, load_dir):
+        import time, sys
+        st = time.time()
         self._fmt_types = utils.load_json_file(filename=os.path.join(load_dir, "fmt_types.json"))
+        print("FMT", time.time()-st)
+        st = time.time()
         self._max_values = utils.load_json_file(filename=os.path.join(load_dir, "max_values.json"))
+        print("MAX", time.time()-st)
+        st = time.time()
         self._stoi = utils.load_json_file(filename=os.path.join(load_dir, "vocabulary.json"))
+        print("STOI", time.time()-st, sys.getsizeof(self._stoi))
+        st = time.time()
         self._itos = np.load(file=os.path.join(load_dir, "itos.npy"), allow_pickle=True)
+        print("ITOS", time.time()-st, sys.getsizeof(self._itos))
+        st = time.time()
         assert self._fmt_types.keys() == self._max_values.keys()
         for tri_name in self._fmt_types:
             assert f'record_trie_{tri_name}.marisa' in os.listdir(load_dir), f"Missing record_trie_{tri_name}.marisa in {load_dir}"
         self._record_tris = {}
         for tri_name in self._fmt_types:
+            st = time.time()
             self._record_tris[tri_name] = marisa_trie.RecordTrie(
                 self._get_fmt_strings[self._fmt_types[tri_name]](self._max_values[tri_name])).mmap(os.path.join(load_dir,
                                                                                                                 f'record_trie_{tri_name}.marisa'))
+            print("READING IN", tri_name, time.time()-st)
 
     def get_itos(self) -> np.ndarray:
         vocabulary_inv = {v:k for k,v in self._stoi.items()}
@@ -129,8 +142,9 @@ class RecordTrieCollection:
 
     def build_trie(self, input_dict: Dict[str, Any], fmt_type: str, max_value: int):
         all_values = []
+        print("Sorting keys")
         all_keys = sorted(list(input_dict.keys()))
-        for key in all_keys:
+        for key in tqdm(all_keys, desc="Building tri"):
             value = input_dict[key]
             new_value = self._get_fmt_funcs_map[fmt_type](max_value=max_value, value=value, vocabulary=self._stoi)
             all_values.append(new_value)

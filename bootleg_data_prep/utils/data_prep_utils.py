@@ -114,7 +114,10 @@ def glob_files(path):
 
 def save_config(args, filename="config.json"):
     vars(args)["current_time"] = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-    utils.dump_json_file(filename=os.path.join(args.data_dir, filename), contents=vars(args))
+    if hasattr(args, "out_subdir"):
+        utils.dump_json_file(filename=os.path.join(args.data_dir, args.out_subdir, filename), contents=vars(args))
+    else:
+        utils.dump_json_file(filename=os.path.join(args.data_dir, filename), contents=vars(args))
 
 def get_outfname(in_filepath, ending="jsonl"):
     # Gets basename and removes jsonl
@@ -155,59 +158,6 @@ def get_lnrm(s):
     lnrm = " ".join(lnrm.split())
     return lnrm
 
-
-def find_aliases_in_sentence_tag(sentence, all_aliases, max_alias_len, special_tag = "|||"):
-    if len(all_aliases) == 0:
-        return [], []
-    words_to_avoid = ["the", "a", "in", "of", "for", "at", "to", "with", "on", "from", special_tag]
-    table = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
-    used_aliases = []
-    sentence_split_raw = sentence.split()
-    tags = nltk.pos_tag(sentence_split_raw)
-    NOUNS = ["NN", "NNS", "NNP", "NNPS", "PRP"]
-    # find largest aliases first
-    for n in range(max_alias_len+1, 0, -1):
-        grams = nltk.ngrams(tags, n)
-        j_st = -1
-        j_end = n-1
-        for gram in grams:
-            j_st += 1
-            j_end += 1
-            gram_words = [g[0] for g in gram]
-            gram_tags = [g[1] for g in gram]
-            # If single word, must be noun (this will get rid of words like "the" or "as")
-            if n == 1 and gram_tags[0] not in NOUNS:
-                continue
-            # For multi word aliases, make sure there is a noun in the phrase somewhere
-            if n > 1 and not any(n in gram_tags for n in NOUNS):
-                continue
-            # If gram starts with stop word, move on because we'd rather try the one without
-            # We also don't want punctuation words to be used at the beginning/end
-            if gram_words[0] in words_to_avoid or gram_words[-1] in words_to_avoid or len(gram_words[0].translate(table).strip()) == 0\
-                    or len(gram_words[-1].translate(table).strip()) == 0:
-                continue
-            gram_attempt = get_lnrm(" ".join(gram_words))
-            # print("NOLRNSM", " ".join(gram_words), "-- GA", gram_attempt, j_st, "to", j_end, "-- in aliases --", gram_attempt in all_aliases)
-            if gram_attempt in all_aliases:
-                keep = True
-                # We start from the largest n-grams and go down in size. This prevents us from adding an alias that is a subset of another.
-                # For example: "Tell me about the mother on how I met you mother" will find "the mother" as alias and "mother". We want to
-                # only take "the mother" and not "mother" as it's likely more descriptive of the real entity.
-                for u_al in used_aliases:
-                    u_j_st = u_al[1]
-                    u_j_end = u_al[2]
-                    if j_st < u_j_end and j_end > u_j_st:
-                        keep = False
-                        break
-                if not keep:
-                    continue
-                # print("Adding", gram_attempt, j_st, j_end)
-                used_aliases.append(tuple([gram_attempt, j_st, j_end]))
-    # sort based on closeness to alias
-    aliases_for_sorting = sorted(used_aliases, key=lambda elem: [elem[1], elem[2]])
-    used_aliases = [a[0] for a in aliases_for_sorting]
-    spans = [[a[1], a[2]] for a in aliases_for_sorting]
-    return used_aliases, spans
 
 # If we find any alias in aliases that is a strict supset of an alias in superset_aliases, we remove it
 # Ex:

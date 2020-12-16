@@ -51,8 +51,9 @@ def parse_args():
     parser.add_argument('--filtered_alias_subdir', type=str, default='alias_filtered_sentences', help = 'Subdirectory to save filtered sentences.')
     parser.add_argument('--out_subdir', type = str, default = 'orig_wl', help = 'Where to write processed data to.')
     parser.add_argument('--no_coref', action='store_true', help = 'Turn on to not do coref.')
-    parser.add_argument('--no_permute_alias', action='store_true', help = 'Turn on to not make the new alias of added entities be the most conflicting.')
+    parser.add_argument('--no_permute_alias', action='store_true', help = 'Turn on to not use alias swapping. Swapping avoids aliases with a single qid (trivial), and ensures that labeled aliases have the qid in the top 30 (to avoid being dropped).')
     parser.add_argument('--no_acronyms', action='store_true', help = 'Turn on to not do any acronym mining.')
+    parser.add_argument('--no_weak_labeling', action='store_true', help = 'If set, will not do ANY weak labeling at all. However, it CAN still do permuting for the gold labels unless you also turn on --no_permute_alias')
     parser.add_argument('--processes', type=int, default=int(0.8*multiprocessing.cpu_count()))
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
 
@@ -67,8 +68,8 @@ def init_process(args):
     qid2singlealias_global = utils.load_json_file(qid2singlealias_f)
     qid2alias_global = utils.load_json_file(qid2alias_f)
     aliasconflict_global = marisa_trie.RecordTrie(fmt="<l").mmap(aliasconflict_f)
-    for qid in qid2alias_global:
-        qid2alias_global[qid] = set(qid2alias_global[qid])
+    # for qid in qid2alias_global:
+    #     qid2alias_global[qid] = set(qid2alias_global[qid])
 
 
 def launch_subprocess(args, outdir, temp_outdir, qid2singlealias, qid2alias, aliasconflict_f, in_files):
@@ -90,13 +91,27 @@ def launch_subprocess(args, outdir, temp_outdir, qid2singlealias, qid2alias, ali
     pool.close()
     return
 
-def choose_new_alias(alias, qid, qid2alias, aliasconflict):
+def choose_new_alias(alias, qid, qid2alias, qid2alias_top30, aliasconflict, doc_ent, sentence_idx):
+    # Set a seed to ensure that across ablations, the aliases chosen will be consistent. For example, if we are processing
+    # the document for "Q123" and are on sentence 55 of that article, and are currently labeling the QID "Q88" then we will
+    # set the seed to 1235588.
+    seed = int(str(doc_ent[1:]) + str(sentence_idx) + str(qid[1:]))
+    random.seed(seed)
     if qid not in qid2alias:
         return alias
-    possible_aliases = [al for al in qid2alias[qid] if aliasconflict[al][0][0] > 1]
-    if len(possible_aliases) <= 0:
+    # If qid is in the top 30 for the alias, and there are at least 2 candidates for that alias, just use that alias
+    if qid2alias[qid][alias] and aliasconflict[alias][0][0] > 1:
         return alias
-    return random.choice(possible_aliases)
+    # Otherwise, find all other aliases for that qid that are in the top 30 and have at least 2 candidates, and randomly choose one
+    possible_aliases = [al for al in qid2alias_top30[qid] if aliasconflict[al][0][0] > 1]
+    if len(possible_aliases) > 0:
+        return random.choice(possible_aliases)
+    # We might be in the situation where there are a bunch of aliases for that qid (and the top 30 condition is met) but they
+    # all have only 1 candidate. That's better than nothing, so in that case, randomly return one of those aliases.
+    if len(qid2alias_top30[qid]) > 0:
+        return random.choice(qid2alias_top30[qid])
+    # If all of the above fail, then just return the original alias
+    return alias
 
 
 def subprocess(all_args):
@@ -107,8 +122,7 @@ def subprocess(all_args):
     # create output files:
     out_fname = os.path.join(outdir, prep_utils.get_outfname(in_filepath))
     out_file = open(out_fname, 'w')
-    print(f"Starting {idx}/{total}. Reading in {in_filepath}. Ouputting to {out_fname}")
-    added_entities = {}
+    print(f"Starting {idx}/{total}. Reading in {in_filepath}. Outputting to {out_fname}")
     filtered_qid_counts = defaultdict(int)
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(int))
     filtered_aliases_cooccurence = defaultdict(lambda: defaultdict(int))
@@ -117,6 +131,14 @@ def subprocess(all_args):
     added_alias_count = 0          # number of weak labels added (not including ones from acronym mining)
     acronym_added_alias_count = 0  # number of weak labels added due to acronym mining
     with jsonlines.open(in_filepath, 'r') as in_file:
+        # Make another dict that stores qid -> aliases but only keeps aliases where that qid is in the top 30 results for that alias
+        # NOTE THAT this is being created from qid2alias_global, NOT from qid_to_aliases_in_doc. This is because we need qid_to_aliases_in_doc
+        # during the weak-label-identifying process, but when swapping out aliases at the end, we can swap to ANY alias for a qid as 
+        # long as it's in the top 30. But keep this in mind if you end up using qid_to_aliases_top_30 for a different purpose!
+        qid_to_aliases_top_30 = {}
+        for q in qid2alias_global:
+            qid_to_aliases_top_30[q] = [x for x in qid2alias_global[q] if qid2alias_global[q][x] is True]
+        
         for doc_idx, doc in enumerate(in_file):
             title = doc['title']
             doc_entity = str(doc['qid'])
@@ -137,7 +159,6 @@ def subprocess(all_args):
                 max_alias_len = 0
                 if len(aliases_to_qids_in_doc) > 0:
                     max_alias_len = max([len(alias.split(" ")) for alias in aliases_to_qids_in_doc.keys()])
-                added_entities[doc_entity] = {}
                 # print(f"Aliases dict {aliases_to_qids_in_doc} QID Dict {qid_to_aliases_in_doc}")
                 new_sentences = []
                 possible_acronyms = {} # dictionary of acronym -> tuple(qid, original alias)
@@ -148,128 +169,136 @@ def subprocess(all_args):
                     # Prep for adding aliases
                     sentence_str = sentence_str.split(" ")
 
-                    if not args.no_acronyms:
-                        # Check if first sentence of article contains same words as the title of the page; if so, add this so we can use it for acronym mining
-                        if sentence_idx == 0 and doc_entity not in sentence['qids']: # don't bother if doc_entity is already linked in the sentence
-                            sent_alias_augmented, sent_span_augmented, sent_qid_augmented = augment_first_sentence(sentence['aliases'], sentence['spans'], sentence['qids'], title,
-                                                                                                                   sentence_str, args, qid2singlealias_global, qid2alias_global, doc_entity)
-                        else: # just copy the originals over
-                            sent_alias_augmented, sent_span_augmented, sent_qid_augmented = sentence['aliases'].copy(), sentence['spans'].copy(), sentence['qids'].copy()
+                    if args.no_weak_labeling:
+                        found_spans, found_aliases, found_qids, found_sources = [], [], [], []
+                    else:
+                        if not args.no_acronyms:
+                            # Check if first sentence of article contains same words as the title of the page; if so, add this so we can use it for acronym mining
+                            if sentence_idx == 0 and doc_entity not in sentence['qids']: # don't bother if doc_entity is already linked in the sentence
+                                sent_alias_augmented, sent_span_augmented, sent_qid_augmented = augment_first_sentence(sentence['aliases'], sentence['spans'], sentence['qids'], title,
+                                                                                                                    sentence_str, args, qid2singlealias_global, qid_to_aliases_in_doc, doc_entity)
+                            else: # just copy the originals over
+                                sent_alias_augmented, sent_span_augmented, sent_qid_augmented = sentence['aliases'].copy(), sentence['spans'].copy(), sentence['qids'].copy()
 
-                        # Search for acronyms defined in the text in parentheses, e.g. "National Football League (NFL)"
-                        paren_acronyms = find_acronyms_from_parentheses(sentence_str, sent_span_augmented, sent_qid_augmented, sent_alias_augmented)
-                        for paren_acronym in paren_acronyms:
-                            # If acronym is already in possible_acronyms for a DIFFERENT qid, then delete that acronym b/c it's unclear which one is correct, e.g. if
-                            # we have both "Australian Broadcasting Company" and "American Bird Conservancy," don't weak-label "ABC" mentions because they're ambiguous.
-                            # NOTE: below, [0] indexes into the tuple (qid, alias) returned by find_acronyms_from_parentheses (and by find_manufactured_acronyms)
-                            if paren_acronym in possible_acronyms and possible_acronyms[paren_acronym][0] != paren_acronyms[paren_acronym][0]:
-                                del possible_acronyms[paren_acronym]
-                            else:
-                                possible_acronyms[paren_acronym] = paren_acronyms[paren_acronym]
-                        
-                        # Find potential acronyms for each named entity by taking the first letter of each word (e.g. "National Football League" --> "NFL")
-                        manufactured_acronyms = find_manufactured_acronyms(sentence_str, sent_span_augmented, sent_qid_augmented, sent_alias_augmented)
-                        for manufac_acronym in manufactured_acronyms:
-                            # Same as above, if acronym is already in dictionary for a DIFFERENT qid then delete entirely
-                            if manufac_acronym in possible_acronyms and possible_acronyms[manufac_acronym][0] != manufactured_acronyms[manufac_acronym][0]:
-                                del possible_acronyms[manufac_acronym]
-                            else:
-                                possible_acronyms[manufac_acronym] = manufactured_acronyms[manufac_acronym]
+                            # Search for acronyms defined in the text in parentheses, e.g. "National Football League (NFL)"
+                            paren_acronyms = find_acronyms_from_parentheses(sentence_str, sent_span_augmented, sent_qid_augmented, sent_alias_augmented)
+                            for paren_acronym in paren_acronyms:
+                                # If acronym is already in possible_acronyms for a DIFFERENT qid, then delete that acronym b/c it's unclear which one is correct, e.g. if
+                                # we have both "Australian Broadcasting Company" and "American Bird Conservancy," don't weak-label "ABC" mentions because they're ambiguous.
+                                # NOTE: below, [0] indexes into the tuple (qid, alias) returned by find_acronyms_from_parentheses (and by find_manufactured_acronyms)
+                                if paren_acronym in possible_acronyms and possible_acronyms[paren_acronym][0] != paren_acronyms[paren_acronym][0]:
+                                    del possible_acronyms[paren_acronym]
+                                else:
+                                    possible_acronyms[paren_acronym] = paren_acronyms[paren_acronym]
+                            
+                            # Find potential acronyms for each named entity by taking the first letter of each word (e.g. "National Football League" --> "NFL")
+                            manufactured_acronyms = find_manufactured_acronyms(sentence_str, sent_span_augmented, sent_qid_augmented, sent_alias_augmented)
+                            for manufac_acronym in manufactured_acronyms:
+                                # Same as above, if acronym is already in dictionary for a DIFFERENT qid then delete entirely
+                                if manufac_acronym in possible_acronyms and possible_acronyms[manufac_acronym][0] != manufactured_acronyms[manufac_acronym][0]:
+                                    del possible_acronyms[manufac_acronym]
+                                else:
+                                    possible_acronyms[manufac_acronym] = manufactured_acronyms[manufac_acronym]
 
-                    # replace spans with a random token -- we don't want aliases to overlap and 
-                    # we don't want to 'refind' aliases that we've already identified.
-                    error = False
-                    for span in sentence['spans']:
-                        start, end = span
-                        if end > len(sentence_str):
-                            error = True 
-                            print(span, sentence_str)
-                            break
-                        for i in range(start, end):
-                            sentence_str[i] = '|||'
-                    if error:
-                        continue
-                    sentence_str = ' '.join(sentence_str)
-                    # st = time.time()
-                    # Find aliases
-                    found_aliases, found_spans = prep_utils.find_aliases_in_sentence_tag(sentence_str, aliases_for_finding, max_alias_len)
-                    # Find aliases that should be filtered
-                    filter_aliases, filter_spans = prep_utils.find_aliases_in_sentence_tag(sentence_str, aliases_for_filtering, max_alias_len)
-                    # print(f"Found aliases in {time.time() - st} seconds.")
-                    # Filter aliases
-                    found_aliases, found_spans = prep_utils.filter_superset_aliases(found_aliases, found_spans, filter_aliases, filter_spans)
-                    found_qids = []
-                    for j in range(len(found_aliases)):
-                        alias = found_aliases[j]
-                        # Replace this aliases with the most conflicting one, if it exists
-                        associated_qid = aliases_to_qids_in_doc[alias]
-                        alias_conflict = 0
-                        if alias in aliasconflict_global:
-                            # The tri stores a list of tuples (in our case, each list is len 1 and each tuple has a single int in it)
-                            assert len(aliasconflict_global[alias]) == 1
-                            assert len(aliasconflict_global[alias][0]) == 1
-                            alias_conflict = aliasconflict_global[alias][0][0]
-                        # print(f"Alias conflict for {alias} is {alias_conflict}")
-                        if args.no_permute_alias and alias_conflict > 1:
-                            new_alias = alias
-                        else:
-                            new_alias = choose_new_alias(alias, associated_qid, qid2alias_global, aliasconflict_global)
-                            # new_alias = qid2singlealias_global.get(associated_qid, alias)
-                            # print(f"Swapping {alias} for {associated_qid} for new alias {new_alias}")
-                        added_alias_count += 1
-                        if not new_alias in added_entities[doc_entity]:
-                            added_entities[doc_entity][new_alias] = 0
-                        added_entities[doc_entity][new_alias] += 1
-                        found_aliases[j] = new_alias
-                        found_qids.append(associated_qid)
-                    
-                    # Add label for the source/type of the weak label
-                    found_sources = []
-                    for found_qid in found_qids:
-                        if found_qid == doc_entity:
-                            found_sources.append('doc_ent') # 'doc_ent' means this label refers to the entity whose Wikipedia page we are on (i.e. the doc entity)
-                        else:
-                            found_sources.append('coref')                 # added by coref
-
-                    if not args.no_acronyms:
-                        # Now for each sentence, check if any of the acronyms in possible_acronyms match any of the words in the sentence 
-                        # (case-sensitive, so "WHO" will be assigned to "World Health Organization" but "who" will not).
-                        # NOTE: currently, this weak labeling method ONLY works for datasets that have upper/lower case words, and won't work 
-                        # if everything is lower case. In that case, a potential solution could be to ensure that acronyms in potential_acronyms 
-                        # are NOT regular English words by comparing them to a standard English corpus such as from nltk.corpus.words
-                        # First, as we did above for sentence['spans'], replace found spans in the sentence with "|||" so we can ignore them, 
-                        # e.g. we don't want to label "NFL" if it is already part of the entity called "2009 NFL Draft"
-                        sentence_str = sentence_str.split()
-                        for span in found_spans:
+                        # replace spans with a random token -- we don't want aliases to overlap and 
+                        # we don't want to 'refind' aliases that we've already identified.
+                        error = False
+                        for span in sentence['spans']:
                             start, end = span
+                            if end > len(sentence_str):
+                                error = True 
+                                print(span, sentence_str)
+                                break
                             for i in range(start, end):
                                 sentence_str[i] = '|||'
-                        # Now check for acronyms in the remaining part of the sentence
-                        for word_idx, word in enumerate(sentence_str):                        
-                            if word == '|||':
-                                continue
-                            # Check if the current word is in possible_acronyms (case sensitive)
-                            if word in possible_acronyms:
-                                if not args.no_permute_alias: # use most conflicting alias
-                                    found_aliases.append(choose_new_alias(possible_acronyms[word][1], possible_acronyms[word][0], qid2alias_global, aliasconflict_global))
-                                    # found_aliases.append(qid2singlealias_global.get(possible_acronyms[word][0]))
-                                else:
-                                    # use acronym itself if it already appears in the alias table for the CORRECT qid
-                                    if word.lower() in qid2alias_global.get(possible_acronyms[word][0]):
-                                        found_aliases.append(word.lower())
-                                    else: # otherwise, use the original alias
-                                        found_aliases.append(possible_acronyms[word][1])
-                                found_spans.append([word_idx, word_idx+1])
-                                found_qids.append(possible_acronyms[word][0])
-                                found_sources.append('acr')
-                                acronym_added_alias_count += 1
+                        if error:
+                            continue
+                        sentence_str = ' '.join(sentence_str)
+                        # st = time.time()
+                        # Find aliases
+                        found_aliases, found_spans = prep_utils.find_aliases_in_sentence_tag(sentence_str, aliases_for_finding, max_alias_len)
+                        # Find aliases that should be filtered
+                        filter_aliases, filter_spans = prep_utils.find_aliases_in_sentence_tag(sentence_str, aliases_for_filtering, max_alias_len)
+                        # print(f"Found aliases in {time.time() - st} seconds.")
+                        # Filter aliases
+                        found_aliases, found_spans = prep_utils.filter_superset_aliases(found_aliases, found_spans, filter_aliases, filter_spans)
+                        found_qids = []
+                        for j in range(len(found_aliases)):
+                            alias = found_aliases[j]
+                            associated_qid = aliases_to_qids_in_doc[alias]
+                            alias_conflict = 0
+                            if alias in aliasconflict_global:
+                                # The tri stores a list of tuples (in our case, each list is len 1 and each tuple has a single int in it)
+                                assert len(aliasconflict_global[alias]) == 1
+                                assert len(aliasconflict_global[alias][0]) == 1
+                                alias_conflict = aliasconflict_global[alias][0][0]
+                            # print(f"Alias conflict for {alias} is {alias_conflict}")
+                            if args.no_permute_alias:
+                                # If not permuting alias, just use the alias. HOWEVER, note that if the qid is not in the top-30 for this alias,
+                                # then this label will be DROPPED from the training set later on. So it is likely recommended to leave permuting
+                                # alias ON to prevent this loss of information
+                                new_alias = alias
+                            else:
+                                new_alias = choose_new_alias(alias, associated_qid, qid2alias_global, qid_to_aliases_top_30, aliasconflict_global, doc_entity, sentence['doc_sent_idx'])
+                                # new_alias = qid2singlealias_global.get(associated_qid, alias)
+                                # print(f"Swapping {alias} for {associated_qid} for new alias {new_alias}")
+                            added_alias_count += 1
+                            found_aliases[j] = new_alias
+                            found_qids.append(associated_qid)
+                        
+                        # Add label for the source/type of the weak label
+                        found_sources = []
+                        for found_qid in found_qids:
+                            if found_qid == doc_entity:
+                                found_sources.append('doc_ent') # 'doc_ent' means this label refers to the entity whose Wikipedia page we are on (i.e. the doc entity)
+                            else:
+                                found_sources.append('coref')                 # added by coref
 
-                    # Now sort found_aliases, found_qids, found_sources, and found_spans based on found_spans (so they are in order 
-                    # of appearance in the sentence)
-                    if len(found_spans) > 1:
-                        zipped = list(zip(found_spans, found_aliases, found_qids, found_sources))
-                        zipped.sort(key = lambda x: x[0][0])
-                        found_spans, found_aliases, found_qids, found_sources = [list(x) for x in zip(*zipped)]
+                        if not args.no_acronyms:
+                            # Now for each sentence, check if any of the acronyms in possible_acronyms match any of the words in the sentence 
+                            # (case-sensitive, so "WHO" will be assigned to "World Health Organization" but "who" will not).
+                            # NOTE: currently, this weak labeling method ONLY works for datasets that have upper/lower case words, and won't work 
+                            # if everything is lower case. In that case, a potential solution could be to ensure that acronyms in potential_acronyms 
+                            # are NOT regular English words by comparing them to a standard English corpus such as from nltk.corpus.words
+                            # First, as we did above for sentence['spans'], replace found spans in the sentence with "|||" so we can ignore them, 
+                            # e.g. we don't want to label "NFL" if it is already part of the entity called "2009 NFL Draft"
+                            sentence_str = sentence_str.split()
+                            for span in found_spans:
+                                start, end = span
+                                for i in range(start, end):
+                                    sentence_str[i] = '|||'
+                            # Now check for acronyms in the remaining part of the sentence
+                            for word_idx, word in enumerate(sentence_str):                        
+                                if word == '|||':
+                                    continue
+                                # Check if the current word is in possible_acronyms (case sensitive)
+                                if word in possible_acronyms:
+                                    if not args.no_permute_alias: # use alias swapping
+                                        if word.lower() in qid_to_aliases_in_doc.get(possible_acronyms[word][0], []):
+                                            found_aliases.append(choose_new_alias(word.lower(), possible_acronyms[word][0], qid2alias_global, qid_to_aliases_top_30, aliasconflict_global, doc_entity, sentence['doc_sent_idx']))
+                                        else:
+                                            found_aliases.append(choose_new_alias(possible_acronyms[word][1], possible_acronyms[word][0], qid2alias_global, qid_to_aliases_top_30, aliasconflict_global, doc_entity, sentence['doc_sent_idx']))
+                                        # found_aliases.append(qid2singlealias_global.get(possible_acronyms[word][0]))
+                                    else:
+                                        # NOTE: that in this else statement, we will NOT permute the alias, so if the qid is not in the top 30 for the alias, 
+                                        # then this label will be dropped later on. You should turn ON permute alias if you don't want it to be dropped.
+                                        
+                                        # Use acronym itself if it already appears in the alias table for the CORRECT qid (but it's not necessarily in the top 30)
+                                        if word.lower() in qid_to_aliases_in_doc.get(possible_acronyms[word][0], []):
+                                            found_aliases.append(word.lower())
+                                        else: # otherwise, use the original alias (again, it's not necessarily in the top 30)
+                                            found_aliases.append(possible_acronyms[word][1])
+                                    found_spans.append([word_idx, word_idx+1])
+                                    found_qids.append(possible_acronyms[word][0])
+                                    found_sources.append('acr')
+                                    acronym_added_alias_count += 1
+
+                        # Now sort found_aliases, found_qids, found_sources, and found_spans based on found_spans (so they are in order 
+                        # of appearance in the sentence)
+                        if len(found_spans) > 1:
+                            zipped = list(zip(found_spans, found_aliases, found_qids, found_sources))
+                            zipped.sort(key = lambda x: x[0][0])
+                            found_spans, found_aliases, found_qids, found_sources = [list(x) for x in zip(*zipped)]
 
                     # We merge the new sentence together
                     #TODO: We can just sort based on the index of the span. this is much faster.
@@ -291,13 +320,20 @@ def subprocess(all_args):
                         else:
                             found_span_start = sent_len
                         if old_span_start < found_span_start:
-                            new_aliases.append(sentence['aliases'][old_index])
+                            # Permute aliases for the gold labels (previously we only permuted the found labels)
+                            temp_alias = sentence['aliases'][old_index]                            
+                            if args.no_permute_alias:
+                                new_aliases.append(temp_alias)
+                            else:
+                                new_aliases.append(choose_new_alias(temp_alias, sentence['qids'][old_index], qid2alias_global, qid_to_aliases_top_30, aliasconflict_global, doc_entity, sentence['doc_sent_idx']))
+                            
                             new_qids.append(sentence['qids'][old_index])
                             new_spans.append(sentence['spans'][old_index])
                             sources.append('gold')
                             old_index += 1
                             from_gold.append(True)
                         else:
+                            # Don't need to worry about permuting aliases here, because that has already been done above for all found aliases
                             new_aliases.append(found_aliases[found_index])
                             new_qids.append(found_qids[found_index])
                             new_spans.append(found_spans[found_index])
@@ -348,7 +384,6 @@ def subprocess(all_args):
 
 def collect_aliases_to_qids_in_doc(doc, qid2alias_global):
     """
-    :param no_coref:
     :param doc:
     :param qid2alias_global:
     :return: aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned
@@ -356,32 +391,36 @@ def collect_aliases_to_qids_in_doc(doc, qid2alias_global):
     The method gathers a dict of alias->qid->count for all qids linked to in a given document, including the aliases that refer to the QID of the Wikipedia page itself.
     These are then pruned to remove aliases that have different qids that appear with similar frequencies (a sign of a noisy alias).
     """
-    aliases_to_qids_in_doc = defaultdict(lambda: defaultdict(int))
+    aliases_to_qids_in_doc = defaultdict(lambda: defaultdict())
     title = doc['title']
     doc_entity = str(doc['qid'])
     assert doc_entity != "-1"
     assert doc_entity in qid2alias_global
     # Add aliases pointing to the document
-    aliases = qid2alias_global[doc_entity]
+    aliases = qid2alias_global[doc_entity].keys()
     for al in aliases:
         assert len(al) > 0
+        top30_bool = qid2alias_global[doc_entity][al] # we want this boolean value to pass through without being dropped
         # We correct this count below when pruning
-        aliases_to_qids_in_doc[al][doc_entity] = 1
+        aliases_to_qids_in_doc[al][doc_entity] = [1, top30_bool]
     # We always add other aliases so when we prune, we can remove highly conflicting aliases to use during weak labelling
     for sentence in doc['sentences']:
         sentence_qids = sentence['qids']
         # Update the aliases_to_qids_in_doc
         for qid in sentence_qids:
             for al in qid2alias_global.get(qid, set()):
-                aliases_to_qids_in_doc[al][qid] += 1
+                top30_bool = qid2alias_global[qid][al] # again just let this pass through without being dropped
+                if qid not in aliases_to_qids_in_doc[al]:
+                    aliases_to_qids_in_doc[al][qid] = [0, top30_bool]
+                aliases_to_qids_in_doc[al][qid][0] += 1
     return prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc)
 
 def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     """doc_entity: QID of page we are on
        aliases_to_qids_in_doc: list of aliases on page -> QID they link to UNION all aliases that point to doc_entity -> doc_entity"""
     aliases_to_qids_in_doc_pruned = {}
-    qid_to_aliases_in_doc_pruned = defaultdict(list)
-    total_qid_count = sum(v for qid_dict in aliases_to_qids_in_doc.values() for v in qid_dict.values())
+    qid_to_aliases_in_doc_pruned = defaultdict(lambda: defaultdict())
+    total_qid_count = sum(v[0] for qid_dict in aliases_to_qids_in_doc.values() for v in qid_dict.values())
     # print(f"Total Count for {doc_entity} is {total_qid_count}")
     # We want to assign some weight of doc_entity aliases -> doc_entity (they are often not actual link in Wikipedia so get a low weight by default)
     doc_entity_perc_of_total = 0.2
@@ -391,23 +430,25 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     doc_entity_count = max(doc_entity_perc_of_total*total_qid_count, 1.0)
     for al in aliases_to_qids_in_doc:
         qid_dict = aliases_to_qids_in_doc[al]
-        # qid_dict is qid -> count of number of times al linked to qid; if only one qid, add it for that alias
+        # qid_dict is qid -> list([count of number of times al linked to qid, top_30_boolean]); if only one qid, add it for that alias
         # otherwise, find the most popular qid if one exists
         if len(qid_dict) == 1:
             qid_to_add = next(iter(qid_dict.keys()))
+            top30_bool = qid_dict[qid_to_add][1]
             # Add the qid to the list of aliases
             aliases_to_qids_in_doc_pruned[al] = qid_to_add
-            qid_to_aliases_in_doc_pruned[qid_to_add].append(al)
+            qid_to_aliases_in_doc_pruned[qid_to_add][al] = top30_bool
         else:
             # Assign the doc entity weight
             if doc_entity in qid_dict:
-                qid_dict[doc_entity] = doc_entity_count
-            sorted_qids = list(sorted(qid_dict.items(), key=lambda x: x[1], reverse=True))
+                qid_dict[doc_entity][0] = doc_entity_count
+            sorted_qids = sorted(qid_dict.items(), key=lambda x: x[1][0], reverse=True)
             # Only add if count is above threshold
-            if sorted_qids[0][1] > popularity_threshold*sorted_qids[1][1]:
+            if sorted_qids[0][1][0] > popularity_threshold*sorted_qids[1][1][0]:
                 qid_to_add = sorted_qids[0][0]
+                top30_bool = sorted_qids[0][1][1]
                 aliases_to_qids_in_doc_pruned[al] = qid_to_add
-                qid_to_aliases_in_doc_pruned[qid_to_add].append(al)
+                qid_to_aliases_in_doc_pruned[qid_to_add][al] = top30_bool
     return aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned
 
 
@@ -417,7 +458,11 @@ def get_qid2aliases(entity_dump, out_dir):
     :param out_dir:
     :return: qid2singlealias a mapping a qid to a single alias; alias is chosen to be the one that has the largest candidate list (most conflicting)
     :return: aliasconflict_f is a memmapped trie (aka a dictionary) from alias to len of that aliases candidate list (i.e., the amount of conflict for that alias)
-    :return: qid2alias a mapping of qid to a list of aliases
+    :return: qid2alias a mapping of qid -> aliases -> boolean value. Basically, each qid is mapped to all of its aliases, and each of those aliases
+             is then mapped to a boolean value. The boolean value indicates whether or not the qid is in the top 30 candidates for that alias. This is important
+             to know, because if the qid is not in the top 30 for that alias, then it will essentially be dropped during weak labeling and training. For example,
+             there are many people with the alias "smith." For someone like Ozzie Smith, who is NOT in the top-30 Smiths, we still want to weak label mentions of
+             "Smith" on his page, but we don't want to actually use "smith" as the alias because it will NEVER return Ozzie Smith during candidate generation.
     """
     # EntitySymbol stores a map of alias-QIDs. We need to build a map of QID->alias
     MAX_CANDS = 30
@@ -434,15 +479,18 @@ def get_qid2aliases(entity_dump, out_dir):
         aliasconfict_values.append(tuple([len(cands)]))
         for idx, qid in enumerate(cands):
             if not qid in qid2alias:
-                qid2alias[qid] = []
-            qid2alias[qid].append(alias)
-
-            if not qid in temp_qid2alias_single:
-                temp_qid2alias_single[qid] = []
-            temp_qid2alias_single[qid].append([alias, len(cands)])
+                qid2alias[qid] = {}
+            if idx < MAX_CANDS:
+                qid2alias[qid][alias] = True # True means this qid is in the top 30 candidates for this alias
+            else:
+                qid2alias[qid][alias] = False # False means this qids is NOT in the top 30 candidates for this alias,
+                                              # so later we will need to swap it for a different alias so it doesn't get dropped
+            # Only use an alias in qid2singlealias if the qid is in the top 30 results for that alias, otherwise it's pointless b/c it will be dropped
+            if idx < MAX_CANDS:
+                if not qid in temp_qid2alias_single:
+                    temp_qid2alias_single[qid] = []
+                temp_qid2alias_single[qid].append([alias, len(cands)])
             
-            if idx >= MAX_CANDS-1:
-                break
     qid2singlealias = {}
     for qid in temp_qid2alias_single:
         aliases = sorted(temp_qid2alias_single[qid], key = lambda x: x[1], reverse=True)
@@ -495,7 +543,7 @@ def main():
     args = parse_args()
     print(json.dumps(vars(args), indent=4))
     outdir = prep_utils.get_outdir(args.data_dir, args.out_subdir, remove_old=True)
-    temp_outdir = prep_utils.get_outdir(args.data_dir, "_temp", remove_old=True)
+    temp_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.out_subdir), "_temp", remove_old=True)
 
     # get inputs files 
     path = os.path.join(args.data_dir, args.filtered_alias_subdir, "*.jsonl")

@@ -213,7 +213,7 @@ def get_span_of_list_in_list(list1, list2):
             return [i, i+len(list1)]
     return None
 
-def augment_first_sentence(sent_aliases, sent_spans, sent_qids, title, sentence_str, args, qid2singlealias, qid2alias, doc_entity):
+def augment_first_sentence(sent_aliases, sent_spans, sent_qids, title, sentence_str, args, qid2singlealias, qid_to_aliases_in_doc, doc_entity):
     '''
     The first sentence of Wikipedia articles often repeat the title/main entity of the page, but it isn't connected
     to an anchor link (e.g. "The World Health Organization (WHO) is..."). But these are useful for acronym mining.
@@ -233,10 +233,10 @@ def augment_first_sentence(sent_aliases, sent_spans, sent_qids, title, sentence_
     # Check if the title of the document appears in the first sentence
     temp_span = get_span_of_list_in_list(title.split(), sentence_str) # returns span of doc_entity in sentence, or None if not in sentence
     if temp_span is not None:
-        if not args.no_permute_alias: # use most conflicting alias
+        if not args.no_permute_alias:
             sentence_aliases_augmented.append(qid2singlealias.get(doc_entity))
         else:
-            if title.lower() in qid2alias.get(doc_entity): # try using the title (but only if it's already in the alias table for the CORRECT qid)
+            if title.lower() in qid_to_aliases_in_doc.get(doc_entity, []): # try using the title (but only if it's already in the alias table for the CORRECT qid)
                 sentence_aliases_augmented.append(title.lower())
             else: # otherwise use the most conflicting alias
                 sentence_aliases_augmented.append(qid2singlealias.get(doc_entity))

@@ -173,6 +173,14 @@ def add_pronoun(doc, gender_id, swap_titles):
     title_possessive_offset = len(title_possessive.split())-1
     doc_alias = qid2alias_global.get(qid, "")
     for sent in sentences:
+        if len(sent["aliases"]) > 0:
+            if type(sent["spans"][0]) is str:
+                sent["spans"] = [list(map(int, s.split(":"))) for s in sent["spans"]]
+            assert len(sent["spans"][0]) == 2
+        if "gold" not in sent:
+            assert "anchor" in sent
+            sent["gold"] = sent["anchor"]
+            del sent["anchor"]
         sentence = sent['sentence']
         # print("OLD", json.dumps(sent, indent=4))
         spans = sent['spans']
@@ -208,7 +216,7 @@ def add_pronoun(doc, gender_id, swap_titles):
             for j in range(len(new_labels)):
                 new_labels[j][2][0] += to_add
                 new_labels[j][2][1] += to_add
-                to_add += new_labels[j][4]
+                to_add += new_labels[j][5]
 
             sent['aliases'] = [t[0] for t in new_labels]
             sent['qids'] = [t[1] for t in new_labels]
@@ -291,7 +299,7 @@ def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False)
     print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
     qid2alias = get_qid2alias(entity_dump)
     # output is hardcoded. see process_file
-    all_files = glob(os.path.join(input_path, "wiki_*.jsonl"), recursive=True)
+    all_files = glob(os.path.join(input_path, "*.jsonl"), recursive=True)
     all_inputs = [tuple([all_files[i], output_path, swap_titles]) for i in range(len(all_files))]
     stats = []
     c = 0

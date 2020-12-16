@@ -7,7 +7,7 @@ import shutil
 import time
 from collections import defaultdict
 from typing import Any, Set
-
+import numpy as np
 import ujson
 from tqdm import tqdm
 
@@ -26,8 +26,8 @@ class WLMetadata:
             alias2qids = {}
             qid2alias = {}
             self.qid2title = entity_dump.get_qid2title()
-            max_cands = 0
-            max_aliases = 0
+            all_alias_len = []
+            all_qid_len = []
             for alias in tqdm(entity_dump.get_all_aliases(), desc="Iterating over aliases"):
                 assert len(alias.strip()) > 0
                 alias2qids[alias] = []
@@ -37,11 +37,21 @@ class WLMetadata:
                         qid2alias[qid] = []
                     qid2alias[qid].append(alias)
                     alias2qids[alias].append(qid)
-                max_cands = max(max_cands, len(alias2qids))
+                all_qid_len.append(len(alias2qids[alias]))
 
             for qid, alias_cands in tqdm(qid2alias.items(), desc="Iterating over qids"):
-                max_aliases = max(max_aliases, len(alias_cands))
-            print("VS", max_cands, entity_dump.max_candidates)
+                all_alias_len.append(len(alias_cands))
+
+            max_cands = 50
+            max_aliases = 50
+            print(f"Average number of connections {np.average(all_qid_len)}, 99.9th percentile {np.percentile(all_qid_len, 99.9)} - Trimming to {max_cands}")
+            print(f"Average number of connections {np.average(all_alias_len)}, 99.9th percentile {np.percentile(all_alias_len, 99.9)} - Trimming to {max_aliases}")
+            for alias in tqdm(list(alias2qids.keys()), desc="Iterating over aliases"):
+                alias2qids[alias] = alias2qids[alias][:max_cands]
+
+            for qid in tqdm(list(qid2alias.keys()), desc="Iterating over qids"):
+                qid2alias[qid] = qid2alias[qid][:max_aliases]
+
             # This maps our keys that we use in the helper functions below to the right tri in tri collection.
             # The values are specific strings as outlines in the record trie collection class
             fmt_types = {ALIAS2QID: "qid_cand"}
@@ -114,7 +124,10 @@ class WLMetadata:
 
     def get_cand_pos(self, alias, qid):
         assert self.contains_alias(alias), f"{alias} not in mapping"
-        return self.tri_collection_qids.get_value(ALIAS2QID, alias, getter=lambda x: x[0]).index(qid)
+        try:
+            return self.tri_collection_qids.get_value(ALIAS2QID, alias, getter=lambda x: x[0]).index(qid)
+        except:
+            return -1
 
     def get_title(self, qid):
         return self.qid2title.get(qid, None)
@@ -124,10 +137,11 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/wiki_dump', help='Directory for data to be saved.')
     parser.add_argument('--filtered_alias_subdir', type=str, default='alias_filtered_sentences', help = 'Subdirectory to save filtered sentences.')
-    parser.add_argument('--out_subdir', type = str, default = 'orig_wl', help = 'Where to write processed data to.')
+    parser.add_argument('--out_subdir', type = str, default = 'test_wl', help = 'Where to write processed data to.')
     parser.add_argument('--no_permute_alias', action='store_true', help = 'Turn on to not make the new alias of added entities be the most conflicting.')
     parser.add_argument('--max_candidates', type=int, default=30)
-    parser.add_argument('--processes', type=int, default=int(0.8*multiprocessing.cpu_count()))
+    parser.add_argument('--processes', type=int, default=int(0.1*multiprocessing.cpu_count()))
+    parser.add_argument('--overwrite', action = 'store_true', help = 'Rebuild WL metadata.')
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
 
     args = parser.parse_args()
@@ -137,11 +151,7 @@ def init_process(wl_metadata_dump):
     global wl_metadata_global
     wl_metadata_global = WLMetadata.load(wl_metadata_dump)
 
-def launch_subprocess(args, outdir, temp_outdir, wl_metadata, in_files):
-
-    wl_metadata_dump = os.path.join(temp_outdir, "wl_metadata")
-    utils.ensure_dir(wl_metadata_dump)
-    wl_metadata.dump(wl_metadata_dump)
+def launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files):
 
     all_process_args = [tuple([i+1,
                                len(in_files),
@@ -167,10 +177,10 @@ def choose_new_alias(max_cands, alias, qid, wl_metadata, doc_ent, sentence_idx):
     if not wl_metadata.contains_qid(qid):
         return alias
     # If qid is in the top 30 for the alias, and there are at least 2 candidates for that alias, just use that alias
-    if wl_metadata.get_cand_pos(alias, qid) < max_cands and wl_metadata.get_num_cands(alias) > 1:
+    if 0 <= wl_metadata.get_cand_pos(alias, qid) < max_cands and wl_metadata.get_num_cands(alias) > 1:
         return alias
-    # Otherwise, find all other aliases for that qid that are in the top 30 and have at least 2 candidates, and randomly choose one
-    top_mc_aliases = [al for al in wl_metadata.get_all_aliases(qid) if wl_metadata.get_cand_pos(al, qid) < max_cands]
+    # Otherwise, find all other aliases for that qid that are in the top 30 and have at least 2 candidates, and randomly choose on
+    top_mc_aliases = [al for al in wl_metadata.get_all_aliases(qid) if 0 <= wl_metadata.get_cand_pos(al, qid) < max_cands]
     top_mc_gtr1_cand_aliases = [al for al in top_mc_aliases if wl_metadata.get_num_cands(al) > 1]
     if len(top_mc_gtr1_cand_aliases) > 0:
         return random.choice(top_mc_gtr1_cand_aliases)
@@ -219,11 +229,6 @@ def subprocess(all_args):
             # Gather all aliases -> qids in the document and qid -> list of aliases
             aliases_to_qids_in_doc, qid_to_aliases_in_doc = collect_aliases_to_qids_in_doc(doc, wl_metadata_global)
 
-            max_alias_len = 0
-            if len(aliases_to_qids_in_doc) > 0:
-                max_alias_len = max([len(alias.split(" ")) for alias in aliases_to_qids_in_doc.keys()])
-            print("MAX LEN", max_alias_len)
-
             new_sentences = []
             for sentence_idx, line in enumerate(doc['sentences']):
                 if len(line['spans']) > 0 and type(line['spans'][0]) is str:
@@ -232,7 +237,7 @@ def subprocess(all_args):
                 orig_spans, orig_qids, orig_aliases, orig_sources = line["spans"], line["qids"], line["aliases"], ["gold"]*len(line["aliases"])
                 added_alias["gold"] += len(orig_aliases)
 
-                lfs = [weak_label_funcs.golds]
+                lfs = [weak_label_funcs.aka]
                 for lf in lfs:
                     assert lf.__name__ != "gold", f"We use the name \"gold\" already for a LF. Please name it something else."
                     st = time.time()
@@ -242,9 +247,9 @@ def subprocess(all_args):
                     new_sources = [lf.__name__]*len(new_aliases)
                     assert len(new_spans) == len(new_qids) == len(new_aliases)
                     added_alias[lf.__name__] += len(new_aliases)
-                    print("SENT:", line["sentence"])
-                    for sp, q, al in zip(new_spans, new_qids, new_aliases):
-                        print("SP:", sp, "AL", al, "Q", q, "LF", lf.__name__)
+                    # print("SENT:", line["sentence"])
+                    # for sp, q, al in zip(new_spans, new_qids, new_aliases):
+                    #     print("SP:", sp, "AL", al, "Q", q, "LF", lf.__name__)
                     print(f"Time for lf {lf.__name__} is {time.time()-st}")
                     orig_spans.extend(new_spans)
                     orig_qids.extend(new_qids)
@@ -253,18 +258,19 @@ def subprocess(all_args):
 
                     orig_spans, orig_qids, orig_aliases, orig_sources = sort_aliases(orig_spans, orig_qids, orig_aliases, orig_sources)
 
-                final_spans, final_qids, final_aliases, final_sources = orig_spans, orig_qids, orig_aliases, orig_sources
+                final_spans, final_qids, final_aliases, final_sources = list(orig_spans), list(orig_qids), list(orig_aliases), list(orig_sources)
                 # Permute aliases if flag is turned on
                 # If not permuting alias, just use the aliases given. HOWEVER, note that if the qid is not in the top-30 for this alias,
                 # then this label will be DROPPED from the training set later on. So it is likely recommended to leave permuting
                 # alias ON to prevent this loss of information
+                st = time.time()
                 if not args.no_permute_alias:
                     for j in range(len(final_aliases)):
                         alias = final_aliases[j]
-                        associated_qid = final_aliases[j]
+                        associated_qid = final_qids[j]
                         new_alias = choose_new_alias(args.max_candidates, alias, associated_qid, wl_metadata_global, doc_entity, line['doc_sent_idx'])
-                        print(f"Swapping {alias} for {associated_qid} for new alias {new_alias}")
                         final_aliases[j] = new_alias
+                print(f"Time for swap {time.time() - st}")
 
                 new_sentences.append({
                     'doc_sent_idx': line['doc_sent_idx'],
@@ -389,11 +395,12 @@ def modify_counts_and_dump(args, entity_dump):
 
 def main():
     gl_start = time.time()
-    multiprocessing.set_start_method("forkserver", force=True)
+    multiprocessing.set_start_method("fork", force=True)
     args = parse_args()
     print(ujson.dumps(vars(args), indent=4))
     outdir = prep_utils.get_outdir(args.data_dir, args.out_subdir, remove_old=True)
     temp_outdir = prep_utils.get_outdir(args.data_dir, "_temp", remove_old=True)
+    temp_metadata_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.filtered_alias_subdir), "_for_rerun_WL", remove_old=False)
 
     # get inputs files 
     path = os.path.join(args.data_dir, args.filtered_alias_subdir, "*.jsonl")
@@ -402,17 +409,23 @@ def main():
     if args.test:
         in_files = in_files[:1]
 
-    # this loads all entity information (aliases, titles, etc)
-    entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
-    print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
+    st = time.time()
+    entity_dump = None
+    wl_metadata_dump = os.path.join(temp_metadata_outdir, "wl_metadata")
+    if not os.path.exists(wl_metadata_dump) or args.overwrite:
+        # this loads all entity information (aliases, titles, etc)
+        print(f"Reading in entity dump...")
+        entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
+        print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
-    wl_metadata = WLMetadata(entity_dump)
-    print(f"Created WL metadata")
-    import ipdb
-    ipdb.set_trace()
+        utils.ensure_dir(wl_metadata_dump)
+        wl_metadata = WLMetadata(entity_dump)
+        wl_metadata.dump(wl_metadata_dump)
+        print(f"Time to create WL metadata {time.time() - st}")
+
     # launch subprocesses and collect outputs
     print(f"Loaded {len(in_files)} files from {path}. Launching {args.processes} processes.")
-    launch_subprocess(args, outdir, temp_outdir, wl_metadata, in_files)
+    launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files)
 
     # Gather new counts
     # Total QID count
@@ -431,6 +444,12 @@ def main():
     # Save counts
     utils.dump_json_file(os.path.join(outdir, "filtered_qid_count.json"), filtered_qid_count)
     utils.dump_json_file(os.path.join(outdir, "filtered_aliases_to_qid_count.json"), filtered_aliases_to_qid)
+
+    if entity_dump is None:
+        print(f"Reading in entity dump...")
+        entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
+        print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
+
     modify_counts_and_dump(args, entity_dump)
     # remove temp
     shutil.rmtree(temp_outdir)

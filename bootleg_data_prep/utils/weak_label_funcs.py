@@ -73,8 +73,8 @@ def find_aliases_in_sentence(sentence, all_aliases, max_alias_len, used_aliases=
                 # For example: "Tell me about the mother on how I met you mother" will find "the mother" as alias and "mother". We want to
                 # only take "the mother" and not "mother" as it's likely more descriptive of the real entity.
                 for u_al in used_aliases:
-                    u_w_st = u_al[1]
-                    u_w_end = u_al[2]
+                    u_w_st = u_al[2]
+                    u_w_end = u_al[3]
                     if span_overlap([w_st, w_end], [u_w_st, u_w_end]) > 0:
                         keep = False
                         break
@@ -92,12 +92,14 @@ def find_aliases_in_sentence(sentence, all_aliases, max_alias_len, used_aliases=
 
 
 def golds(doc_qid, sentence, spans, qids, aliases, document_alias2qids, wl_metadata):
-    return spans, qids, aliases, [True]*len(aliases)
+    final_spans, final_qids, final_aliases = [], [], []
+    return final_spans, final_qids, final_aliases
 
 def aka(doc_qid, sentence, spans, qids, aliases, document_alias2qids, wl_metadata):
-    used_aliases = zip(aliases, qids, zip(*spans))
+    spans_l, spans_r = list(zip(*spans))
+    used_aliases = list(zip(aliases, qids, spans_l, spans_r))
     doc_aliases = wl_metadata.get_all_aliases(doc_qid, set())
-    res_item = find_aliases_in_sentence(sentence, marisa_trie.Trie(document_alias2qids.keys()), max_alias_len=5, used_aliases=used_aliases)
+    res_item = find_aliases_in_sentence(sentence, marisa_trie.Trie(document_alias2qids.keys()), max_alias_len=8, used_aliases=used_aliases)
 
     final_spans, final_qids, final_aliases = [], [], []
     for al, q, sp_l, sp_r in res_item:

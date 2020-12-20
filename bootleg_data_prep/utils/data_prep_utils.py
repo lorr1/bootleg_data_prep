@@ -39,25 +39,34 @@ def load_qid_title_map(title_to_qid_fpath):
     qid_to_all_titles = defaultdict(set)
     wpid_to_qid = {}
     qid_to_title = {}
+    all_rows = []
     with jsonlines.open(title_to_qid_fpath, 'r') as in_file:
         for items in tqdm(in_file, total=15162208):
             # the title is the url title that may be redirected to another wikipedia page
             qid, title, wikidata_title, wikipedia_title, wpid = items['qid'], items['title'], items['wikidata_title'], items['wikipedia_title'], items['id']
             if str(qid) == "-1":
                 continue
+            all_rows.append([qid, title, wikidata_title, wikipedia_title, wpid])
             qid_to_all_titles[qid].add(wikidata_title)
             qid_to_all_titles[qid].add(wikipedia_title)
             qid_to_all_titles[qid].add(title)
 
-            # The title represents a redirect, which we want to keep.
-            # We also want to keep the wikipedia titles
-            # However, as wikidata titles are often repeated, we don't want them to be included in this mapping
-            title_to_qid[title] = qid
+            # We want to keep the wikipedia titles
+            if wikipedia_title in title_to_qid and qid != title_to_qid[wikipedia_title]:
+                print(f"Wikipedia Title {wikipedia_title} for {title_to_qid[wikipedia_title]} already exists and we want {qid}")
             title_to_qid[wikipedia_title] = qid
-            title_to_qid[title.lower()] = qid
-            title_to_qid[wikipedia_title.lower()] = qid
+            # if wikipedia_title.lower() in title_to_qid and qid != title_to_qid[wikipedia_title.lower()]:
+            #     print(f"Wikipedia Title {wikipedia_title.lower()} for {title_to_qid[wikipedia_title.lower()]} already exists and we want {qid}")
+            # title_to_qid[wikipedia_title.lower()] = qid
             qid_to_title[qid] = wikipedia_title
             wpid_to_qid[wpid] = qid
+
+        # The title represents a redirect. We only want to add them if the redirect title does not already point to a QID from Wikipedia.
+        for item in tqdm(all_rows, desc="Adding extra titles"):
+            qid, title, wikidata_title, wikipedia_title, wpid = item
+            if title not in title_to_qid:
+                title_to_qid[title] = qid
+
     print(f"Loaded title-qid map for {len(title_to_qid)} titles from {title_to_qid_fpath}. {time.time() - start} seconds.")
     return title_to_qid, qid_to_all_titles, wpid_to_qid, qid_to_title
 
@@ -139,7 +148,7 @@ def get_outdir(save_dir, subfolder, remove_old=False):
 def ngrams(words, n):
     return [ words[i:i+n] for i in range(len(words)-n+1) ]
 
-def get_lnrm(s):
+def get_lnrm(s, stripandlower):
     """Convert a string to its lnrm form
     We form the lower-cased normalized version l(s) of a string s by canonicalizing
     its UTF-8 characters, eliminating diacritics, lower-casing the UTF-8 and
@@ -150,6 +159,8 @@ def get_lnrm(s):
     Returns:
         the lnrm form of the string
     """
+    if not stripandlower:
+        return s
     lnrm = unicodedata.normalize('NFD', str(s))
     lnrm = lnrm.lower()
     lnrm = ''.join([x for x in lnrm if (not unicodedata.combining(x)

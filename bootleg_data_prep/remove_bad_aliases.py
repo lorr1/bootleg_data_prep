@@ -19,6 +19,7 @@ import os
 import shutil
 import sys
 import time
+from html import escape, unescape
 from collections import defaultdict
 from multiprocessing import Queue, Process
 
@@ -32,7 +33,7 @@ import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
 
-# RAIDERS 8: python3 -m contextual_embeddings.bootleg_data_prep.remove_bad_aliases --sentence_dir /lfs/raiders8/0/lorr1/sentences_copy --title_to_qid /lfs/raiders8/0/lorr1/title_to_all_ids.jsonl
+# RAIDERS 8: python3 -m contextual_embeddings.bootleg_data_prep.remove_bad_aliases --sentence_dir /lfs/raiders10/0/lorr1/sentences_copy --title_to_qid /lfs/raiders8/0/lorr1/title_to_all_ids.jsonl
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--sentence_dir', type=str, default='/lfs/raiders10/0/lorr1/sentences_copy', help='Where files saved')
@@ -43,6 +44,7 @@ def parse_args():
     parser.add_argument('--alias_filter', type = str, default = 'alias_to_qid_filter.json', help = 'Path to JSON with alias filter (maps each alias to a set of appropriate QIDs). Inside curate_aliases_subdir.')
     parser.add_argument('--benchmark_qids', default = "", type =str, help = "File of list of QIDS that should be kept in entity dump. This is to ensure the trained model has entity embeddings for these.")
     parser.add_argument('--processes', type=int, default=int(50))
+    parser.add_argument('--stripandlower', action='store_true', help='If set, will stripandlower and strip punctuation of aliases.')
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
     args = parser.parse_args()
     return args
@@ -135,8 +137,14 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
     total_kept = 0
     with jsonlines.open(in_filepath, 'r') as in_file:
         for doc in in_file:
+            title_raw = doc['page_title']
+            title = title_raw
+            if title not in title_to_qid_gl:
+                title = unescape(title_raw)
+            if title not in title_to_qid_gl:
+                title = escape(title_raw)
             new_doc = {
-                'qid': title_to_qid_gl.get(doc['page_title'], "-1"),
+                'qid': title_to_qid_gl.get(title, "-1"),
                 'title': doc['page_title'], 
                 'sentences': []
             }
@@ -157,8 +165,17 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                 if len(sentence['spans']) > 0 and type(sentence['spans'][0]) is str:
                     sentence['spans'] = [list(map(int, s.split(":"))) for s in sentence["spans"]]
                 # Iterate through the aliases in the sentence and check that they match the critera
-                for alias, title, span in zip(sentence['aliases'], sentence['titles'], sentence['spans']):
-                    alias = prep_utils.get_lnrm(alias)
+                for alias, title_raw, span in zip(sentence['aliases'], sentence['titles'], sentence['spans']):
+                    title = title_raw
+                    if title not in title_to_qid_gl:
+                        title = unescape(title_raw)
+                    if title not in title_to_qid_gl:
+                        title = escape(title_raw)
+                    if title not in title_to_qid_gl:
+                        discarded_counts['no_qid'] += 1
+                        discarded_values['no_qid'][alias][title] += 1
+                        continue
+                    alias = prep_utils.get_lnrm(alias, args.stripandlower)
                     if len(alias) <= 0:
                         discarded_counts['len_zero_alias'] += 1
                         discarded_values['len_zero_alias'][alias][title] += 1
@@ -170,11 +187,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                     if alias not in alias_qid_from_curate_gl:
                         discarded_counts['no_alias'] += 1
                         discarded_values['no_alias'][alias][title] += 1
-                        continue 
-                    if title not in title_to_qid_gl:
-                        discarded_counts['no_qid'] += 1
-                        discarded_values['no_qid'][alias][title] += 1
-                        continue 
+                        continue
                     qid = str(title_to_qid_gl[title])
                     if qid not in alias_qid_from_curate_gl[alias]:
                         discarded_counts['not_in_filter'] += 1

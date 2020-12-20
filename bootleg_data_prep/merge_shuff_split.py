@@ -30,7 +30,7 @@ def parse_args():
     parser.add_argument('--subfolder_name', type=str, default="filtered_data")
     parser.add_argument('--without_weak_label', action='store_true', help='Whether to remove non-golds for training data or not. By default they are kept in.')
     parser.add_argument('--hash_keys', nargs="+", default=['parent_qid', 'parent_title'], help='What keys should be use to shuffle the data')
-    parser.add_argument('--sentence_split', action='store_true', help='Whether to make the hash key be based on sentece as well as page')
+    parser.add_argument('--sentence_split', action='store_true', help='Whether to make the hash key be based on sentence as well as page')
     parser.add_argument('--bytes', type=str, default='10M')
     parser.add_argument('--seed', type=int, default=0)
     args = parser.parse_args()

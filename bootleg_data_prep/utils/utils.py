@@ -3,6 +3,7 @@ Useful functions
 '''
 import copy
 from importlib import import_module
+from itertools import islice, chain
 
 import ujson
 import json # we need this for dumping nans
@@ -63,3 +64,42 @@ def get_size(obj, seen=None):
     elif hasattr(obj, '__iter__') and not isinstance(obj, (str, bytes, bytearray)):
         size += sum([get_size(i, seen) for i in obj])
     return size
+
+
+def chunks(iterable, n):
+   """chunks(ABCDE,2) => AB CD E"""
+   iterable = iter(iterable)
+   while True:
+       try:
+           yield chain([next(iterable)], islice(iterable, n-1))
+       except StopIteration:
+           return None
+
+def chunk_file(in_file, out_dir, num_lines, prefix="out_"):
+    ensure_dir(out_dir)
+    out_files = {}
+    total_lines = 0
+    ending = os.path.splitext(in_file)[1]
+    with open(in_file) as bigfile:
+        i = 0
+        while True:
+            try:
+                lines = next(chunks(bigfile, num_lines))
+            except StopIteration:
+                break
+            except RuntimeError:
+                break
+            file_split = os.path.join(out_dir, f"{prefix}{i}{ending}")
+            total_file_lines = 0
+            i += 1
+            with open(file_split, 'w') as f:
+                while True:
+                    try:
+                        line = next(lines)
+                    except StopIteration:
+                        break
+                    total_lines += 1
+                    total_file_lines += 1
+                    f.write(line)
+            out_files[file_split] = total_file_lines
+    return total_lines, out_files

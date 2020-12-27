@@ -33,17 +33,17 @@ TITLE_MAP = {}
 
 def parse_args():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--out_dir', type=str, default='data/msnbc', help='Path to AIDA file')
-    parser.add_argument('--sub_dir', type=str, default='unfiltered', help='Path to AIDA file')
+    parser.add_argument('--out_dir', type=str, default='data/msnbc', help='Path to file')
+    parser.add_argument('--sub_dir', type=str, default='unfiltered', help='Path to file')
     parser.add_argument('--output_format', type = str, default = 'jsonl', choices = ['jsonl', 'txt'])
 
     # Parameters to set! Make sure the output directory reflects this. 
     parser.add_argument('--scope', type=str, default='sentence', choices=['sentence', 'document'], help = 'Scope to consider when disambiguating mentions (e.g. at the document level, at the sentence level, etc)')
 
     # Paths to supplementary files -- do not adjust 
-    parser.add_argument('--title_to_qid', type=str, default='/lfs/raiders7/0/lorr1/title_to_all_ids.jsonl')
-    parser.add_argument('--dataset', type=str, default='contextual_embeddings/bootleg_data_prep/benchmarks/msnbc/raw/', help='Path to Kore50 file')
-    parser.add_argument('--redirect_map', type=str, default='title_redirect.json', help='Path to Kore50 file')
+    parser.add_argument('--title_to_qid', type=str, default='/lfs/raiders8/0/lorr1/title_to_all_ids.jsonl')
+    parser.add_argument('--dataset', type=str, default='/dfs/scratch0/lorr1/bootleg-data-prep/bootleg_data_prep/benchmarks/msnbc/raw/', help='Path to file')
+    parser.add_argument('--redirect_map', type=str, default='/dfs/scratch0/lorr1/bootleg-data-prep/bootleg_data_prep/benchmarks/msnbc/raw/title_redirect.json', help='Path to file')
 
     args = parser.parse_args()
     return args
@@ -63,8 +63,7 @@ class Sentence:
         self.sent_idx_unq = None 
     
     def add_alias(self, alias, span, qid, gold = True):
-        alias = alias.replace(".", "")
-        alias = alias.replace("-", " ")
+        alias = prep_utils.get_lnrm(alias, strip=True, lower=True)
         self.aliases.append(alias)
         self.spans.append(span)
         self.qids.append(qid)
@@ -98,7 +97,7 @@ class QIDMapper:
         self.wpid_to_qid = wpid_to_qid # maps wikipedia page ID to QID
 
         self.title_redirect = {}
-        if os.path.exists(os.path.join(args.dataset, args.redirect_map)):
+        if os.path.exists(args.redirect_map):
             self.title_redirect = json.load(open(os.path.join(args.dataset, args.redirect_map)))
 
     def get_qid_from_url(self, url): 
@@ -145,8 +144,7 @@ def extract_references(fpath):
     return references 
 
 def get_text(fpath):
-    lines = []
-    with open(fpath) as in_file: 
+    with open(fpath) as in_file:
         lines = [line.replace('\n', ' ') for line in in_file]
     return lines
 
@@ -162,7 +160,7 @@ def get_span(alias, sent):
     for i in range(len(sent)):
         if sent[i:i + len(alias)] == alias:
             sent[i:i + len(alias)] = ['|' for _ in range(len(alias))]
-            return f"{i}:{i+len(alias)}", ' '.join(sent).strip()
+            return [i, i+len(alias)], ' '.join(sent).strip()
     print(f"Error. Alias {alias} not found in sentence {sent}")
     return None, None
 
@@ -172,15 +170,15 @@ def create_sentences(references, text, qm):
     reference_index = 0
     for line in text: 
         if len(line) == 0:
-            continue 
+            continue
         total_len += len(line)
         if len(line.strip()) == 0:
-            continue 
+            continue
         line = remove_punctuation(line)
         s = Sentence(line)
         sent_to_mine = line.strip()
         if (reference_index < len(references)) and (int(references[reference_index]['Offset']) < total_len):
-            while int(references[reference_index]['Offset']) < total_len: 
+            while int(references[reference_index]['Offset']) < total_len:
                 alias = references[reference_index]['SurfaceForm']
                 #alias = split_punctuation(alias)
                 wiki_url = references[reference_index]['ChosenAnnotation']
@@ -229,7 +227,7 @@ def create_document(references, text, qm):
                     break
         else:
             pass
-            #print(f"No alias in line: {line}")
+            print(f"No alias in line: {line}")
         #print("\n\n")
     return [s]
 
@@ -272,7 +270,9 @@ def main():
     args = parse_args()
     print(json.dumps(vars(args), indent=4))
     
-    title_to_qid, qid_to_all_titles, wpid_to_qid, qid_to_title = prep_utils.load_qid_title_map(args.title_to_qid)    
+    title_to_qid, qid_to_all_titles, wpid_to_qid, qid_to_title = prep_utils.load_qid_title_map(args.title_to_qid)
+    # title_to_qid = {}
+    # wpid_to_qid = {}
     qm = QIDMapper(title_to_qid, wpid_to_qid, args)
     load_and_dump_sentences(args, qm)
     qm.dump()

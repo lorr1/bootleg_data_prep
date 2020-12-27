@@ -148,7 +148,7 @@ def get_outdir(save_dir, subfolder, remove_old=False):
 def ngrams(words, n):
     return [ words[i:i+n] for i in range(len(words)-n+1) ]
 
-def get_lnrm(s, stripandlower):
+def get_lnrm(s, strip, lower):
     """Convert a string to its lnrm form
     We form the lower-cased normalized version l(s) of a string s by canonicalizing
     its UTF-8 characters, eliminating diacritics, lower-casing the UTF-8 and
@@ -159,12 +159,15 @@ def get_lnrm(s, stripandlower):
     Returns:
         the lnrm form of the string
     """
-    if not stripandlower:
+    if not strip and not lower:
         return s
-    lnrm = unicodedata.normalize('NFD', str(s))
-    lnrm = lnrm.lower()
-    lnrm = ''.join([x for x in lnrm if (not unicodedata.combining(x)
-                                        and x.isalnum() or x == ' ')]).strip()
+    lnrm = str(s)
+    if lower:
+        lnrm = lnrm.lower()
+    if strip:
+        lnrm = unicodedata.normalize('NFD', lnrm)
+        lnrm = ''.join([x for x in lnrm if (not unicodedata.combining(x)
+                                            and x.isalnum() or x == ' ')]).strip()
     # will remove if there are any duplicate white spaces e.g. "the  alias    is here"
     lnrm = " ".join(lnrm.split())
     return lnrm

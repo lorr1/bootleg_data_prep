@@ -43,8 +43,10 @@ def parse_args():
     parser.add_argument('--title_to_qid', type=str, default='/lfs/raiders10/0/lorr1/title_to_all_ids.jsonl', help='Mapping of pageids to and titles to QIDs.')
     parser.add_argument('--alias_filter', type = str, default = 'alias_to_qid_filter.json', help = 'Path to JSON with alias filter (maps each alias to a set of appropriate QIDs). Inside curate_aliases_subdir.')
     parser.add_argument('--benchmark_qids', default = "", type =str, help = "File of list of QIDS that should be kept in entity dump. This is to ensure the trained model has entity embeddings for these.")
+    parser.add_argument('--disambig_qids', type=str, default='data/utils/disambig_qids.json', help="These qids are removed as they refer to disambiguation pages in Wikipedia.")
     parser.add_argument('--processes', type=int, default=int(50))
-    parser.add_argument('--stripandlower', action='store_true', help='If set, will stripandlower and strip punctuation of aliases.')
+    parser.add_argument('--strip', action='store_true', help='If set, will strip punctuation of aliases.')
+    parser.add_argument('--lower', action='store_true', help='If set, will lower case aliases.')
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
     args = parser.parse_args()
     return args
@@ -55,7 +57,7 @@ def print_memory():
     print(f"{int(process.memory_info().rss)/1024**3} GB ({process.memory_percent()}) memory used process {process}")
 
 
-def launch_subprocess(args, outdir, temp_outdir, alias_qid_from_curate, title_to_qid, files):
+def launch_subprocess(args, outdir, temp_outdir, alias_qid_from_curate, title_to_qid, disambig_qids, files):
     # dump jsons to pass
     print_memory()
     print(f"Memory of alias_qid_from_curate {sys.getsizeof(alias_qid_from_curate)/1024**3}")
@@ -71,7 +73,9 @@ def launch_subprocess(args, outdir, temp_outdir, alias_qid_from_curate, title_to
     workers = []
     for i in range(process_count):
         extractor = Process(target=extract_process,
-                            args=(i, jobs_queue, len(files), args, outdir, temp_outdir, alias_qid_from_curate, title_to_qid))
+                            args=(i, jobs_queue, len(files), args, outdir,
+                                  temp_outdir, alias_qid_from_curate, title_to_qid,
+                                  disambig_qids))
         extractor.daemon = True  # only live while parent process lives
         extractor.start()
         workers.append(extractor)
@@ -90,13 +94,14 @@ def launch_subprocess(args, outdir, temp_outdir, alias_qid_from_curate, title_to
         w.join()
     return
 
-def extract_process(j, jobs_queue, len_files, args, outdir, temp_outdir, alias_qid_from_curate, title_to_qid):
+def extract_process(j, jobs_queue, len_files, args, outdir, temp_outdir, alias_qid_from_curate, title_to_qid, disambig_qids):
     print(f"Starting worker extractor {j}")
     global alias_qid_from_curate_gl
     global title_to_qid_gl
-
+    global disambig_qids_gl
     alias_qid_from_curate_gl = alias_qid_from_curate
     title_to_qid_gl = title_to_qid
+    disambig_qids_gl = set(disambig_qids)
     while True:
         job = jobs_queue.get()  # job is (id, in_filepath)
         if job:
@@ -111,7 +116,6 @@ def extract_process(j, jobs_queue, len_files, args, outdir, temp_outdir, alias_q
 
 def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
     # i, total, args, outdir, temp_outdir, in_filepath = all_args
-    print(len(title_to_qid_gl), len(alias_qid_from_curate_gl))
     print_memory()
     print(f"Starting {i}/{len_files}. Reading in {in_filepath}.")
     start = time.time()
@@ -123,20 +127,22 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
     # track the local frequency of alias-to-qids
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(int))
     filtered_qid_count = defaultdict(int)
-    discarded_counts = {'no_alias': 0, 'no_qid': 0, 'not_in_filter': 0, 'span_issue': 0, 'qid_neg_one': 0, 'len_zero_alias': 0}
+    discarded_counts = {'no_alias': 0, 'no_qid': 0, 'not_in_filter': 0, 'span_issue': 0, 'qid_neg_one': 0, 'len_zero_alias': 0, 'disambig_qid': 0}
     discarded_values = {'len_zero_alias': defaultdict(lambda: defaultdict(int)),
                         'no_alias': defaultdict(lambda: defaultdict(int)),
                         'no_qid': defaultdict(lambda: defaultdict(int)),
                         'not_in_filter': defaultdict(lambda: defaultdict(int)),
                         'span_issue': defaultdict(lambda: defaultdict(int)),
-                        'qid_neg_one': defaultdict(lambda: defaultdict(int))}
+                        'qid_neg_one': defaultdict(lambda: defaultdict(int)),
+                        'disambig_qid': defaultdict(lambda: defaultdict(int))}
     entities_kept = {}
     # We want to separately keep track of all wikipage QIDs because a few of them have no incoming links
     # We still want these to be augmented in the next step so must keep these in our entity dump
     wiki_page_qids = set()
     total_kept = 0
+    num_lines = sum(1 for _ in open(in_filepath))
     with jsonlines.open(in_filepath, 'r') as in_file:
-        for doc in in_file:
+        for doc in tqdm(in_file, total=num_lines):
             title_raw = doc['page_title']
             title = title_raw
             if title not in title_to_qid_gl:
@@ -161,7 +167,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                     'qids': [],
                     'spans': []
                 }
-                num_words = len(sentence['sentence'].split(" "))
+                num_words = len(sentence['sentence'].split())
                 if len(sentence['spans']) > 0 and type(sentence['spans'][0]) is str:
                     sentence['spans'] = [list(map(int, s.split(":"))) for s in sentence["spans"]]
                 # Iterate through the aliases in the sentence and check that they match the critera
@@ -175,7 +181,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                         discarded_counts['no_qid'] += 1
                         discarded_values['no_qid'][alias][title] += 1
                         continue
-                    alias = prep_utils.get_lnrm(alias, args.stripandlower)
+                    alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
                     if len(alias) <= 0:
                         discarded_counts['len_zero_alias'] += 1
                         discarded_values['len_zero_alias'][alias][title] += 1
@@ -196,6 +202,10 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                     if qid == "-1":
                         discarded_counts['qid_neg_one'] += 1
                         discarded_values['qid_neg_one'][alias][title] += 1
+                        continue
+                    if qid in disambig_qids_gl:
+                        discarded_counts['disambig_qid'] += 1
+                        discarded_values['disambig_qid'][alias][title] += 1
                         continue
                         
                     entities_kept[qid] = 1
@@ -222,14 +232,22 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
     utils.dump_json_file(os.path.join(temp_outdir, f"discarded_values_{i}.json"), discarded_values)
     return
 
-def make_entity_symbol(alias2qid_from_curate, alias2qids_counts, qid_counts, qid_to_title, benchmark_qids, wiki_page_qids, args):
+def make_entity_symbol(alias2qid_from_curate, qid_counts, qid_to_title, benchmark_qids, disambig_qids, wiki_page_qids, args):
     alias2qids_out = {}
+    print(f"Length of linked qids {len(qid_counts)}. Length of benchmarks {len(benchmark_qids)}. Length of wikipedia {len(wiki_page_qids)}.")
+    # This means all_qids will contain every wikipedia page and benchmark QID (if added) with disambiguation pages removed.
+    # As we will only weak label things that point to Wikipedia pages (either via coref or WL based on page akas), we do
+    # not need to keep non Wikipedia QIDs in at this time.
     all_qids = set(qid_counts.keys()).union(benchmark_qids)
     all_qids = all_qids.union(wiki_page_qids)
     if "-1" in all_qids:
         print(f"Removing -1 from all_qids...this should probably not be in the set")
         all_qids.remove("-1")
+    for qid in disambig_qids:
+        if qid in all_qids:
+            all_qids.remove(qid)
     print(f"There are {len(all_qids)} qids about to be filtered for the entity dump and {len(alias2qid_from_curate)} raw aliases")
+    qid2title_filt = {k:qid_to_title.get(k, k) for k in all_qids}
     max_candidates = 0
     max_alias_len = 0
     for alias in tqdm(list(alias2qid_from_curate.keys())):
@@ -244,13 +262,13 @@ def make_entity_symbol(alias2qid_from_curate, alias2qids_counts, qid_counts, qid
             max_candidates = max(max_candidates, len(new_qids))
             max_alias_len = max(max_alias_len, len(alias.split(" ")))
 
-    print(f"There are {len(alias2qids_out)} aliases going into the entity dump")
+    print(f"There are {len(alias2qids_out)} aliases and {len(qid2title_filt)} QIDs going into the entity dump")
     # Make entity dump object
     entity_dump = EntitySymbols(
         max_candidates=max_candidates,
         max_alias_len=max_alias_len,
         alias2qids=alias2qids_out,
-        qid2title=qid_to_title
+        qid2title=qid2title_filt
     )
     out_dir = os.path.join(args.data_dir, args.out_subdir, "entity_db/entity_mappings")
     vars(args)["entity_dump_dir"] = out_dir
@@ -285,7 +303,17 @@ def main():
     if args.test:
         files = files[:1]
     print(f"Loaded {len(files)} files from {args.sentence_dir}. Launching {args.processes} processes.")
-    launch_subprocess(args, outdir, temp_outdir, alias_qid_from_curate, title_to_qid, files)
+
+    disambig_qids = set()
+    if os.path.exists(args.disambig_qids):
+        with open(args.disambig_qids) as in_file:
+            disambig_qids = json.load(in_file)
+    if len(disambig_qids) == 0:
+        print("*************************\n"*10)
+        print("ZERO disambig qids have been loaded. Did you mean this?")
+    print(f"Loaded {len(disambig_qids)} QIDS from {args.disambig_qids}")
+
+    launch_subprocess(args, outdir, temp_outdir, alias_qid_from_curate, title_to_qid, disambig_qids, files)
 
     # read in dumps
     aliases_to_qid_count_files = glob.glob(f"{temp_outdir}/filtered_aliases_to_qid_count_*")
@@ -310,7 +338,7 @@ def main():
 
     vars(args)["discarded_counts_stats"] = discarded_counts_stats
 
-    benchmark_qids = []
+    benchmark_qids = set()
     if os.path.exists(args.benchmark_qids):
         with open(args.benchmark_qids) as in_file:
             benchmark_qids = json.load(in_file)
@@ -319,7 +347,7 @@ def main():
         print("ZERO benchmark qids have been loaded. Did you mean this?")
     print(f"Loaded {len(benchmark_qids)} QIDS from {args.benchmark_qids}")
 
-    make_entity_symbol(alias_qid_from_curate, alias_to_qid_count, qid_counts, qid_to_title, set(benchmark_qids), wiki_page_qids, args)
+    make_entity_symbol(alias_qid_from_curate, qid_counts, qid_to_title, set(benchmark_qids), disambig_qids, wiki_page_qids, args)
 
     # remove temp
     shutil.rmtree(temp_outdir)

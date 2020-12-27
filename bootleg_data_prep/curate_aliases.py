@@ -40,7 +40,8 @@ def get_arg_parser():
     parser.add_argument('--wd_aliases', type=str, default='/lfs/raiders10/0/lorr1/augmented_alias_map_large_uncased_1216.jsonl',
                         help='Path to directory with JSONL mapping alias to QID')
     parser.add_argument('--min_frequency', type=int, default=2, help='Minimum number of times a QID must appear with an alias')
-    parser.add_argument('--stripandlower', action='store_true', help='If set, will stripandlower and strip punctuation of aliases.')
+    parser.add_argument('--strip', action='store_true', help='If set, will strip punctuation of aliases.')
+    parser.add_argument('--lower', action='store_true', help='If set, will lower case all aliases.')
     parser.add_argument('--test', action='store_true', help='If set, will only generate for one file.')
     parser.add_argument('--processes', type=int, default=int(50))
     return parser
@@ -78,11 +79,11 @@ def subprocess(all_args):
     with jsonlines.open(in_filepath, 'r') as in_file:
         for page_obj in in_file:
             for alias in page_obj.get("bold_aliases", []):
-                alias = prep_utils.get_lnrm(alias, args.stripandlower)
+                alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
                 if len(alias) > 0:
                     boldaliases_to_title[alias][page_obj["page_title"]] += 1
             for alias in page_obj.get("acronym_aliases", []):
-                alias = prep_utils.get_lnrm(alias, args.stripandlower)
+                alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
                 if len(alias) > 0:
                     acronymaliases_to_title[alias][page_obj["page_title"]] += 1
             # aliases is a list of sentences with aliases, their gold wikipedia page title, the text, and spans
@@ -90,7 +91,7 @@ def subprocess(all_args):
                 pairs = zip(sentence["aliases"], sentence["titles"])
                 for alias, title in pairs:
                     # normalize alias
-                    alias = prep_utils.get_lnrm(alias, args.stripandlower)
+                    alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
                     if len(alias) > 0:
                         aliases_to_title[alias][title] += 1
     utils.dump_json_file(outfilename, aliases_to_title)

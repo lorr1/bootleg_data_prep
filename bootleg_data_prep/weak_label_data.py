@@ -163,10 +163,11 @@ def launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files):
     print("Starting pool...")
     pool = multiprocessing.Pool(processes=args.processes, initializer=init_process, initargs=([wl_metadata_dump]))
     print("Starting processes...")
-    for _ in tqdm(pool.imap(subprocess, all_process_args, chunksize=1), total=len(all_process_args)):
-        pass
+    docs_not_qid = set()
+    for docs_not_qid_subset in tqdm(pool.imap(subprocess, all_process_args, chunksize=1), total=len(all_process_args)):
+        docs_not_qid.update(set(docs_not_qid_subset))
     pool.close()
-    return
+    return docs_not_qid
 
 def choose_new_alias(max_cands, alias, qid, wl_metadata, doc_ent, sentence_idx):
     # Set a seed to ensure that across ablations, the aliases chosen will be consistent. For example, if we are processing
@@ -217,7 +218,7 @@ def subprocess(all_args):
     no_qid = []
     added_alias = defaultdict(int)
     with open(in_filepath, 'r') as in_file, open(out_fname, "w") as out_file:
-        for doc_idx, doc in tqdm(enumerate(in_file), total=num_lines, desc=f"Processing {in_file}"):
+        for doc_idx, doc in tqdm(enumerate(in_file), total=num_lines, desc=f"Processing"):
             doc = ujson.loads(doc)
 
             title = doc['title']
@@ -250,7 +251,7 @@ def subprocess(all_args):
                     # print("SENT:", line["sentence"])
                     # for sp, q, al in zip(new_spans, new_qids, new_aliases):
                     #     print("SP:", sp, "AL", al, "Q", q, "LF", lf.__name__)
-                    print(f"Time for lf {lf.__name__} is {time.time()-st}")
+                    # print(f"Time for lf {lf.__name__} is {time.time()-st}")
                     orig_spans.extend(new_spans)
                     orig_qids.extend(new_qids)
                     orig_aliases.extend(new_aliases)
@@ -263,14 +264,14 @@ def subprocess(all_args):
                 # If not permuting alias, just use the aliases given. HOWEVER, note that if the qid is not in the top-30 for this alias,
                 # then this label will be DROPPED from the training set later on. So it is likely recommended to leave permuting
                 # alias ON to prevent this loss of information
-                st = time.time()
+                # st = time.time()
                 if not args.no_permute_alias:
                     for j in range(len(final_aliases)):
                         alias = final_aliases[j]
                         associated_qid = final_qids[j]
                         new_alias = choose_new_alias(args.max_candidates, alias, associated_qid, wl_metadata_global, doc_entity, line['doc_sent_idx'])
                         final_aliases[j] = new_alias
-                print(f"Time for swap {time.time() - st}")
+                # print(f"Time for swap {time.time() - st}")
 
                 new_sentences.append({
                     'doc_sent_idx': line['doc_sent_idx'],
@@ -294,8 +295,7 @@ def subprocess(all_args):
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_qid_counts_{idx}.json"), filtered_qid_counts)
     print(f"Finished {idx}/{total}. Written to {out_fname}. {time.time() - start_time} seconds.")
     print(ujson.dumps(added_alias, indent=4))
-    print("Documents with no QID", no_qid)
-    return None
+    return no_qid
 
 def collect_aliases_to_qids_in_doc(doc, wl_metadata):
     """
@@ -324,7 +324,7 @@ def collect_aliases_to_qids_in_doc(doc, wl_metadata):
             for al in wl_metadata.get_all_aliases(qid, set()):
                 aliases_to_qids_in_doc[al][qid] += 1
     aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned = prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc)
-    print(f"Time for collect aliases", time.time() - st)
+    # print(f"Time for collect aliases", time.time() - st)
     return aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned
 
 def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
@@ -334,7 +334,7 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     aliases_to_qids_in_doc_pruned = {}
     qid_to_aliases_in_doc_pruned = defaultdict(list)
     total_qid_count = sum(v for qid_dict in aliases_to_qids_in_doc.values() for v in qid_dict.values())
-    print(f"Total Count for {doc_entity} is {total_qid_count}")
+    # print(f"Total Count for {doc_entity} is {total_qid_count}")
     # We want to assign some weight of doc_entity aliases -> doc_entity (they are often not actual links in that Wikipedia so get a low weight by default)
     doc_entity_perc_of_total = 0.2
     # This is representing the popularity of the doc entity in a document. If there is some other QID that appears with some alias
@@ -360,7 +360,7 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
                 qid_to_add = sorted_qids[0][0]
                 aliases_to_qids_in_doc_pruned[al] = qid_to_add
                 qid_to_aliases_in_doc_pruned[qid_to_add].append(al)
-    print(f"Time for prune aliases", time.time() - st)
+    # print(f"Time for prune aliases", time.time() - st)
     return aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned
 
 
@@ -425,7 +425,7 @@ def main():
 
     # launch subprocesses and collect outputs
     print(f"Loaded {len(in_files)} files from {path}. Launching {args.processes} processes.")
-    launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files)
+    docs_not_qid = launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files)
 
     # Gather new counts
     # Total QID count
@@ -444,6 +444,8 @@ def main():
     # Save counts
     utils.dump_json_file(os.path.join(outdir, "filtered_qid_count.json"), filtered_qid_count)
     utils.dump_json_file(os.path.join(outdir, "filtered_aliases_to_qid_count.json"), filtered_aliases_to_qid)
+    with open(os.path.join(outdir, "docs_not_qids.json"), "w") as out_f:
+        ujson.dump(docs_not_qid, out_f)
 
     if entity_dump is None:
         print(f"Reading in entity dump...")

@@ -51,11 +51,9 @@ def parse_args():
     parser.add_argument('--prep_file', type=str, default="", help="This will be accessible to the prep_func")
     parser.add_argument('--filter_file', type=str, default="",
                         help = "path to JSON file with QIDs or ALIASES. If you use the sentence filter function sentence_filterQID or sentence_filterAliases then we'll load this files.")
-    parser.add_argument('--disambig_file', type=str, default='data/utils/disambig_qids.json', help="These qids are removed as they refer to disambiguation pages in Wikipedia.")
     parser.add_argument('--max_candidates', type=int, default=30, help="Maximum number of entities to read in for each alias. When there are two many, some of the distance based slices get too small because of the large variability.")
     parser.add_argument('--no_filter_entities_data', action="store_true", help="if turned on, will not filter entity symbols after data filtering")
     parser.add_argument('--train_in_candidates', action='store_true', help='Make all training examples have true labels that are in the candidate set. THIS WILL ALMOST ALWAYS BE SET.')
-    parser.add_argument('--no_filter_disambig_entities', action='store_true', help='Do not filter entities that point to disambiguation pages')
     parser.add_argument('--benchmark_qids', default = "", type =str, help = "List of QIDS that should be kept in entity dump. This is to ensure the trained model has entity embeddings for these.")
     
     # Multiprocessing utilities 
@@ -65,17 +63,9 @@ def parse_args():
     return args
 
 def init_process(args):
-    extras_f, disambig_f = args
+    extras_f = args
     global extras_global
-    global disambig_qids_global
     extras_global = utils.load_pickle_file(extras_f)
-    if disambig_f != "":
-        qids_temp = utils.load_json_file(disambig_f)
-        if type(qids_temp) is dict:
-            qids_temp = list(qids_temp.keys())
-        disambig_qids_global = set(qids_temp)
-    else:
-        disambig_qids_global = set()
 
 # Filters data by the sentence filter function
 def launch_subprocess_step1(args, out_dir, in_files):
@@ -84,8 +74,6 @@ def launch_subprocess_step1(args, out_dir, in_files):
         extras = eval("{:s}.{:s}(args)".format(FILTER_FILE, args.prep_func))
     extras_f = os.path.join(out_dir, "extras.pkl")
     utils.dump_pickle_file(extras_f, extras)
-
-    diambig_f = args.disambig_file
 
     all_process_args = []
     for i in range(len(in_files)):
@@ -136,17 +124,11 @@ def subprocess_step1(all_args):
                 if eval("{:s}.{:s}(args, aliases, qids, text, extras_global)".format(FILTER_FILE, args.sentence_filter_func)):
                     stats["filtered_func"] += 1
                     continue
-                if not args.no_filter_disambig_entities:
-                    filtered_list = list(filter(lambda x: (x[1] not in disambig_qids_global), zip(aliases, qids, spans, gold, sources)))
-                    if len(filtered_list) <= 0:
-                        continue
-                    aliases_final, qids_final, spans_final, gold_final, sources_final = zip(*filtered_list)
-                else:
-                    aliases_final = aliases
-                    qids_final = qids
-                    spans_final = spans
-                    gold_final = gold
-                    sources_final = sources
+                aliases_final = aliases
+                qids_final = qids
+                spans_final = spans
+                gold_final = gold
+                sources_final = sources
                 all_qids.update(set(qids_final))
                 new_sent = {
                     'parent_qid': qid,

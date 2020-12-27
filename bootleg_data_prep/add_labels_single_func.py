@@ -452,7 +452,7 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     return aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned
 
 
-def get_qid2aliases(entity_dump, out_dir):
+def get_qid2aliases(alias2qids_wd, entity_dump, out_dir):
     """
     :param entity_dump:
     :param out_dir:
@@ -471,9 +471,13 @@ def get_qid2aliases(entity_dump, out_dir):
     aliasconfict_values = []
     aliasconflict_f = os.path.join(out_dir, f'marisa_conflict.marisa')
     temp_qid2alias_single = {}
-    for alias in entity_dump.get_all_aliases():
+    for alias in alias2qids_wd.keys():
+        if alias not in entity_dump.get_all_aliases():
+            continue
         assert len(alias) > 0
-        cands = entity_dump.get_qid_cands(alias)
+        cands = [q for q in alias2qids_wd[alias] if q in entity_dump.get_qid_cands(alias)]
+        if len(cands) == 0:
+            continue
         aliasconflict_keys.append(alias)
         # Tries need iterable values
         aliasconfict_values.append(tuple([len(cands)]))
@@ -555,8 +559,14 @@ def main():
     # this loads all entity information (aliases, titles, etc)
     entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
     print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
+
+    # Load wikidata alias2qid
+    import ujson
+    alias_cand_map_file_wikidata = "augmented_alias_map_large_uncased_1216.jsonl"
+    alias2qid_wd = ujson.load(alias_cand_map_file_wikidata)
+    # alias2qid_wd = entity_dump.get_alias2qid()
     # generates mappings from qids to aliases and a memmaped trie (aka dict) from alias to length of that aliases candidate list (measure of how conflicting that alias is)
-    qid2singlealias, aliasconflict_f, qid2alias = get_qid2aliases(entity_dump, temp_outdir)
+    qid2singlealias, aliasconflict_f, qid2alias = get_qid2aliases(alias2qid_wd, entity_dump, temp_outdir)
     print(f"Created qid2alias map over {len(qid2alias)} QIDs.")
 
     # launch subprocesses and collect outputs

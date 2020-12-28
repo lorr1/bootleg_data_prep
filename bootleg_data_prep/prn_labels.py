@@ -86,7 +86,7 @@ gender_qid_map = {
     "Q859614" : 5, # bigender
     "somevalue": 5,
 }
-person_set, gender_map = np.load('/dfs/scratch0/lorr1/bootleg/data/wikidata_mappings/person.npy', allow_pickle=True)
+person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg/data/wikidata_mappings/person.npy', allow_pickle=True)
 print('person data loaded')
 
 

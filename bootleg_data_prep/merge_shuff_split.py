@@ -115,7 +115,7 @@ def main():
                 for key in args.hash_keys:
                     hash_keys_for_item.append(line_strip[key])
                 if args.sentence_split:
-                    hash_keys_for_item = [line_strip["sentence"]] + hash_keys_for_item
+                    hash_keys_for_item = [line_strip["doc_sent_idx"]] + hash_keys_for_item
                 key = str(tuple(hash_keys_for_item)).encode('utf-8')
                 lines.append([my_hash(key), line])
     print(f"Read data in {time.time() - start} seconds.")

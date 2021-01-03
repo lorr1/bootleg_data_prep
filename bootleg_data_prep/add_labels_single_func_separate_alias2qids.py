@@ -563,7 +563,8 @@ def main():
     # Load wikidata alias2qid
     import ujson
     alias_cand_map_file_wikidata = "augmented_alias_map_large_uncased_1216.jsonl"
-    alias2qid_wd = ujson.load(alias_cand_map_file_wikidata)
+    with open(alias_cand_map_file_wikidata, 'r') as f:
+        alias2qid_wd = ujson.load(f)
     # alias2qid_wd = entity_dump.get_alias2qid()
     # generates mappings from qids to aliases and a memmaped trie (aka dict) from alias to length of that aliases candidate list (measure of how conflicting that alias is)
     qid2singlealias, aliasconflict_f, qid2alias = get_qid2aliases(alias2qid_wd, entity_dump, temp_outdir)

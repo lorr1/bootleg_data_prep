@@ -112,9 +112,7 @@ class RecordTrieCollection:
     def load(self, load_dir):
         self._fmt_types = utils.load_json_file(filename=os.path.join(load_dir, "fmt_types.json"))
         self._max_values = utils.load_json_file(filename=os.path.join(load_dir, "max_values.json"))
-        print("BAD HERE2")
         self._stoi = marisa_trie.Trie().mmap(os.path.join(load_dir, f'vocabulary_trie.marisa'))
-        print("BAD HERE")
         self._itos = lambda x: self._stoi.restore_key(x)
         assert self._fmt_types.keys() == self._max_values.keys()
         for tri_name in self._fmt_types:

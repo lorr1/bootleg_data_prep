@@ -65,7 +65,7 @@ def find_aliases_in_sentence(sentence, all_aliases, max_alias_len, used_aliases=
             if gram_words[0] in words_to_avoid or gram_words[-1] in words_to_avoid or len(gram_words[0].translate(table).strip()) == 0\
                     or len(gram_words[-1].translate(table).strip()) == 0:
                 continue
-            gram_attempt = get_lnrm(" ".join(gram_words))
+            gram_attempt = get_lnrm(" ".join(gram_words), strip=True, lower=True)
             # print("NOLRNSM", " ".join(gram_words), "-- GA", gram_attempt, w_st, "to", w_end, "-- in aliases --", gram_attempt in all_aliases)
             if gram_attempt in all_aliases:
                 keep = True
@@ -96,8 +96,11 @@ def golds(doc_qid, sentence, spans, qids, aliases, document_alias2qids, wl_metad
     return final_spans, final_qids, final_aliases
 
 def aka(doc_qid, sentence, spans, qids, aliases, document_alias2qids, wl_metadata):
-    spans_l, spans_r = list(zip(*spans))
-    used_aliases = list(zip(aliases, qids, spans_l, spans_r))
+    if len(spans) > 0:
+        spans_l, spans_r = list(zip(*spans))
+        used_aliases = list(zip(aliases, qids, spans_l, spans_r))
+    else:
+        used_aliases = []
     doc_aliases = wl_metadata.get_all_aliases(doc_qid, set())
     res_item = find_aliases_in_sentence(sentence, marisa_trie.Trie(document_alias2qids.keys()), max_alias_len=8, used_aliases=used_aliases)
 

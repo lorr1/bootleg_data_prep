@@ -86,7 +86,7 @@ gender_qid_map = {
     "Q859614" : 5, # bigender
     "somevalue": 5,
 }
-person_set, gender_map = np.load('/dfs/scratch0/lorr1/bootleg/data/wikidata_mappings/person.npy', allow_pickle=True)
+person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg/data/wikidata_mappings/person.npy', allow_pickle=True)
 print('person data loaded')
 
 
@@ -182,7 +182,7 @@ def add_pronoun(doc, gender_id, swap_titles):
             sent["gold"] = sent["anchor"]
             del sent["anchor"]
         if "sources" not in sent:
-            sent["sources"] = ["gold" if a else "wl" for a in sent["gold"]]
+            sent["sources"] = ["gold" if a else "prn" for a in sent["gold"]]
         sentence = sent['sentence']
         # print("OLD", json.dumps(sent, indent=4))
         spans = sent['spans']

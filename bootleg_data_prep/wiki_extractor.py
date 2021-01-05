@@ -667,8 +667,9 @@ class Extractor(object):
         """
         :param out1 and out2: memory files.
         """
-        logging.info('%s\t%s', self.id, self.title)
+        # logging.info('%s\t%s', self.id, self.title)
         self.write_output(out2)
+
         # Separate header from text with a newline.
         if options.toHTML:
             title_str = '<h1>' + self.title + '</h1>'
@@ -736,18 +737,18 @@ class Extractor(object):
             # print("SENT", sent)
             # arbitrary number to ensure it doesn't crash if the merging isn't working
             if len(sent) <= 0 or (end_idx - st_idx) > 30:
-                if len(sent) > 0:
-                    print("BREAKING HERE", sent)
+                # if len(sent) > 0:
+                #     print("BREAKING HERE", sent)
                 st_idx = end_idx
                 end_idx = st_idx + 1
                 continue
 
             try:
                 aliases, page_titles, alias_spans, sent = self.extract_aliases(sent)
-                if " href=" in sent:
-                    print("BADERROR")
-                    print("TEXT", text)
-                    print("SENT", sent)
+                # if " href=" in sent:
+                #     print("BADERROR")
+                #     print("TEXT", text)
+                #     print("SENT", sent)
             except ValueError as e:
                 end_idx += 1
                 continue
@@ -898,14 +899,14 @@ class Extractor(object):
         res = ''
         cur = 0
         for m in nowiki.finditer(wikitext, cur):
-            res += self.transform1(wikitext[cur:m.start()]) + wikitext[m.start():m.end()]
+            res += self.transform1(cur, wikitext[cur:m.start()]) + wikitext[m.start():m.end()]
             cur = m.end()
         # leftover
-        res += self.transform1(wikitext[cur:])
+        res += self.transform1(cur, wikitext[cur:])
         return res
 
 
-    def transform1(self, text):
+    def transform1(self, cur, text):
         """Transform text not containing <nowiki>"""
         if options.expand_templates:
             # expand templates
@@ -933,7 +934,6 @@ class Extractor(object):
 
         # LAUREL: we want to capture aliases that are indicated by bold text and parenthesis after bold text in the first 3 sentences of any wikipedia page
         sentences = sent_tokenize(text)[:3]
-        # print("SENTENCE", sentences)
         bold_aliases = []
         not_allowed = {"]]", ";", ":"}
         for sent in sentences:
@@ -958,14 +958,11 @@ class Extractor(object):
             found_ac = self.extract_acronyms(sent)
             found_acronyms.update(found_ac)
         found_acronyms = list(found_acronyms)
-        if len(found_acronyms) > 0:
-            print("FOUND AC", found_acronyms, "BOLD", bold_aliases, "FOR", self.title)
         # Drop tables
         # first drop residual templates, or else empty parameter |} might look like end of table.
         if not options.keep_tables:
             text = dropNested(text, r'{{', r'}}')
             text = dropNested(text, r'{\|', r'\|}')
-
         # Handle bold/italic/quote
         if options.toHTML:
             text = bold_italic.sub(r'<b>\1</b>', text)
@@ -988,7 +985,6 @@ class Extractor(object):
         # drop MagicWords behavioral switches
         text = magicWordsRE.sub('', text)
         # ############### Process HTML ###############
-
         # turn into HTML, except for the content of <syntaxhighlight>
         res = ''
         cur = 0
@@ -1021,10 +1017,8 @@ class Extractor(object):
                 spans.append((m.start(), m.end()))
             for m in right.finditer(text):
                 spans.append((m.start(), m.end()))
-
         # Bulk remove all spans
         text = dropSpans(spans, text)
-
         # Drop discarded elements
         for tag in options.discardElements:
             text = dropNested(text, r'<\s*%s\b[^>/]*>' % tag, r'<\s*/\s*%s>' % tag)
@@ -1032,7 +1026,6 @@ class Extractor(object):
         if not options.toHTML:
             # Turn into text what is left (&amp;nbsp;) and <syntaxhighlight>
             text = unescape(text)
-
         # Expand placeholders
         for pattern, placeholder in placeholder_tag_patterns:
             index = 1
@@ -1229,7 +1222,6 @@ class Extractor(object):
         # templates and tplargs, or inside double rectangular brackets within the
         # part are not taken into account in this decomposition. Parts without
         # equals sign are indexed 1, 2, .., given as attribute in the <name> tag.
-
         if self.frame.depth >= self.maxTemplateRecursionLevels:
             self.recursion_exceeded_2_errs += 1
             # logging.debug('%*sEXPAND> %s', self.frame.depth, '', body)
@@ -1240,7 +1232,6 @@ class Extractor(object):
         # title is the portion before the first |
         title = parts[0].strip()
         title = self.expand(title)
-
         # SUBST
         # Apply the template tag to parameters without
         # substituting into them, e.g.
@@ -1250,7 +1241,6 @@ class Extractor(object):
         if re.match(substWords, title, re.IGNORECASE):
             title = re.sub(substWords, '', title, 1, re.IGNORECASE)
             subst = True
-
         if title in self.magicWords.values:
             ret = self.magicWords[title]
             logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', title, ret)
@@ -1286,12 +1276,12 @@ class Extractor(object):
         redirected = options.redirects.get(title)
         if redirected:
             title = redirected
-
         # get the template
         if title in options.templateCache:
             template = options.templateCache[title]
         elif title in options.templates:
             template = Template.parse(options.templates[title])
+
             # add it to cache
             options.templateCache[title] = template
             del options.templates[title]
@@ -1340,7 +1330,6 @@ class Extractor(object):
             # the symbol "=".
             # {{#ifexpr: {{{1}}} = 1 }}
             params = [self.transform(p) for p in params]
-
         # build a dict of name-values for the parameter values
         params = self.templateParams(params)
 
@@ -1352,6 +1341,8 @@ class Extractor(object):
         instantiated = template.subst(params, self)
         value = self.transform(instantiated)
         self.frame = self.frame.pop()
+        # if len(value.strip()) == 0:
+        #     print("EMPTY", body, params, title, str(template)[:1000])
         logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', title, value)
         return value
 
@@ -2267,7 +2258,6 @@ def define_template(title, page):
         text = onlyincludeAccumulator
     else:
         text = reIncludeonly.sub('', text)
-
     if text:
         if title in options.templates:
             logging.warning('Redefining: %s', title)
@@ -2886,7 +2876,6 @@ def compact(text):
             listLevel = []
             listCount = []
             page.append(line)
-
         # Drop residuals of lists
         elif line[0] in '{|' or line[-1] == '}':
             continue
@@ -2902,7 +2891,7 @@ def compact(text):
             page.append(line)  # first line
             emptySection = False
         elif not emptySection:
-            # Drop preformatted
+            # print("LINE9", line[0] == ' ', line)
             if line[0] != ' ':  # dangerous
                 page.append(line)
     return page
@@ -3109,7 +3098,7 @@ def pages_from(input):
             page = []
 
 
-def process_dump(input_file, template_file, out_file, out_file2, file_size, file_compress,
+def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file_size, file_compress,
                  process_count):
     """
     :param input_file: name of the wikipedia dump file; '-' to read from stdin
@@ -3195,6 +3184,12 @@ def process_dump(input_file, template_file, out_file, out_file2, file_size, file
     if out_file2 == '-':
         out_file2 = None
 
+    start_id = -1
+    end_id = -1
+    if len(id_ranges) > 0:
+        start_id, end_id = list(map(int, id_ranges.split(",")))
+    print("START END", start_id, end_id)
+
     worker_count = process_count
 
     # load balancing
@@ -3224,9 +3219,16 @@ def process_dump(input_file, template_file, out_file, out_file2, file_size, file
     page_num = 0
     for page_data in pages_from(input):
         id, revid, title, ns, catSet, page = page_data
-        # LAULRE REMOVE THIS
-        # if int(id) != 1994293:
-        #     continue
+
+        keep_page = True
+        if start_id != -1:
+            if start_id <= int(id) <= end_id:
+                keep_page = True
+            else:
+                keep_page = False
+        if not keep_page:
+            print("LAUREL Dropping Page", id)
+            continue
         if keepPage(ns, catSet, page):
             # slow down
             delay = 0
@@ -3412,6 +3414,8 @@ def main():
                         help="produce HTML output, subsumes --links")
     groupP.add_argument("-l", "--no_links", action="store_false",
                         help="preserve links")
+    groupP.add_argument("--id_ranges", default="",
+                        help="ID ranges")
     groupP.add_argument("-s", "--sections", action="store_true",
                         help="preserve sections")
     groupP.add_argument("--lists", action="store_true",
@@ -3571,7 +3575,7 @@ def main():
             logging.info("Including categories:")
             logging.info(str(len(options.filter_category_include)))
     st = time.time()
-    process_dump(input_file, args.templates, output_path, output_path2, file_size,
+    process_dump(input_file, args.id_ranges, args.templates, output_path, output_path2, file_size,
                  args.compress, args.processes)
     print(f"Final end time {time.time() - st}s")
 

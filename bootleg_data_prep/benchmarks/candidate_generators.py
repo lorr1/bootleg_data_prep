@@ -143,7 +143,7 @@ class Contextual:
         end_word = max(0, len(phrase[:end_char].split()))
         return start_word, end_word
 
-    def get_lnrm(self, s, stripandlower):
+    def get_lnrm(self, s, strip, lower):
         """Convert a string to its lnrm form
         We form the lower-cased normalized version l(s) of a string s by canonicalizing
         its UTF-8 characters, eliminating diacritics, lower-casing the UTF-8 and
@@ -154,12 +154,20 @@ class Contextual:
         Returns:
             the lnrm form of the string
         """
-        if not stripandlower:
+        if not strip and not lower:
             return s
-        lnrm = unicodedata.normalize('NFD', str(s))
-        lnrm = lnrm.lower()
-        lnrm = ''.join([x for x in lnrm if (not unicodedata.combining(x)
-                                            and x.isalnum() or x == ' ')]).strip()
+        lnrm = str(s)
+        if lower:
+            lnrm = lnrm.lower()
+        if strip:
+            lnrm = unicodedata.normalize("NFD", lnrm)
+            lnrm = "".join(
+                [
+                    x
+                    for x in lnrm
+                    if (not unicodedata.combining(x) and x.isalnum() or x == " ")
+                ]
+            ).strip()
         # will remove if there are any duplicate white spaces e.g. "the  alias    is here"
         lnrm = " ".join(lnrm.split())
         return lnrm
@@ -328,7 +336,7 @@ class Contextual:
         #         ddd =[]
         #         eee = []
         #         for i, qid in enumerate(qids):
-        #             title = self.get_lnrm(entity_dump.get_title(qid).lower())
+        #             title = self.get_lnrm(entity_dump.get_title(qid).lower(), strip=True, lower=True)
         #             title_score = fuzz.partial_ratio(title, alias)/100
         #             title_score2 = nltk.jaccard_distance(set(alias.split()), set(title.split()))
         #             ddd.append(100000*title_score)
@@ -337,14 +345,14 @@ class Contextual:
         #         print(eee)
 
         for i, qid in enumerate(qids):
-            title = self.get_lnrm(entity_dump.get_title(qid).lower())
+            title = self.get_lnrm(entity_dump.get_title(qid).lower(), strip=True, lower=True)
             title_score = fuzz.partial_ratio(title, alias) / 100
             counts[i] += 100000 * title_score
             title_score2 = 1 - nltk.jaccard_distance(set(alias.split()), set(title.split()))
             #             title_score2 = fuzz.ratio(title, alias)/100
             counts[i] += 10000 * title_score2
         #         print(counts)
-        #         print([self.get_lnrm(entity_dump.get_title(qid).lower()) for i, qid in enumerate(qids)])
+        #         print([self.get_lnrm(entity_dump.get_title(qid).lower()) for i, qid in enumerate(qids)], strip=True, lower=True)
 
         scored_qids = [list(x) for x in zip(qids, counts)]
         scored_qids = sorted(scored_qids, key=lambda x: x[1], reverse=True)
@@ -685,9 +693,7 @@ class Contextual:
         sent_idx_unq = sentence['sent_idx_unq']
         new_sentence['cands'] = []
         for i in range(len(aliases)):
-            self.temp += 1
-            alias = self.get_lnrm(aliases[i])
-            #             alias = prep_utils.get_lnrm(aliases[i])
+            alias = self.get_lnrm(aliases[i], strip=True, lower=True)
             candidates = self.recompute_qid_rank(sentence, alias, qids[i], self.qid2page, self.filtered_alias_map, self.entity_dump)
             new_sentence['cands'].append(candidates)
             # With no golds and not nil model, need to set QIDs to be something in the dump; nil models can have Q-1
@@ -834,11 +840,11 @@ class AIDACand:
                     'label': 'candidate not found',
                     'other_aliases': ','.join(self.qid2alias[qids[i]])
                 })
-                # assert int(spans[i][1]) <= len(sentence['sentence'].split()), sentence
-                # new_sentence['aliases'].append(alias)
-                # new_sentence['qids'].append(qids[i])
-                # new_sentence['spans'].append(spans[i])
-                # new_sentence['gold'].append(gold[i])
+                assert int(spans[i][1]) <= len(sentence['sentence'].split()), sentence
+                new_sentence['aliases'].append(alias)
+                new_sentence['qids'].append(qids[i])
+                new_sentence['spans'].append(spans[i])
+                new_sentence['gold'].append(gold[i])
                 qid_not_in_cands += 1
         # return number of aliases kept, and dropped
         return new_sentence, success, no_alias_exists, qid_not_in_cands, no_qid_in_dump, errors

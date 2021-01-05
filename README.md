@@ -21,9 +21,18 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     ls
     >>> svwiki-20201120-pages-articles-multistream.xml
     ```
-    Then run the wiki extractor code to parse Wikipedia.
+    Then run the wiki extractor code to parse Wikipedia. This processor is based on https://attardi.github.io/wikiextractor/. In particular, this code handles template substitutions (see https://www.mediawiki.org/wiki/Help:Templates). While helpful, I found the need to define a few custom templates in order to accurately replace the template with the correct word. For example, I better handle the Nihongo template, I added the custom template below to the file `custom_templates.txt` and ran with the `--templates custom_templates.txt` flag.
     
-    Expected Time: 4 hours
+    ```xml
+    <page>
+        <title>Template:Nihongo</title>
+        <ns>10</ns>
+        <id>2868018</id>
+        <text>&lt;includeonly&gt;{{{1}}}&lt;/includeonly&gt;</text>
+    </page>
+    ```
+    
+    Expected Time: 5-15 hours (depending on the size of your Wikipedia dump)
     `python3 -m bootleg_data_prep.wiki_extractor --output sentences --output2 pageids svwiki-20201120-pages-articles-multistream.xml --processes 5 &> wiki_extractor.out`
     
     This will output

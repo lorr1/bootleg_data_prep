@@ -79,7 +79,7 @@ def launch_subprocess_step1(args, out_dir, in_files):
     for i in range(len(in_files)):
         all_process_args.append(tuple([i+1, len(in_files), args, out_dir, in_files[i]]))
     print(f"Starting pool...")
-    pool = multiprocessing.Pool(processes=args.processes, initializer=init_process, initargs=(tuple([extras_f, diambig_f]),))
+    pool = multiprocessing.Pool(processes=args.processes, initializer=init_process, initargs=[extras_f])
     list_of_all_qids = []
     for res in pool.imap(subprocess_step1, all_process_args, chunksize=1):
         list_of_all_qids.append(res)
@@ -151,7 +151,10 @@ def filter_entity_symbols(args, list_of_all_qids, benchmark_qids, entity_symbols
     stats = {"alias_not_in_all_qids": 0, "qids_not_in_all_qids": 0, "raw_qids": 0, "raw_aliases": 0}
     print("STARTING LENS TITLE", len(entity_symbols.get_qid2title()), "ALIAS", len(entity_symbols.get_alias2qids()))
     if args.no_filter_entities_data:
-        alias2qids = entity_symbols.get_alias2qids()
+        alias2qids = {}
+        for alias in tqdm(entity_symbols.get_all_aliases(), total=len(entity_symbols.get_all_aliases()), desc="Building alias 2 cands lists"):
+            qid_cand_list = list(sorted(entity_symbols.get_qid_count_cands(alias), key=lambda x: x[1], reverse=True))
+            alias2qids[alias] = qid_cand_list[:args.max_candidates]
         qid2title = entity_symbols.get_qid2title()
         stats["raw_aliases"] = len(alias2qids)
         stats["raw_qids"] = len(qid2title)
@@ -167,15 +170,18 @@ def filter_entity_symbols(args, list_of_all_qids, benchmark_qids, entity_symbols
         print(f"Total qids for filtering {len(all_qids)} with {len(benchmark_qids)} benchmark qids")
         alias2qids = {}
         all_aliases = set()
+        # Final set of all qids
         all_qids_final = set()
-        # Iterate over aliases and find all that point to any of the qids in all_qids, adding all of their QID candidates
+        # Add the gold qids from the data first (if we have train_in_candidates set to False, we are not guaranteed to have the golds be in our candidate set)
+        all_qids_final.update(all_qids)
+        # Iterate over aliases and find all that point to ANY of the qids in all_qids, adding all of their QID candidates
         for alias in tqdm(entity_symbols.get_all_aliases(), total=len(entity_symbols.get_all_aliases()), desc="Building alias 2 cands lists"):
             stats["raw_aliases"] += 1
             qid_cand_list = list(sorted(entity_symbols.get_qid_count_cands(alias), key=lambda x: x[1], reverse=True))
             for qid, count in qid_cand_list:
                 if qid not in all_qids:
                     continue
-                # This alias needs to be added, as does all of its candidates
+                # This alias needs to be added, as does all of its max_candidates candidates
                 all_aliases.add(alias)
                 alias2qids[alias] = qid_cand_list[:args.max_candidates]
                 for qid, count in alias2qids[alias]:
@@ -196,7 +202,7 @@ def filter_entity_symbols(args, list_of_all_qids, benchmark_qids, entity_symbols
         max_alias_len = max(max_alias_len, len(alias.split(" ")))
         alias2qids[alias] = sorted(alias2qids[alias], key=lambda x: x[1], reverse=True)
     print(json.dumps(stats, indent=4))
-    print("FINAL LENS TITLE", len(qid2title), "ALIAS", len(alias2qids))
+    print("FINAL LENS TITLE", len(qid2title), "ALIAS", len(alias2qids), "MAX CANDIDATES", max_candidates)
     return qid2title, alias2qids, max_candidates, max_alias_len
 
 # Filter data by qids remaining in entity_symbols (some may be dropped because of max candidates)
@@ -261,6 +267,10 @@ def subprocess_step2(all_args):
             items = list(filter(lambda x: (not args.train_in_candidates) or (x[1] in [y[0] for y in alias2qids[x[0]]]),
                                 zip(sent_obj['aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'], sent_obj['sources'])))
             temp_len = len(items)
+            for x in items:
+                if x[1] not in qid2title:
+                    print("BAD", x)
+                    print(json.dumps(sent_obj, indent=4))
             items = list(filter(lambda x: x[1] in qid2title, items))
             # there should be no difference between these
             assert temp_len - len(items) == 0

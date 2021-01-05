@@ -39,7 +39,7 @@ def get_arg_parser():
     parser.add_argument('--title_to_qid', type=str, default='/lfs/raiders10/0/lorr1/title_to_all_ids.jsonl')
     parser.add_argument('--wd_aliases', type=str, default='/lfs/raiders10/0/lorr1/augmented_alias_map_large_uncased_1216.jsonl',
                         help='Path to directory with JSONL mapping alias to QID')
-    parser.add_argument('--min_frequency', type=int, default=2, help='Minimum number of times a QID must appear with an alias')
+    parser.add_argument('--min_frequency', type=int, default=4, help='Minimum number of times a QID must appear with an alias')
     parser.add_argument('--strip', action='store_true', help='If set, will strip punctuation of aliases.')
     parser.add_argument('--lower', action='store_true', help='If set, will lower case all aliases.')
     parser.add_argument('--test', action='store_true', help='If set, will only generate for one file.')
@@ -159,7 +159,7 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
     # we increment the count here to represent that each page links to itself; as we compute counts later, this is just for sorting
     for qid in qid_to_all_titles:
         for title in qid_to_all_titles[qid]:
-            alias = prep_utils.get_lnrm(title, args.stripandlower)
+            alias = prep_utils.get_lnrm(title, args.strip, args.lower)
             if len(alias) > 0:
                 filtered_aliasqid[alias][qid] += 1
                 filtered_qids[qid] += 1
@@ -192,14 +192,14 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
 
 def merge_wikidata_aliases(args, aliases_to_qid, all_qids, wikidata_alias_to_qid):
     """ We merge alias-qid pairs from Wikidata with the alias-qid pairs we've 
-    extracted from Wikipedia.
+    extracted from Wikipedia. Note that we recompute QID counts in the next step for the candidate maps.
     """
 
     print("Adding wikidata aliases...")
     stats = defaultdict(int)
     new_qids_from_wikidata = set()
     for wd_alias, qids in tqdm(wikidata_alias_to_qid.items()):
-        wd_alias = prep_utils.get_lnrm(wd_alias, args.stripandlower)
+        wd_alias = prep_utils.get_lnrm(wd_alias, args.strip, args.lower)
         if len(wd_alias) <= 0:
             continue
         if wd_alias in aliases_to_qid:
@@ -257,7 +257,12 @@ def main():
     anchoraliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_anchoraliases_to_titles)
     boldaliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_boldaliases_to_titles)
     acronymaliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_acronymaliases_to_titles)
-
+    # TODO: REMOVE
+    al = "distributed algorithms"
+    print("AL", al)
+    print(boldaliases_to_title.get(al, []))
+    print(acronymaliases_to_title.get(al, []))
+    print(anchoraliases_to_title.get(al, []))
     # filter aliases and convert to QID
     aliases_to_qid, all_qids, qid_unavailable, unpopular_removed = filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_title,
                                                                                                      acronymaliases_to_title,

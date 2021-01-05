@@ -5,8 +5,8 @@ import bootleg_data_prep.utils.entity_symbols_for_signals as es_for_signals
 
 
 def load_esp(name, cache_dir="", subfolder="", suffix="", overwrite=False,
-             data_dir='/dfs/scratch0/lorr1/data_prep/data/',
-             emb_dir='/dfs/scratch0/lorr1/data_prep/embs/',
+             data_dir='/dfs/scratch0/lorr1/projects/data_prep/data/',
+             emb_dir='/dfs/scratch0/lorr1/projects/data_prep/embs/',
              max_types=3,
              max_types_rel=50,
              kg_adj='kg_adj_0905.txt',

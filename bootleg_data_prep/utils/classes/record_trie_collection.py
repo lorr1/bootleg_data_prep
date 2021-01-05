@@ -104,7 +104,6 @@ class RecordTrieCollection:
             utils.ensure_dir(save_dir)
             utils.dump_json_file(filename=os.path.join(save_dir, "fmt_types.json"), contents=self._fmt_types)
             utils.dump_json_file(filename=os.path.join(save_dir, "max_values.json"), contents=self._max_values)
-            utils.dump_json_file(filename=os.path.join(save_dir, "vocabulary.json"), contents=self._stoi)
             self._stoi.save(os.path.join(save_dir, f'vocabulary_trie.marisa'))
             for tri_name in self._fmt_types:
                 self._record_tris[tri_name].save(os.path.join(save_dir, f'record_trie_{tri_name}.marisa'))
@@ -113,7 +112,9 @@ class RecordTrieCollection:
     def load(self, load_dir):
         self._fmt_types = utils.load_json_file(filename=os.path.join(load_dir, "fmt_types.json"))
         self._max_values = utils.load_json_file(filename=os.path.join(load_dir, "max_values.json"))
+        print("BAD HERE2")
         self._stoi = marisa_trie.Trie().mmap(os.path.join(load_dir, f'vocabulary_trie.marisa'))
+        print("BAD HERE")
         self._itos = lambda x: self._stoi.restore_key(x)
         assert self._fmt_types.keys() == self._max_values.keys()
         for tri_name in self._fmt_types:

@@ -23,6 +23,8 @@ import os
 import shutil
 import time
 
+from tqdm import tqdm
+
 import bootleg_data_prep.utils.utils as utils
 from bootleg_data_prep.utils.constants import PAIR_IDX_MATTER, \
     POSSIBLE_SLICE_FOLDERS, TAILONLY, NOHEADCAND, NOSINGLE, NOCTX, TORSOONLY, HEADONLY, TOESONLY
@@ -54,8 +56,8 @@ def parse_args():
     parser.add_argument('--kg_adj', type=str, default='kg_adj_1229.txt')
     parser.add_argument('--kg_triples', type=str, default='kg_triples_1229.txt')
     parser.add_argument('--hy_vocab', type=str, default='hyena_vocab.json')
-    parser.add_argument('--hy_types', type=str, default='hyena_types_0905.json')
-    parser.add_argument('--wd_vocab', type=str, default='wikidatatitles_to_typeid_1229.json')
+    parser.add_argument('--hy_types', type=str, default='hyena_types_1229.json')
+    parser.add_argument('--wd_vocab', type=str, default='wikidatatitle_to_typeid_1229.json')
     parser.add_argument('--wd_types', type=str, default='wikidata_types_1229.json')
     parser.add_argument('--rel_vocab', type=str, default='relation_to_typeid_1229.json')
     parser.add_argument('--rel_types', type=str, default='kg_relation_types_1229.json')
@@ -124,7 +126,10 @@ def subprocess(all_args):
     all_slices = set()
     with open(in_filepath, "r") as in_f:
         for line in in_f.readlines():
-            sent_obj = json.loads(line.strip())
+            sent_obj = json.loads(line)
+            if len(sent_obj["aliases"]) <= 0:
+                print("LEN 0 ALIASES", sent_obj)
+                continue
             if "gold" not in sent_obj:
                 sent_obj["gold"] = sent_obj["anchor"]
                 del sent_obj["anchor"]
@@ -339,14 +344,14 @@ def combine_data(out_file, folder, clean_up=True):
         return
     with open(out_file, "w") as out_f:
         logging.info(f"Opening data file for writing {out_file}")
-        for f in files:
-            logging.info(f"Reading in file {f}")
+        for f in tqdm(files, desc=f"{out_file}"):
+            # logging.info(f"Reading in file {f}")
             with open(f, 'r') as fd:
-                for line in fd:
-                    sent_obj = json.loads(line.strip())
-                    if len(sent_obj['aliases']) > 0:
-                        out_f.write(json.dumps(sent_obj) + "\n")
-                # shutil.copyfileobj(fd, out_f)
+                # for line in fd:
+                #     sent_obj = json.loads(line)
+                #     if len(sent_obj['aliases']) > 0:
+                #         out_f.write(json.dumps(sent_obj) + "\n")
+                shutil.copyfileobj(fd, out_f)
     if clean_up:
         logging.info(f"Removing directory {folder}")
         shutil.rmtree(folder)

@@ -45,7 +45,7 @@ def parse_args():
     parser.add_argument('--large_alias_map', default = '/dfs/scratch0/lorr1/projects/data_prep/unfiltered_data_0906/entity_db/entity_mappings/alias2qids.json', help = 'Path to large alias-to-qid map.')
     parser.add_argument('--large_title_map', default = '/dfs/scratch0/lorr1/projects/data_prep/unfiltered_data_0906/entity_db/entity_mappings/qid2title.json', help = 'Path to large qid-to-title map.')
     parser.add_argument('--wiki_pages', default = '/dfs/scratch0/lorr1/projects/data_prep/unfiltered_data_0906/', help = 'Path to wikipedia pages.')
-    parser.add_argument('--aida_candidates', default = "/dfs/scratch0/lorr1/projects/bootleg_data_prep/benchmarks/pershina/processed/cands.json", help='Path to candidate list for AIDA')
+    parser.add_argument('--aida_candidates', default = "/dfs/scratch0/lorr1/projects/bootleg-data-prep/bootleg_data_prep/benchmarks/pershina/processed/cands.json", help='Path to candidate list for AIDA')
     args = parser.parse_args()
     return args
 

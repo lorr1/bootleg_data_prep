@@ -14,6 +14,7 @@ import copy
 import hashlib
 import os
 import random
+import shutil
 import time
 
 import ujson as json
@@ -90,6 +91,8 @@ def main():
     splits = {}
     for fold in ["train", "dev", "test"]:
         key = os.path.join(out_dir, fold)
+        if os.path.exists(key):
+            shutil.rmtree(key)
         utils.ensure_dir(key)
         counters[key] = tuple([0, open(os.path.join(key, f"out_0.jsonl"), "w")])
         if fold == "train":

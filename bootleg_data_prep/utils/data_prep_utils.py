@@ -39,25 +39,34 @@ def load_qid_title_map(title_to_qid_fpath):
     qid_to_all_titles = defaultdict(set)
     wpid_to_qid = {}
     qid_to_title = {}
+    all_rows = []
     with jsonlines.open(title_to_qid_fpath, 'r') as in_file:
         for items in tqdm(in_file, total=15162208):
             # the title is the url title that may be redirected to another wikipedia page
             qid, title, wikidata_title, wikipedia_title, wpid = items['qid'], items['title'], items['wikidata_title'], items['wikipedia_title'], items['id']
             if str(qid) == "-1":
                 continue
+            all_rows.append([qid, title, wikidata_title, wikipedia_title, wpid])
             qid_to_all_titles[qid].add(wikidata_title)
             qid_to_all_titles[qid].add(wikipedia_title)
             qid_to_all_titles[qid].add(title)
 
-            # The title represents a redirect, which we want to keep.
-            # We also want to keep the wikipedia titles
-            # However, as wikidata titles are often repeated, we don't want them to be included in this mapping
-            title_to_qid[title] = qid
+            # We want to keep the wikipedia titles
+            if wikipedia_title in title_to_qid and qid != title_to_qid[wikipedia_title]:
+                print(f"Wikipedia Title {wikipedia_title} for {title_to_qid[wikipedia_title]} already exists and we want {qid}")
             title_to_qid[wikipedia_title] = qid
-            title_to_qid[title.lower()] = qid
-            title_to_qid[wikipedia_title.lower()] = qid
+            # if wikipedia_title.lower() in title_to_qid and qid != title_to_qid[wikipedia_title.lower()]:
+            #     print(f"Wikipedia Title {wikipedia_title.lower()} for {title_to_qid[wikipedia_title.lower()]} already exists and we want {qid}")
+            # title_to_qid[wikipedia_title.lower()] = qid
             qid_to_title[qid] = wikipedia_title
             wpid_to_qid[wpid] = qid
+
+        # The title represents a redirect. We only want to add them if the redirect title does not already point to a QID from Wikipedia.
+        for item in tqdm(all_rows, desc="Adding extra titles"):
+            qid, title, wikidata_title, wikipedia_title, wpid = item
+            if title not in title_to_qid:
+                title_to_qid[title] = qid
+
     print(f"Loaded title-qid map for {len(title_to_qid)} titles from {title_to_qid_fpath}. {time.time() - start} seconds.")
     return title_to_qid, qid_to_all_titles, wpid_to_qid, qid_to_title
 
@@ -139,7 +148,7 @@ def get_outdir(save_dir, subfolder, remove_old=False):
 def ngrams(words, n):
     return [ words[i:i+n] for i in range(len(words)-n+1) ]
 
-def get_lnrm(s):
+def get_lnrm(s, strip, lower):
     """Convert a string to its lnrm form
     We form the lower-cased normalized version l(s) of a string s by canonicalizing
     its UTF-8 characters, eliminating diacritics, lower-casing the UTF-8 and
@@ -150,67 +159,19 @@ def get_lnrm(s):
     Returns:
         the lnrm form of the string
     """
-    lnrm = unicodedata.normalize('NFD', str(s))
-    lnrm = lnrm.lower()
-    lnrm = ''.join([x for x in lnrm if (not unicodedata.combining(x)
-                                        and x.isalnum() or x == ' ')]).strip()
+    if not strip and not lower:
+        return s
+    lnrm = str(s)
+    if lower:
+        lnrm = lnrm.lower()
+    if strip:
+        lnrm = unicodedata.normalize('NFD', lnrm)
+        lnrm = ''.join([x for x in lnrm if (not unicodedata.combining(x)
+                                            and x.isalnum() or x == ' ')]).strip()
     # will remove if there are any duplicate white spaces e.g. "the  alias    is here"
     lnrm = " ".join(lnrm.split())
     return lnrm
 
-
-def find_aliases_in_sentence_tag(sentence, all_aliases, max_alias_len, special_tag = "|||"):
-    if len(all_aliases) == 0:
-        return [], []
-    words_to_avoid = ["the", "a", "in", "of", "for", "at", "to", "with", "on", "from", special_tag]
-    table = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
-    used_aliases = []
-    sentence_split_raw = sentence.split()
-    tags = nltk.pos_tag(sentence_split_raw)
-    NOUNS = ["NN", "NNS", "NNP", "NNPS", "PRP"]
-    # find largest aliases first
-    for n in range(max_alias_len+1, 0, -1):
-        grams = nltk.ngrams(tags, n)
-        j_st = -1
-        j_end = n-1
-        for gram in grams:
-            j_st += 1
-            j_end += 1
-            gram_words = [g[0] for g in gram]
-            gram_tags = [g[1] for g in gram]
-            # If single word, must be noun (this will get rid of words like "the" or "as")
-            if n == 1 and gram_tags[0] not in NOUNS:
-                continue
-            # For multi word aliases, make sure there is a noun in the phrase somewhere
-            if n > 1 and not any(n in gram_tags for n in NOUNS):
-                continue
-            # If gram starts with stop word, move on because we'd rather try the one without
-            # We also don't want punctuation words to be used at the beginning/end
-            if gram_words[0] in words_to_avoid or gram_words[-1] in words_to_avoid or len(gram_words[0].translate(table).strip()) == 0\
-                    or len(gram_words[-1].translate(table).strip()) == 0:
-                continue
-            gram_attempt = get_lnrm(" ".join(gram_words))
-            # print("NOLRNSM", " ".join(gram_words), "-- GA", gram_attempt, j_st, "to", j_end, "-- in aliases --", gram_attempt in all_aliases)
-            if gram_attempt in all_aliases:
-                keep = True
-                # We start from the largest n-grams and go down in size. This prevents us from adding an alias that is a subset of another.
-                # For example: "Tell me about the mother on how I met you mother" will find "the mother" as alias and "mother". We want to
-                # only take "the mother" and not "mother" as it's likely more descriptive of the real entity.
-                for u_al in used_aliases:
-                    u_j_st = u_al[1]
-                    u_j_end = u_al[2]
-                    if j_st < u_j_end and j_end > u_j_st:
-                        keep = False
-                        break
-                if not keep:
-                    continue
-                # print("Adding", gram_attempt, j_st, j_end)
-                used_aliases.append(tuple([gram_attempt, j_st, j_end]))
-    # sort based on closeness to alias
-    aliases_for_sorting = sorted(used_aliases, key=lambda elem: [elem[1], elem[2]])
-    used_aliases = [a[0] for a in aliases_for_sorting]
-    spans = [[a[1], a[2]] for a in aliases_for_sorting]
-    return used_aliases, spans
 
 # If we find any alias in aliases that is a strict supset of an alias in superset_aliases, we remove it
 # Ex:

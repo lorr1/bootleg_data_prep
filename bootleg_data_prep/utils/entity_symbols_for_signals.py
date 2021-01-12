@@ -258,17 +258,9 @@ class EntitySymbolsForSlice:
                  vocab)
         return esp
 
-    def save_constants(self):
-        save_file = get_constants_file(self.entity_dump_dir)
-        save_dict = {
-            "max_types": self.max_types,
-            "max_types_rel": self.max_types_rel,
-            "max_relations": self.max_relations,
-            "max_candidates": self.max_candidates,
-            "contextual_rel_vocab_inv": self.contextual_rel_vocab_inv
-        }
-        utils.dump_json_file(save_file, save_dict)
-        return
+    def dump(self, entity_dump_dir):
+        self.save_constants(entity_dump_dir)
+        self.tri_collection.dump(save_dir=get_tri_dir(entity_dump_dir))
 
     @classmethod
     def load_constants(cls, entity_dump_dir):
@@ -282,9 +274,21 @@ class EntitySymbolsForSlice:
         contextual_rel_vocab_inv = constants_dict["contextual_rel_vocab_inv"]
         return max_types, max_types_rel, max_relations, max_candidates, contextual_rel_vocab_inv
 
+    def save_constants(self, entity_dump_dir):
+        save_file = get_constants_file(entity_dump_dir)
+        save_dict = {
+            "max_types": self.max_types,
+            "max_types_rel": self.max_types_rel,
+            "max_relations": self.max_relations,
+            "max_candidates": self.max_candidates,
+            "contextual_rel_vocab_inv": self.contextual_rel_vocab_inv
+        }
+        utils.dump_json_file(save_file, save_dict)
+        return
+
     def __getstate__(self):
         state = self.__dict__.copy()
-        self.save_constants()
+        self.save_constants(self.entity_dump_dir)
         self.tri_collection.dump(save_dir=get_tri_dir(self.entity_dump_dir))
         del state['qid_count']
         del state['tri_collection']
@@ -484,7 +488,6 @@ def create_entity_symbols_for_slices(args, entity_symbols=None):
     print(f"Entity dump directory where all information is saved/loaded from is {entity_dump_dir}")
     if entity_symbols is None:
         entity_symbols = EntitySymbols(load_dir=entity_dump_dir)
-    load_dir = get_tri_dir(entity_dump_dir)
     qid_count = load_qid_counts(args, entity_dump_dir)
     # Tri colleciton stores all mappings over QIDs (alias to candidates, entity to types, entity to relations)
     # Note that tri_collection may be None upon return. If so, it gets reconstructed in EntitySymbolsForSlice
@@ -554,10 +557,10 @@ def load_entity_symbol_objs(args, cache_dir, overwrite_cache=False):
     try:
         entity_symbols_plus = EntitySymbolsForSlice.load(entity_dump_dir=entity_load_dir)
     except Exception as e:
-        print(f"Error trying to load entitytype symbols plus from {entity_load_dir}. Error {e}. The file may not exist. Regenerating...")
+        print(f"Error trying to load entity symbols plus from {entity_load_dir}. Error {e}. The file may not exist. Regenerating...")
         entity_symbols_plus = create_entity_symbols_for_slices(args, entity_symbols)
         # Saving constants. The other objects are precomputed files that are not dumped with the object.
-        entity_symbols_plus.save_constants()
+        entity_symbols_plus.dump(entity_load_dir)
     print("Loaded entity symbols.")
     try:
         type_symbols_hy = utils.load_pickle_file(type_f_hy)

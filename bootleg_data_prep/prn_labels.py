@@ -181,10 +181,12 @@ def add_pronoun(doc, gender_id, swap_titles):
             assert "anchor" in sent
             sent["gold"] = sent["anchor"]
             del sent["anchor"]
+        if "sources" not in sent:
+            sent["sources"] = ["gold" if a else "prn" for a in sent["gold"]]
         sentence = sent['sentence']
         # print("OLD", json.dumps(sent, indent=4))
         spans = sent['spans']
-        tokens = sentence.split(' ')
+        tokens = sentence.split()
         new_labels = []
         new_tokens = []
         for i, token in enumerate(tokens):

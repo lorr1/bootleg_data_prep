@@ -5,10 +5,12 @@ import numpy as np
 import marisa_trie
 from typing import Dict, Any, List, Tuple, Callable
 
+from tqdm import tqdm
+
 from bootleg_data_prep.utils import utils
 
 
-def get_qid_cand_with_score(max_value:int, value: List[Tuple[str, int]], vocabulary: Dict[str, int]):
+def get_qid_cand_with_score(max_value:int, value: List[Tuple[str, int]], vocabulary: marisa_trie):
     assert type(value) is list
     assert len(value) > 0
     assert all(type(v[0]) is str for v in value)
@@ -18,17 +20,17 @@ def get_qid_cand_with_score(max_value:int, value: List[Tuple[str, int]], vocabul
     new_value.extend([-1]*(2*max_value - len(new_value)))
     return tuple(new_value)
 
-def inverse_qid_cand_with_score(value: List[int], itos: np.ndarray):
+def inverse_qid_cand_with_score(value: List[int], itos: Callable[[int], str]):
     assert len(value)%2 == 0
     new_value = []
     for i in range(0, len(value), 2):
         # -1 values are only added at the end as padding
         if value[i] == -1:
             break
-        new_value.append([itos[value[i]], value[i+1]])
+        new_value.append([itos(value[i]), value[i+1]])
     return new_value
 
-def get_single_str_val(max_value:int, value: List[str], vocabulary: Dict[str, int]):
+def get_single_str_val(max_value:int, value: List[str], vocabulary: marisa_trie):
     assert type(value) is list or type(value) is set or type(value) is np.ndarray
     assert len(value) > 0
     assert all(type(v) is str for v in value)
@@ -37,11 +39,11 @@ def get_single_str_val(max_value:int, value: List[str], vocabulary: Dict[str, in
     new_value.extend([-1]*(max_value - len(new_value)))
     return tuple(new_value)
 
-def inverse_single_str_val(return_type: Callable[[Any], Any], value: List[int], itos: np.ndarray):
-    new_value = [itos[p] for p in value if p != -1]
+def inverse_single_str_val(return_type: Callable[[Any], Any], value: List[int], itos: Callable[[int], str]):
+    new_value = [itos(p) for p in value if p != -1]
     return return_type(new_value)
 
-def get_type_ids(max_value:int, value: List[int], vocabulary: Dict[str, int]):
+def get_type_ids(max_value:int, value: List[int], vocabulary: marisa_trie):
     assert type(value) is list or type(value) is np.ndarray
     assert len(value) > 0
     assert all(type(v) is int or type(v) is np.int64 for v in value)
@@ -50,12 +52,12 @@ def get_type_ids(max_value:int, value: List[int], vocabulary: Dict[str, int]):
     new_value.extend([-1]*(max_value - len(new_value)))
     return tuple(new_value)
 
-def inverse_type_ids(value: List[int], itos: np.ndarray):
+def inverse_type_ids(value: List[int], itos: Callable[[int], str]):
     new_value = [p for p in value if p != -1]
     return new_value
 
 class RecordTrieCollection:
-    def __init__(self, load_dir: str=None, input_dicts: Dict[str, Dict[str, Any]]=None, vocabulary: Dict[str, int]=None,
+    def __init__(self, load_dir: str=None, input_dicts: Dict[str, Dict[str, Any]]=None, vocabulary: Dict[str, Any]=None,
                  fmt_types: Dict[str, Any]=None, max_values: Dict[str, Any]=None) -> None:
         self._get_fmt_strings = {
             "qid_cand": lambda x: f"<{'l'*x}",  # K long integers
@@ -87,11 +89,11 @@ class RecordTrieCollection:
 
             self._fmt_types = fmt_types
             self._max_values = max_values
-            self._stoi: Dict[str, int] = vocabulary
-            self._itos: np.ndarray = self.get_itos()
+
+            self._stoi: marisa_trie = marisa_trie.Trie(vocabulary.keys())
+            self._itos: Callable[[int], str] = lambda x: self._stoi.restore_key(x)
             self._record_tris = {}
             for tri_name in self._fmt_types:
-                print("FOUND TRI NAME", tri_name)
                 self._record_tris[tri_name] = self.build_trie(input_dicts[tri_name], self._fmt_types[tri_name], self._max_values[tri_name])
             self._loaded_from_dir = None
 
@@ -102,16 +104,16 @@ class RecordTrieCollection:
             utils.ensure_dir(save_dir)
             utils.dump_json_file(filename=os.path.join(save_dir, "fmt_types.json"), contents=self._fmt_types)
             utils.dump_json_file(filename=os.path.join(save_dir, "max_values.json"), contents=self._max_values)
-            utils.dump_json_file(filename=os.path.join(save_dir, "vocabulary.json"), contents=self._stoi)
-            np.save(file=os.path.join(save_dir, "itos.npy"), arr=self._itos, allow_pickle=True)
+            self._stoi.save(os.path.join(save_dir, f'vocabulary_trie.marisa'))
             for tri_name in self._fmt_types:
                 self._record_tris[tri_name].save(os.path.join(save_dir, f'record_trie_{tri_name}.marisa'))
+
 
     def load(self, load_dir):
         self._fmt_types = utils.load_json_file(filename=os.path.join(load_dir, "fmt_types.json"))
         self._max_values = utils.load_json_file(filename=os.path.join(load_dir, "max_values.json"))
-        self._stoi = utils.load_json_file(filename=os.path.join(load_dir, "vocabulary.json"))
-        self._itos = np.load(file=os.path.join(load_dir, "itos.npy"), allow_pickle=True)
+        self._stoi = marisa_trie.Trie().mmap(os.path.join(load_dir, f'vocabulary_trie.marisa'))
+        self._itos = lambda x: self._stoi.restore_key(x)
         assert self._fmt_types.keys() == self._max_values.keys()
         for tri_name in self._fmt_types:
             assert f'record_trie_{tri_name}.marisa' in os.listdir(load_dir), f"Missing record_trie_{tri_name}.marisa in {load_dir}"
@@ -121,16 +123,11 @@ class RecordTrieCollection:
                 self._get_fmt_strings[self._fmt_types[tri_name]](self._max_values[tri_name])).mmap(os.path.join(load_dir,
                                                                                                                 f'record_trie_{tri_name}.marisa'))
 
-    def get_itos(self) -> np.ndarray:
-        vocabulary_inv = {v:k for k,v in self._stoi.items()}
-        max_v = max(vocabulary_inv.keys())
-        id2vocab = np.array([vocabulary_inv[i] if i in vocabulary_inv else None for i in range(max_v+1)])
-        return id2vocab
-
     def build_trie(self, input_dict: Dict[str, Any], fmt_type: str, max_value: int):
         all_values = []
+        print("Sorting keys")
         all_keys = sorted(list(input_dict.keys()))
-        for key in all_keys:
+        for key in tqdm(all_keys, desc="Building tri"):
             value = input_dict[key]
             new_value = self._get_fmt_funcs_map[fmt_type](max_value=max_value, value=value, vocabulary=self._stoi)
             all_values.append(new_value)

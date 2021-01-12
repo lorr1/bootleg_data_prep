@@ -19,7 +19,7 @@ import ujson as json
 import copy
 import shutil
 import time
-
+from html import escape, unescape
 import jsonlines
 from collections import defaultdict
 import glob
@@ -37,9 +37,11 @@ def get_arg_parser():
     parser.add_argument('--data_dir', type=str, default='data/wiki_dump', help='Where files saved')
     parser.add_argument('--out_subdir', type=str, default='curate_aliases', help='Where files saved')
     parser.add_argument('--title_to_qid', type=str, default='/lfs/raiders10/0/lorr1/title_to_all_ids.jsonl')
-    parser.add_argument('--wd_aliases', type=str, default='/lfs/raiders10/0/lorr1/augmented_alias_map_large_1030.jsonl',
+    parser.add_argument('--wd_aliases', type=str, default='/lfs/raiders10/0/lorr1/augmented_alias_map_large_uncased_1216.jsonl',
                         help='Path to directory with JSONL mapping alias to QID')
-    parser.add_argument('--min_frequency', type=int, default=2, help='Minimum number of times a QID must appear with an alias')
+    parser.add_argument('--min_frequency', type=int, default=4, help='Minimum number of times a QID must appear with an alias')
+    parser.add_argument('--strip', action='store_true', help='If set, will strip punctuation of aliases.')
+    parser.add_argument('--lower', action='store_true', help='If set, will lower case all aliases.')
     parser.add_argument('--test', action='store_true', help='If set, will only generate for one file.')
     parser.add_argument('--processes', type=int, default=int(50))
     return parser
@@ -76,12 +78,12 @@ def subprocess(all_args):
     acronymaliases_to_title = defaultdict(lambda: defaultdict(int))
     with jsonlines.open(in_filepath, 'r') as in_file:
         for page_obj in in_file:
-            # for alias in page_obj.get("bold_aliases", []):
-            #     alias = prep_utils.get_lnrm(alias)
-            #     if len(alias) > 0:
-            #         boldaliases_to_title[alias][page_obj["page_title"]] += 1
+            for alias in page_obj.get("bold_aliases", []):
+                alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                if len(alias) > 0:
+                    boldaliases_to_title[alias][page_obj["page_title"]] += 1
             for alias in page_obj.get("acronym_aliases", []):
-                alias = prep_utils.get_lnrm(alias)
+                alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
                 if len(alias) > 0:
                     acronymaliases_to_title[alias][page_obj["page_title"]] += 1
             # aliases is a list of sentences with aliases, their gold wikipedia page title, the text, and spans
@@ -89,7 +91,7 @@ def subprocess(all_args):
                 pairs = zip(sentence["aliases"], sentence["titles"])
                 for alias, title in pairs:
                     # normalize alias
-                    alias = prep_utils.get_lnrm(alias)
+                    alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
                     if len(alias) > 0:
                         aliases_to_title[alias][title] += 1
     utils.dump_json_file(outfilename, aliases_to_title)
@@ -124,8 +126,13 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
     qid_unavailable = defaultdict(int)  # A dictionary of titles for which we cannot map to a QID
     unpopular_removed = defaultdict(lambda: defaultdict(int))
     for alias, title_dict in tqdm(anchoraliases_to_title.items()):
-        for title, count in title_dict.items():
+        for title_raw, count in title_dict.items():
             if count >= args.min_frequency:
+                title = title_raw
+                if title not in title_to_qid:
+                    title = unescape(title_raw)
+                if title not in title_to_qid:
+                    title = escape(title_raw)
                 if title in title_to_qid:
                     filtered_aliasqid[alias][title_to_qid[title]] += 1
                     filtered_qids[title_to_qid[title]] += 1
@@ -134,27 +141,25 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
                 else:
                     qid_unavailable[title] += count
             else:
-                unpopular_removed[alias][title] += count
-    # union with bold aliases, incrementing count again as the bold aliases link to the page they are on
-    for alias, title_dict in tqdm(boldaliases_to_title.items()):
-        for title, count in title_dict.items():
-            if title in title_to_qid:
-                filtered_aliasqid[alias][title_to_qid[title]] += 1
-                filtered_qids[title_to_qid[title]] += 1
-            else:
-                qid_unavailable[title] += count
-    # union with acronym aliases, incrementing count again as the acronym aliases link to the page they are on
-    for alias, title_dict in tqdm(acronymaliases_to_title.items()):
-        for title, count in title_dict.items():
-            if title in title_to_qid:
-                filtered_aliasqid[alias][title_to_qid[title]] += 1
-                filtered_qids[title_to_qid[title]] += 1
-            else:
-                qid_unavailable[title] += count
+                unpopular_removed[alias][title_raw] += count
+    # union with bold aliases and acronym aliases, incrementing count again as the bold aliases link to the page they are on
+    for alias_dict in [boldaliases_to_title, acronymaliases_to_title]:
+        for alias, title_dict in tqdm(alias_dict.items()):
+            for title_raw, count in title_dict.items():
+                title = title_raw
+                if title not in title_to_qid:
+                    title = unescape(title_raw)
+                if title not in title_to_qid:
+                    title = escape(title_raw)
+                if title in title_to_qid:
+                    filtered_aliasqid[alias][title_to_qid[title]] += 1
+                    filtered_qids[title_to_qid[title]] += 1
+                else:
+                    qid_unavailable[title] += count
     # we increment the count here to represent that each page links to itself; as we compute counts later, this is just for sorting
     for qid in qid_to_all_titles:
         for title in qid_to_all_titles[qid]:
-            alias = prep_utils.get_lnrm(title)
+            alias = prep_utils.get_lnrm(title, args.strip, args.lower)
             if len(alias) > 0:
                 filtered_aliasqid[alias][qid] += 1
                 filtered_qids[qid] += 1
@@ -187,14 +192,14 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
 
 def merge_wikidata_aliases(args, aliases_to_qid, all_qids, wikidata_alias_to_qid):
     """ We merge alias-qid pairs from Wikidata with the alias-qid pairs we've 
-    extracted from Wikipedia.
+    extracted from Wikipedia. Note that we recompute QID counts in the next step for the candidate maps.
     """
 
     print("Adding wikidata aliases...")
     stats = defaultdict(int)
     new_qids_from_wikidata = set()
     for wd_alias, qids in tqdm(wikidata_alias_to_qid.items()):
-        wd_alias = prep_utils.get_lnrm(wd_alias)
+        wd_alias = prep_utils.get_lnrm(wd_alias, args.strip, args.lower)
         if len(wd_alias) <= 0:
             continue
         if wd_alias in aliases_to_qid:
@@ -252,7 +257,12 @@ def main():
     anchoraliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_anchoraliases_to_titles)
     boldaliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_boldaliases_to_titles)
     acronymaliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_acronymaliases_to_titles)
-
+    # TODO: REMOVE
+    al = "distributed algorithms"
+    print("AL", al)
+    print(boldaliases_to_title.get(al, []))
+    print(acronymaliases_to_title.get(al, []))
+    print(anchoraliases_to_title.get(al, []))
     # filter aliases and convert to QID
     aliases_to_qid, all_qids, qid_unavailable, unpopular_removed = filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_title,
                                                                                                      acronymaliases_to_title,

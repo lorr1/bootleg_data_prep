@@ -51,11 +51,9 @@ def parse_args():
     parser.add_argument('--prep_file', type=str, default="", help="This will be accessible to the prep_func")
     parser.add_argument('--filter_file', type=str, default="",
                         help = "path to JSON file with QIDs or ALIASES. If you use the sentence filter function sentence_filterQID or sentence_filterAliases then we'll load this files.")
-    parser.add_argument('--disambig_file', type=str, default='data/utils/disambig_qids.json', help="These qids are removed as they refer to disambiguation pages in Wikipedia.")
     parser.add_argument('--max_candidates', type=int, default=30, help="Maximum number of entities to read in for each alias. When there are two many, some of the distance based slices get too small because of the large variability.")
     parser.add_argument('--no_filter_entities_data', action="store_true", help="if turned on, will not filter entity symbols after data filtering")
     parser.add_argument('--train_in_candidates', action='store_true', help='Make all training examples have true labels that are in the candidate set. THIS WILL ALMOST ALWAYS BE SET.')
-    parser.add_argument('--no_filter_disambig_entities', action='store_true', help='Do not filter entities that point to disambiguation pages')
     parser.add_argument('--benchmark_qids', default = "", type =str, help = "List of QIDS that should be kept in entity dump. This is to ensure the trained model has entity embeddings for these.")
     
     # Multiprocessing utilities 
@@ -65,17 +63,9 @@ def parse_args():
     return args
 
 def init_process(args):
-    extras_f, disambig_f = args
+    extras_f = args
     global extras_global
-    global disambig_qids_global
     extras_global = utils.load_pickle_file(extras_f)
-    if disambig_f != "":
-        qids_temp = utils.load_json_file(disambig_f)
-        if type(qids_temp) is dict:
-            qids_temp = list(qids_temp.keys())
-        disambig_qids_global = set(qids_temp)
-    else:
-        disambig_qids_global = set()
 
 # Filters data by the sentence filter function
 def launch_subprocess_step1(args, out_dir, in_files):
@@ -85,13 +75,11 @@ def launch_subprocess_step1(args, out_dir, in_files):
     extras_f = os.path.join(out_dir, "extras.pkl")
     utils.dump_pickle_file(extras_f, extras)
 
-    diambig_f = args.disambig_file
-
     all_process_args = []
     for i in range(len(in_files)):
         all_process_args.append(tuple([i+1, len(in_files), args, out_dir, in_files[i]]))
     print(f"Starting pool...")
-    pool = multiprocessing.Pool(processes=args.processes, initializer=init_process, initargs=(tuple([extras_f, diambig_f]),))
+    pool = multiprocessing.Pool(processes=args.processes, initializer=init_process, initargs=[extras_f])
     list_of_all_qids = []
     for res in pool.imap(subprocess_step1, all_process_args, chunksize=1):
         list_of_all_qids.append(res)
@@ -136,17 +124,11 @@ def subprocess_step1(all_args):
                 if eval("{:s}.{:s}(args, aliases, qids, text, extras_global)".format(FILTER_FILE, args.sentence_filter_func)):
                     stats["filtered_func"] += 1
                     continue
-                if not args.no_filter_disambig_entities:
-                    filtered_list = list(filter(lambda x: (x[1] not in disambig_qids_global), zip(aliases, qids, spans, gold, sources)))
-                    if len(filtered_list) <= 0:
-                        continue
-                    aliases_final, qids_final, spans_final, gold_final, sources_final = zip(*filtered_list)
-                else:
-                    aliases_final = aliases
-                    qids_final = qids
-                    spans_final = spans
-                    gold_final = gold
-                    sources_final = sources
+                aliases_final = aliases
+                qids_final = qids
+                spans_final = spans
+                gold_final = gold
+                sources_final = sources
                 all_qids.update(set(qids_final))
                 new_sent = {
                     'parent_qid': qid,
@@ -169,7 +151,10 @@ def filter_entity_symbols(args, list_of_all_qids, benchmark_qids, entity_symbols
     stats = {"alias_not_in_all_qids": 0, "qids_not_in_all_qids": 0, "raw_qids": 0, "raw_aliases": 0}
     print("STARTING LENS TITLE", len(entity_symbols.get_qid2title()), "ALIAS", len(entity_symbols.get_alias2qids()))
     if args.no_filter_entities_data:
-        alias2qids = entity_symbols.get_alias2qids()
+        alias2qids = {}
+        for alias in tqdm(entity_symbols.get_all_aliases(), total=len(entity_symbols.get_all_aliases()), desc="Building alias 2 cands lists"):
+            qid_cand_list = list(sorted(entity_symbols.get_qid_count_cands(alias), key=lambda x: x[1], reverse=True))
+            alias2qids[alias] = qid_cand_list[:args.max_candidates]
         qid2title = entity_symbols.get_qid2title()
         stats["raw_aliases"] = len(alias2qids)
         stats["raw_qids"] = len(qid2title)
@@ -185,15 +170,18 @@ def filter_entity_symbols(args, list_of_all_qids, benchmark_qids, entity_symbols
         print(f"Total qids for filtering {len(all_qids)} with {len(benchmark_qids)} benchmark qids")
         alias2qids = {}
         all_aliases = set()
+        # Final set of all qids
         all_qids_final = set()
-        # Iterate over aliases and find all that point to any of the qids in all_qids, adding all of their QID candidates
+        # Add the gold qids from the data first (if we have train_in_candidates set to False, we are not guaranteed to have the golds be in our candidate set)
+        all_qids_final.update(all_qids)
+        # Iterate over aliases and find all that point to ANY of the qids in all_qids, adding all of their QID candidates
         for alias in tqdm(entity_symbols.get_all_aliases(), total=len(entity_symbols.get_all_aliases()), desc="Building alias 2 cands lists"):
             stats["raw_aliases"] += 1
             qid_cand_list = list(sorted(entity_symbols.get_qid_count_cands(alias), key=lambda x: x[1], reverse=True))
             for qid, count in qid_cand_list:
                 if qid not in all_qids:
                     continue
-                # This alias needs to be added, as does all of its candidates
+                # This alias needs to be added, as does all of its max_candidates candidates
                 all_aliases.add(alias)
                 alias2qids[alias] = qid_cand_list[:args.max_candidates]
                 for qid, count in alias2qids[alias]:
@@ -214,7 +202,7 @@ def filter_entity_symbols(args, list_of_all_qids, benchmark_qids, entity_symbols
         max_alias_len = max(max_alias_len, len(alias.split(" ")))
         alias2qids[alias] = sorted(alias2qids[alias], key=lambda x: x[1], reverse=True)
     print(json.dumps(stats, indent=4))
-    print("FINAL LENS TITLE", len(qid2title), "ALIAS", len(alias2qids))
+    print("FINAL LENS TITLE", len(qid2title), "ALIAS", len(alias2qids), "MAX CANDIDATES", max_candidates)
     return qid2title, alias2qids, max_candidates, max_alias_len
 
 # Filter data by qids remaining in entity_symbols (some may be dropped because of max candidates)
@@ -279,6 +267,10 @@ def subprocess_step2(all_args):
             items = list(filter(lambda x: (not args.train_in_candidates) or (x[1] in [y[0] for y in alias2qids[x[0]]]),
                                 zip(sent_obj['aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'], sent_obj['sources'])))
             temp_len = len(items)
+            for x in items:
+                if x[1] not in qid2title:
+                    print("BAD", x)
+                    print(json.dumps(sent_obj, indent=4))
             items = list(filter(lambda x: x[1] in qid2title, items))
             # there should be no difference between these
             assert temp_len - len(items) == 0

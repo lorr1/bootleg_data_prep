@@ -42,10 +42,10 @@ def parse_args():
     parser.add_argument('--gold_given', action = 'store_true', help = "if gold QIDs are in dataset")
     parser.add_argument('--method', default='standard', choices =['standard', 'contextual', 'aida'], help = 'which candidate generator to use.')
     parser.add_argument('--expand_aliases', action='store_true', help='Whether to expand mention boundaries based on Spacy')
-    parser.add_argument('--large_alias_map', default = '/dfs/scratch0/lorr1/data_prep/unfiltered_data_0906/entity_dump/alias2qids.json', help = 'Path to large alias-to-qid map.')
-    parser.add_argument('--large_title_map', default = '/dfs/scratch0/lorr1/data_prep/unfiltered_data_0906/entity_dump/qid2title.json', help = 'Path to large qid-to-title map.')
-    parser.add_argument('--wiki_pages', default = '/dfs/scratch0/lorr1/data_prep/unfiltered_data_0906/', help = 'Path to wikipedia pages.')
-    parser.add_argument('--aida_candidates', default = "bootleg_data_prep/benchmarks/pershina/processed/cands.json", help='Path to candidate list for AIDA')
+    parser.add_argument('--large_alias_map', default = '/dfs/scratch0/lorr1/projects/data_prep/unfiltered_data_0906/entity_db/entity_mappings/alias2qids.json', help = 'Path to large alias-to-qid map.')
+    parser.add_argument('--large_title_map', default = '/dfs/scratch0/lorr1/projects/data_prep/unfiltered_data_0906/entity_db/entity_mappings/qid2title.json', help = 'Path to large qid-to-title map.')
+    parser.add_argument('--wiki_pages', default = '/dfs/scratch0/lorr1/projects/data_prep/unfiltered_data_0906/', help = 'Path to wikipedia pages.')
+    parser.add_argument('--aida_candidates', default = "/dfs/scratch0/lorr1/projects/bootleg-data-prep/bootleg_data_prep/benchmarks/pershina/processed/cands.json", help='Path to candidate list for AIDA')
     args = parser.parse_args()
     return args
 

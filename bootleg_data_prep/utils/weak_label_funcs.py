@@ -15,10 +15,26 @@ VERBS = set(['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
 NOUNS = set(["NN", "NNS", "NNP", "NNPS", "PRP"])
 TABLE = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
 
-#===================================================================
+
+def regiater_funcs():
+    all_funcs = {}
+
+    def registrar(func):
+        all_funcs[func.__name__] = func
+        # normally a decorator returns a wrapped function, but here we return func unmodified, after registering it
+        return func
+
+    registrar.all = all_funcs
+    return registrar
+
+
+wl_func = regiater_funcs()
+
+# ===================================================================
 # UTILS
-#===================================================================
+# ===================================================================
 words_to_avoid = ["the", "a", "in", "of", "for", "at", "to", "with", "on", "from"]
+
 
 def span_overlap(a, b):
     """
@@ -29,6 +45,7 @@ def span_overlap(a, b):
     span_overlap([0, 5], [0, 2]) -> 2
     """
     return max(0, min(a[1], b[1]) - max(a[0], b[0]))
+
 
 def find_aliases_in_sentence(sentence, all_aliases, max_alias_len, used_aliases=None):
     """
@@ -46,10 +63,10 @@ def find_aliases_in_sentence(sentence, all_aliases, max_alias_len, used_aliases=
     sentence_split_raw = sentence.split()
     tags = nltk.pos_tag(sentence_split_raw)
     # find largest aliases first
-    for n in range(max_alias_len+1, 0, -1):
+    for n in range(max_alias_len + 1, 0, -1):
         grams = nltk.ngrams(tags, n)
         w_st = -1
-        w_end = n-1
+        w_end = n - 1
         for gram in grams:
             w_st += 1
             w_end += 1
@@ -62,7 +79,7 @@ def find_aliases_in_sentence(sentence, all_aliases, max_alias_len, used_aliases=
                 continue
             # If gram starts with stop word, move on because we'd rather try the one without
             # We also don't want punctuation words to be used at the beginning/end
-            if gram_words[0] in words_to_avoid or gram_words[-1] in words_to_avoid or len(gram_words[0].translate(table).strip()) == 0\
+            if gram_words[0] in words_to_avoid or gram_words[-1] in words_to_avoid or len(gram_words[0].translate(table).strip()) == 0 \
                     or len(gram_words[-1].translate(table).strip()) == 0:
                 continue
             gram_attempt = get_lnrm(" ".join(gram_words), strip=True, lower=True)
@@ -84,9 +101,9 @@ def find_aliases_in_sentence(sentence, all_aliases, max_alias_len, used_aliases=
                 used_aliases.append(tuple([gram_attempt, "Q-1", w_st, w_end]))
     # sort based on closeness to alias
     sorted_aliases = sorted(used_aliases, key=lambda elem: [elem[2], elem[3]])
-    for i in range(len(sorted_aliases)-1):
+    for i in range(len(sorted_aliases) - 1):
         left = sorted_aliases[i]
-        right = sorted_aliases[i+1]
+        right = sorted_aliases[i + 1]
         assert span_overlap([left[2], left[3]], [right[2], right[3]]) == 0
     return sorted_aliases
 
@@ -95,6 +112,8 @@ def golds(doc_qid, sentence, spans, qids, aliases, document_alias2qids, wl_metad
     final_spans, final_qids, final_aliases = [], [], []
     return final_spans, final_qids, final_aliases
 
+
+@wl_func
 def aka(doc_qid, sentence, spans, qids, aliases, document_alias2qids, wl_metadata):
     if len(spans) > 0:
         spans_l, spans_r = list(zip(*spans))

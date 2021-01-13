@@ -43,8 +43,8 @@ class WLMetadata:
             for qid, alias_cands in tqdm(qid2alias.items(), desc="Iterating over qids"):
                 all_alias_len.append(len(alias_cands))
 
-            max_cands = 50
-            max_aliases = 50
+            max_cands = 100
+            max_aliases = 100
             print(f"Average number of connections {np.average(all_qid_len)}, 99.9th percentile {np.percentile(all_qid_len, 99.9)} - Trimming to {max_cands}")
             print(f"Average number of connections {np.average(all_alias_len)}, 99.9th percentile {np.percentile(all_alias_len, 99.9)} - Trimming to {max_aliases}")
             for alias in tqdm(list(alias2qids.keys()), desc="Iterating over aliases"):

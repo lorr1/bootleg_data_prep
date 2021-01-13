@@ -13,7 +13,7 @@ STOPWORDS.add("also")
 STOPWORDS.add("s")
 VERBS = set(['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
 NOUNS = set(["NN", "NNS", "NNP", "NNPS", "PRP"])
-TABLE = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
+TABLE = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for qkey in string.punctuation}
 
 
 def regiater_funcs():

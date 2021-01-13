@@ -43,8 +43,8 @@ class WLMetadata:
             for qid, alias_cands in tqdm(qid2alias.items(), desc="Iterating over qids"):
                 all_alias_len.append(len(alias_cands))
 
-            max_cands = 50
-            max_aliases = 50
+            max_cands = 150
+            max_aliases = 150
             print(f"Average number of connections {np.average(all_qid_len)}, 99.9th percentile {np.percentile(all_qid_len, 99.9)} - Trimming to {max_cands}")
             print(f"Average number of connections {np.average(all_alias_len)}, 99.9th percentile {np.percentile(all_alias_len, 99.9)} - Trimming to {max_aliases}")
             for alias in tqdm(list(alias2qids.keys()), desc="Iterating over aliases"):
@@ -126,7 +126,7 @@ class WLMetadata:
     def get_cand_pos(self, alias, qid):
         assert self.contains_alias(alias), f"{alias} not in mapping"
         try:
-            return self.tri_collection_qids.get_value(ALIAS2QID, alias, getter=lambda x: x[0]).index(qid)
+            return self.tri_collection_qids.get_value(ALIAS2QID, alias).index(qid)
         except:
             return -1
 
@@ -218,7 +218,8 @@ def subprocess(all_args):
 
     filtered_qid_counts = defaultdict(lambda: defaultdict(int))
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-
+    print("TESTING")
+    print(choose_new_alias(30, "smith", "Q127494", wl_metadata_global, "Q23", 0))
     no_qid = []
     added_alias = defaultdict(int)
     with open(in_filepath, 'r') as in_file, open(out_fname, "w") as out_file:

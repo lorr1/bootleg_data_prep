@@ -218,8 +218,6 @@ def subprocess(all_args):
 
     filtered_qid_counts = defaultdict(lambda: defaultdict(int))
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
-    print("TESTING")
-    print(choose_new_alias(30, "smith", "Q127494", wl_metadata_global, "Q23", 0))
     no_qid = []
     added_alias = defaultdict(int)
     with open(in_filepath, 'r') as in_file, open(out_fname, "w") as out_file:

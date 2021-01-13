@@ -15,6 +15,7 @@ import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 from bootleg_data_prep.utils import utils, weak_label_funcs
 from bootleg_data_prep.utils.classes.record_trie_collection import RecordTrieCollection
+from bootleg_data_prep.utils.weak_label_funcs import wl_func
 
 ALIAS2QID = "alias2qids"
 QID2ALIAS = "qid2alias"
@@ -137,7 +138,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/wiki_dump', help='Directory for data to be saved.')
     parser.add_argument('--filtered_alias_subdir', type=str, default='alias_filtered_sentences', help = 'Subdirectory to save filtered sentences.')
-    parser.add_argument('--out_subdir', type = str, default = 'test_wl', help = 'Where to write processed data to.')
+    parser.add_argument('--out_subdir', type = str, default = 'test_wl2', help = 'Where to write processed data to.')
     parser.add_argument('--no_permute_alias', action='store_true', help = 'Turn on to not make the new alias of added entities be the most conflicting.')
     parser.add_argument('--max_candidates', type=int, default=30)
     parser.add_argument('--processes', type=int, default=int(0.1*multiprocessing.cpu_count()))
@@ -204,6 +205,9 @@ def subprocess(all_args):
     start_time = time.time()
     random.seed(1234)
 
+    lfs = list(wl_func.all.values())
+    print("LFS", lfs)
+
     idx, total, outdir, temp_outdir, args, in_filepath = all_args
     num_lines = sum(1 for _ in open(in_filepath))
 
@@ -238,7 +242,6 @@ def subprocess(all_args):
                 orig_spans, orig_qids, orig_aliases, orig_sources = line["spans"], line["qids"], line["aliases"], ["gold"]*len(line["aliases"])
                 added_alias["gold"] += len(orig_aliases)
 
-                lfs = [weak_label_funcs.aka]
                 for lf in lfs:
                     assert lf.__name__ != "gold", f"We use the name \"gold\" already for a LF. Please name it something else."
                     st = time.time()

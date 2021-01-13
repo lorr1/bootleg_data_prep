@@ -226,9 +226,9 @@ class EntitySymbolsForSlice:
         return rels
 
     def get_relation_name(self, relid):
-        if relid is None or relid not in self.contextual_rel_vocab_inv:
+        if relid is None or str(relid) not in self.contextual_rel_vocab_inv:
             return None
-        return self.contextual_rel_vocab_inv[relid]
+        return self.contextual_rel_vocab_inv[str(relid)]
 
     def format_relation_pair(self, head, tail):
         return f"{head}_{tail}"

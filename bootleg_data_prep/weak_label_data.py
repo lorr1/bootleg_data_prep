@@ -401,7 +401,7 @@ def main():
     args = parse_args()
     print(ujson.dumps(vars(args), indent=4))
     outdir = prep_utils.get_outdir(args.data_dir, args.out_subdir, remove_old=True)
-    temp_outdir = prep_utils.get_outdir(args.data_dir, "_temp", remove_old=True)
+    temp_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.out_subdir), "_temp", remove_old=True)
     temp_metadata_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.filtered_alias_subdir), "_for_rerun_WL", remove_old=False)
 
     # get inputs files 

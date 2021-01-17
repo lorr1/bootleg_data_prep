@@ -115,7 +115,7 @@ class WLMetadata:
 
     def get_all_aliases(self, qid: str, default: Any = None) -> Set[str]:
         if self.contains_qid(qid):
-            return set(self.tri_collection_aliases.get_value(QID2ALIAS, qid))
+            return self.tri_collection_aliases.get_value(QID2ALIAS, qid)
         else:
             return default
 

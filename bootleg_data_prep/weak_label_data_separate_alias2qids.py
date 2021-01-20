@@ -19,10 +19,12 @@ from bootleg_data_prep.utils.weak_label_funcs import wl_func
 
 ALIAS2QID = "alias2qids"
 QID2ALIAS = "qid2alias"
+QID2ALIASv2 = "qid2alias_v2"
 
 class WLMetadata:
-    def __init__(self, entity_dump=None, qid2title=None, tri_collection_qids=None, tri_collection_aliases=None):
+    def __init__(self, entity_dump=None, separate_alias_table=None, qid2title=None, tri_collection_qids=None, tri_collection_aliases=None, tri_collection_aliases_v2=None):
         if entity_dump is not None:
+            assert separate_alias_table is not None
             print(f"entity_dump is not None. Rebuilding WLMetadata")
             alias2qids = {}
             qid2alias = {}
@@ -43,6 +45,14 @@ class WLMetadata:
             for qid, alias_cands in tqdm(qid2alias.items(), desc="Iterating over qids"):
                 all_alias_len.append(len(alias_cands))
 
+            qid2alias_v2 = {}
+            for alias in tqdm(separate_alias_table, desc="Iterating over aliases from separate alias table"):
+                assert len(alias.strip()) > 0
+                for qid in separate_alias_table[alias]:
+                    if qid not in qid2alias_v2:
+                        qid2alias_v2[qid] = []
+                    qid2alias_v2[qid].append(alias)
+
             max_cands = 100
             max_aliases = 100
             print(f"Average number of connections {np.average(all_qid_len)}, 99.9th percentile {np.percentile(all_qid_len, 99.9)} - Trimming to {max_cands}")
@@ -52,6 +62,9 @@ class WLMetadata:
 
             for qid in tqdm(list(qid2alias.keys()), desc="Iterating over qids"):
                 qid2alias[qid] = qid2alias[qid][:max_aliases]
+
+            for qid in tqdm(list(qid2alias_v2.keys()), desc="Iterating over qids in qid2alias_v2"):
+                qid2alias_v2[qid] = qid2alias_v2[qid][:max_aliases]
 
             # This maps our keys that we use in the helper functions below to the right tri in tri collection.
             # The values are specific strings as outlines in the record trie collection class
@@ -73,13 +86,27 @@ class WLMetadata:
             print(f"Max Values {max_values}")
             self.tri_collection_aliases = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=alias_vocab,
                                                        fmt_types=fmt_types, max_values=max_values)
+
+            # This maps our keys that we use in the helper functions below to the right tri in tri collection.
+            # The values are specific strings as outlines in the record trie collection class
+            fmt_types = {QID2ALIASv2: "qid_cand"}
+            max_values = {QID2ALIASv2: max_aliases}
+            input_dicts = {QID2ALIASv2: qid2alias_v2}
+            alias_vocab = {al:i for i, al in enumerate(separate_alias_table.keys())}
+
+            print(f"Max Values {max_values}")
+            self.tri_collection_aliases = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=alias_vocab,
+                                                       fmt_types=fmt_types, max_values=max_values)
+
         else:
             assert qid2title is not None, f"You have a None entity_dump, we require qid2title to not be None"
             assert tri_collection_qids is not None, f"You have a None entity_dump, we require tri_collection_qids to not be None"
             assert tri_collection_aliases is not None, f"You have a None entity_dump, we require tri_collection_aliases to not be None"
+            assert tri_collection_aliases_v2 is not None, f"You have a None entity_dump, we require tri_collection_aliases_v2 to not be None"
             self.qid2title = qid2title
             self.tri_collection_qids = tri_collection_qids
             self.tri_collection_aliases = tri_collection_aliases
+            self.tri_collection_aliases_v2 = tri_collection_aliases_v2
 
     @classmethod
     def get_qid_tri_dir(cls, dump_dir):
@@ -90,12 +117,17 @@ class WLMetadata:
         return os.path.join(dump_dir, "ALIASTRI")
 
     @classmethod
+    def get_alias_tri_dir_v2(cls, dump_dir):
+        return os.path.join(dump_dir, "ALIASTRIv2")
+
+    @classmethod
     def get_qid2title_file(cls, dump_dir):
         return os.path.join(dump_dir, "QID2TITLE.json")
 
     def dump(self, dump_dir):
         self.tri_collection_qids.dump(save_dir=self.get_qid_tri_dir(dump_dir))
         self.tri_collection_aliases.dump(save_dir=self.get_alias_tri_dir(dump_dir))
+        self.tri_collection_aliases_v2.dump(save_dir=self.get_alias_tri_dir_v2(dump_dir))
         with open(self.get_qid2title_file(dump_dir), "w") as out_f:
             ujson.dump(self.qid2title, out_f)
 
@@ -103,12 +135,16 @@ class WLMetadata:
     def load(cls, dump_dir):
         tri_collection_qids = RecordTrieCollection(load_dir=cls.get_qid_tri_dir(dump_dir))
         tri_collection_aliases = RecordTrieCollection(load_dir=cls.get_alias_tri_dir(dump_dir))
+        tri_collection_aliases_v2 = RecordTrieCollection(load_dir=cls.get_alias_tri_dir_v2(dump_dir))
         with open(cls.get_qid2title_file(dump_dir)) as in_f:
             qid2title = ujson.load(in_f)
-        return cls(entity_dump=None, qid2title=qid2title, tri_collection_qids=tri_collection_qids, tri_collection_aliases=tri_collection_aliases)
+        return cls(entity_dump=None, separate_alias_table=None, qid2title=qid2title, tri_collection_qids=tri_collection_qids, tri_collection_aliases=tri_collection_aliases, tri_collection_aliases_v2=tri_collection_aliases_v2)
 
     def contains_qid(self, qid):
         return self.tri_collection_aliases.is_key_in_trie(QID2ALIAS, qid)
+
+    def contains_qid_v2(self, qid):
+        return self.tri_collection_aliases_v2.is_key_in_trie(QID2ALIASv2, qid)
 
     def contains_alias(self, alias):
         return self.tri_collection_qids.is_key_in_trie(ALIAS2QID, alias)
@@ -116,6 +152,12 @@ class WLMetadata:
     def get_all_aliases(self, qid: str, default: Any = None) -> Set[str]:
         if self.contains_qid(qid):
             return self.tri_collection_aliases.get_value(QID2ALIAS, qid)
+        else:
+            return default
+
+    def get_all_aliases_separate_alias_table(self, qid: str, default: Any = None) -> Set[str]:
+        if self.contains_qid_v2(qid):
+            return self.tri_collection_aliases_v2.get_value(QID2ALIASv2, qid)
         else:
             return default
 
@@ -313,7 +355,7 @@ def collect_aliases_to_qids_in_doc(doc, wl_metadata):
     doc_entity = str(doc['qid'])
 
     # Add aliases pointing to the document
-    aliases = wl_metadata.get_all_aliases(doc_entity, set())
+    aliases = wl_metadata.get_all_aliases_separate_alias_table(doc_entity, set())
     for al in aliases:
         assert len(al) > 0
         # We correct this count below when pruning
@@ -323,7 +365,7 @@ def collect_aliases_to_qids_in_doc(doc, wl_metadata):
         sentence_qids = sentence['qids']
         # Update the aliases_to_qids_in_doc
         for qid in sentence_qids:
-            for al in wl_metadata.get_all_aliases(qid, set()):
+            for al in wl_metadata.get_all_aliases_separate_alias_table(qid, set()):
                 aliases_to_qids_in_doc[al][qid] += 1
     aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned = prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc)
     # print(f"Time for collect aliases", time.time() - st)
@@ -402,7 +444,9 @@ def main():
     print(ujson.dumps(vars(args), indent=4))
     outdir = prep_utils.get_outdir(args.data_dir, args.out_subdir, remove_old=True)
     temp_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.out_subdir), "_temp", remove_old=True)
-    temp_metadata_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.filtered_alias_subdir), "_for_rerun_WL", remove_old=False)
+
+    # Giving this a new name here, so that it doesn't conflict with the other folder (which is "_for_rerun_WL")
+    temp_metadata_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.filtered_alias_subdir), "_for_rerun_WL_using_separate_alias_table", remove_old=False)
 
     # get inputs files 
     path = os.path.join(args.data_dir, args.filtered_alias_subdir, "*.jsonl")
@@ -420,8 +464,12 @@ def main():
         entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
         print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
+        # path to separate alias2qids mapping that will be used for mention extraction during WL
+        separate_alias2qids_path = '/lfs/raiders7/hdd/balex/data/wikidata_also_known_as/augmented_alias_map_large_uncased_1216_filtered_to_be_intersection_0120.json'
+        with open(separate_alias2qids_path, 'r') as f:
+            separate_alias2qids = ujson.load(f)
         utils.ensure_dir(wl_metadata_dump)
-        wl_metadata = WLMetadata(entity_dump)
+        wl_metadata = WLMetadata(entity_dump=entity_dump, separate_alias_table=separate_alias2qids)
         wl_metadata.dump(wl_metadata_dump)
         print(f"Time to create WL metadata {time.time() - st}")
 

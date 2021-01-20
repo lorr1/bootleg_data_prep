@@ -95,7 +95,7 @@ class WLMetadata:
             alias_vocab = {al:i for i, al in enumerate(separate_alias_table.keys())}
 
             print(f"Max Values {max_values}")
-            self.tri_collection_aliases = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=alias_vocab,
+            self.tri_collection_aliases_v2 = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=alias_vocab,
                                                        fmt_types=fmt_types, max_values=max_values)
 
         else:

@@ -437,6 +437,7 @@ class Contextual:
         phrase = sentence['sentence']
         aliases = sentence['aliases']
         spans = sentence['spans']
+        ori_aliases = aliases[:]
         if self.args.expand_aliases:
             #             print("PRINTING ALL QIDS:\n")
             #             for i in range(len(aliases)):

@@ -5,7 +5,8 @@ detect primary pronouns for person entities and link the pronouns to the primary
 To run
 python prn.py wiki04102020/orig_nocoref/ --num_workers 72 && tar cf - wiki04102020_prn/orig_nocoref/ | pigz - > wiki_05152020_prn.tgz
 """
-
+import random
+import shutil
 from collections import Counter
 from glob import glob
 import json
@@ -86,7 +87,7 @@ gender_qid_map = {
     "Q859614" : 5, # bigender
     "somevalue": 5,
 }
-person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg/data/wikidata_mappings/person.npy', allow_pickle=True)
+person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
 print('person data loaded')
 
 
@@ -114,7 +115,7 @@ def prepare_person_numpy():
 
     
 def process_file(args):
-    filename, output_path, swap_titles = args
+    filename, output_path, swap_titles, only_first_prn = args
     with open(filename) as f:
         # get filename
         just_file = os.path.basename(filename)
@@ -130,13 +131,13 @@ def process_file(args):
                 g, p, title = row
                 # if gender is female or male
                 if 0 < g <= 2:
-                    print(json.dumps(add_pronoun(j, g, swap_titles)), file=fout)
+                    print(json.dumps(add_pronoun(j, g, swap_titles, only_first_prn)), file=fout)
                 else:
                     print(line.strip(), file=fout)
             return res
 
 
-def add_pronoun(doc, gender_id, swap_titles):
+def add_pronoun(doc, gender_id, swap_titles, only_first_prn):
     """Example input:
     {
       "doc_sent_idx": 0,
@@ -166,13 +167,33 @@ def add_pronoun(doc, gender_id, swap_titles):
     """
     sentences = doc.get('sentences', [])
     qid = doc.get('qid')
-    title = doc.get('title')
-    title_offset = len(title.split())-1
-    # possessive title
-    title_possessive = f"{title} 's"
-    title_possessive_offset = len(title_possessive.split())-1
+    doc_title = doc.get('title')
     doc_alias = qid2alias_global.get(qid, "")
+    doc_title_spl = doc_title.split()
+    doc_title_offset = len(doc_title.split())-1
+    seed = str(qid[1:]) + str(doc_title)
+    random.seed(seed)
     for sent in sentences:
+        # Randomly choose if we are going to swap pronoun with full title, first name, or last name
+        if swap_titles:
+            # Choose between full name, first, or last
+            choice_name = random.randint(0, 2)
+            if choice_name == 0:
+                title = doc_title_spl[0]
+                title_offset = 0
+            elif choice_name == 1:
+                title = doc_title_spl[-1]
+                title_offset = 0
+            else:
+                title = doc_title
+                title_offset = doc_title_offset
+        else:
+            title = doc_title
+            title_offset = doc_title_offset
+        # possessive title
+        title_possessive = f"{title} 's"
+        title_possessive_offset = len(title_possessive.split())-1
+
         if len(sent["aliases"]) > 0:
             if type(sent["spans"][0]) is str:
                 sent["spans"] = [list(map(int, s.split(":"))) for s in sent["spans"]]
@@ -184,49 +205,58 @@ def add_pronoun(doc, gender_id, swap_titles):
         if "sources" not in sent:
             sent["sources"] = ["gold" if a else "prn" for a in sent["gold"]]
         sentence = sent['sentence']
-        # print("OLD", json.dumps(sent, indent=4))
         spans = sent['spans']
         tokens = sentence.split()
         new_labels = []
         new_tokens = []
+        found_prn = False
         for i, token in enumerate(tokens):
             # If the pronoun matches the gender of the doc
             pronoun_id = pronoun_map.get(token.lower(), -1)
             pronoun_possessive_id = pronoun_possessive_map.get(token.lower(), -1)
-            if pronoun_id == gender_id and len(doc_alias) > 0:
+            if pronoun_id == gender_id and len(doc_alias) > 0 and (not only_first_prn or not found_prn):
                 # t is (new alias, qid, span, gold, source, offset) (to update spans according to making pronoun tokens become page titles)
                 if swap_titles:
                     if pronoun_possessive_id == 0:
                         new_tokens.append(title)
-                        t = (doc_alias, qid, [i, i+title_offset+1], False, 'prn', title_offset)
+                        t = (doc_alias, doc_alias, qid, [i, i+title_offset+1], False, 'prn', title_offset)
                     else:
                         new_tokens.append(title_possessive)
-                        t = (doc_alias, qid, [i, i+title_possessive_offset+1], False, 'prn', title_possessive_offset)
+                        t = (doc_alias, doc_alias, qid, [i, i+title_possessive_offset+1], False, 'prn', title_possessive_offset)
                 else:
                     new_tokens.append(token)
-                    t = (doc_alias, qid, [i, i+1], False, 'prn', 0)
+                    t = (doc_alias, doc_alias, qid, [i, i+1], False, 'prn', 0)
                 new_labels.append(t)
+                found_prn = True
             else:
                 new_tokens.append(token)
         if new_labels:
+            # print("OLD", json.dumps(sent, indent=4))
             # need to re-sort
             offsets = [0 for _ in sent['qids']]
-            new_labels.extend([(a, q, sp, h, sr, o) for a, q, sp, h, sr, o in zip(sent['aliases'], sent['qids'], spans, sent['gold'], sent['sources'], offsets)])
-            new_labels = sorted(new_labels, key=lambda x: x[2][0])
+            new_labels.extend([(a, us_a, q, sp, h, sr, o) for a, us_a, q, sp, h, sr, o in zip(sent['aliases'],
+                                                                                  sent['unswap_aliases'],
+                                                                                  sent['qids'],
+                                                                                  spans,
+                                                                                  sent['gold'],
+                                                                                  sent['sources'],
+                                                                                  offsets)])
+            new_labels = sorted(new_labels, key=lambda x: x[3][0])
             # need to update spans as we replaced the pronouns with titles
             to_add = 0
             for j in range(len(new_labels)):
-                new_labels[j][2][0] += to_add
-                new_labels[j][2][1] += to_add
-                to_add += new_labels[j][5]
+                new_labels[j][3][0] += to_add
+                new_labels[j][3][1] += to_add
+                to_add += new_labels[j][6]
 
             sent['aliases'] = [t[0] for t in new_labels]
-            sent['qids'] = [t[1] for t in new_labels]
-            sent['spans'] = [t[2] for t in new_labels]
-            sent['gold'] = [t[3] for t in new_labels]
-            sent['sources'] = [t[4] for t in new_labels]
+            sent['unswap_aliases'] = [t[1] for t in new_labels]
+            sent['qids'] = [t[2] for t in new_labels]
+            sent['spans'] = [t[3] for t in new_labels]
+            sent['gold'] = [t[4] for t in new_labels]
+            sent['sources'] = [t[5] for t in new_labels]
             sent['sentence'] = ' '.join(new_tokens)
-            # print("NEW", json.dumps(sent, indent=4))
+    #         print("NEW", json.dumps(sent, indent=4))
     return doc
 
 
@@ -273,7 +303,7 @@ def get_qid2alias(entity_dump):
                 break
             qid2alias_conflict[qid].append([alias, len(cands)])
     qid2alias = {}
-    for qid in qid2alias_conflict:
+    for qid in tqdm(qid2alias_conflict):
         # Add second sort key for determinism
         aliases = sorted(qid2alias_conflict[qid], key = lambda x: (x[1], x[0]), reverse=True)
         qid2alias[qid] = aliases[0][0]
@@ -291,18 +321,21 @@ def init_pool(args):
 @argh.arg('entity_dir', help='where the entities are saved')
 @argh.arg('--num_workers', help='parallelism')
 @argh.arg('--swap_titles', action='store_true', help='swap pronouns for titles in sentence')
-def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False):
+@argh.arg('--only_first_prn', action='store_true', help='label only first prounoun in sentence')
+def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False, only_first_prn=False):
     print(f"input_path: {input_path}, output_path: {output_path}, entity_dir: {entity_dir}")
-    if not os.path.exists(output_path):
-        os.makedirs(output_path)
+    if os.path.exists(output_path):
+        shutil.rmtree(output_path)
+    os.makedirs(output_path)
+
     # load entity symbols
-    print(f"Swap titles is {swap_titles}")
+    print(f"Swap titles is {swap_titles} and Only first is {only_first_prn}")
     entity_dump = EntitySymbols(load_dir=entity_dir)
     print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
     qid2alias = get_qid2alias(entity_dump)
     # output is hardcoded. see process_file
     all_files = glob(os.path.join(input_path, "*.jsonl"), recursive=True)
-    all_inputs = [tuple([all_files[i], output_path, swap_titles]) for i in range(len(all_files))]
+    all_inputs = [tuple([all_files[i], output_path, swap_titles, only_first_prn]) for i in range(len(all_files))]
     stats = []
     c = 0
     t = 0

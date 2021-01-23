@@ -59,6 +59,14 @@ def keep_only_gold_aliases(sent):
             removed += 1
     return new_sent, removed
 
+def unswap_gold_aliases(sent):
+    # Return the aliases to the original one for gold aliases (we swap for training to increase conflict)
+    for i in range(len(sent['gold'])):
+        if sent['gold'][i] is True:
+            if sent['unswap_aliases'][i] != sent['aliases'][i]:
+                sent['aliases'][i] = sent['unswap_aliases'][i]
+    return sent
+
 def main():
     gl_start = time.time()
     args = parse_args()
@@ -150,6 +158,9 @@ def main():
                         alias_qid_with[alias][qid] += 1
                         if gold:
                             alias_qid_without[alias][qid] += 1
+                # use unswapped GOLD aliases for test/dev
+                if (key != os.path.join(out_dir, "train")):
+                    line = unswap_gold_aliases(line)
                 if len(line['aliases']) == 0:
                     continue
                 (idx, out_f) = counters[key]

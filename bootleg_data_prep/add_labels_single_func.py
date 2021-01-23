@@ -49,7 +49,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/wiki_dump', help='Directory for data to be saved.')
     parser.add_argument('--filtered_alias_subdir', type=str, default='alias_filtered_sentences', help = 'Subdirectory to save filtered sentences.')
-    parser.add_argument('--out_subdir', type = str, default = 'orig_wl', help = 'Where to write processed data to.')
+    parser.add_argument('--out_subdir', type = str, default = 'orig_wl_testing', help = 'Where to write processed data to.')
     parser.add_argument('--no_coref', action='store_true', help = 'Turn on to not do coref.')
     parser.add_argument('--no_permute_alias', action='store_true', help = 'Turn on to not use alias swapping. Swapping avoids aliases with a single qid (trivial), and ensures that labeled aliases have the qid in the top 30 (to avoid being dropped).')
     parser.add_argument('--no_acronyms', action='store_true', help = 'Turn on to not do any acronym mining.')
@@ -138,12 +138,14 @@ def subprocess(all_args):
         qid_to_aliases_top_30 = {}
         for q in qid2alias_global:
             qid_to_aliases_top_30[q] = [x for x in qid2alias_global[q] if qid2alias_global[q][x] is True]
-        
         for doc_idx, doc in enumerate(in_file):
             title = doc['title']
             doc_entity = str(doc['qid'])
+            if doc['qid'] not in ["Q3493976", "Q2655944"]:
+                continue
+            print("HERE")
             if not doc_entity == "-1" and doc_entity in qid2alias_global:
-                # print(f"Starting {title} ({doc_entity})")
+                print(f"Starting {title} ({doc_entity})")
                 aliases_to_qids_in_doc, qid_to_aliases_in_doc = collect_aliases_to_qids_in_doc(doc, qid2alias_global)
                 if args.no_coref:
                     aliases_for_finding = marisa_trie.Trie(qid_to_aliases_in_doc[doc_entity])
@@ -159,7 +161,7 @@ def subprocess(all_args):
                 max_alias_len = 0
                 if len(aliases_to_qids_in_doc) > 0:
                     max_alias_len = max([len(alias.split(" ")) for alias in aliases_to_qids_in_doc.keys()])
-                # print(f"Aliases dict {aliases_to_qids_in_doc} QID Dict {qid_to_aliases_in_doc}")
+                print(f"Aliases dict {aliases_to_qids_in_doc} \n\nQID Dict {qid_to_aliases_in_doc}")
                 new_sentences = []
                 possible_acronyms = {} # dictionary of acronym -> tuple(qid, original alias)
                 for sentence_idx, sentence in enumerate(doc['sentences']):
@@ -217,11 +219,15 @@ def subprocess(all_args):
                         # st = time.time()
                         # Find aliases
                         found_aliases, found_spans = prep_utils.find_aliases_in_sentence_tag(sentence_str, aliases_for_finding, max_alias_len)
+                        print("SENTENCe", sentence_str)
+                        print("FOUND", found_aliases)
                         # Find aliases that should be filtered
                         filter_aliases, filter_spans = prep_utils.find_aliases_in_sentence_tag(sentence_str, aliases_for_filtering, max_alias_len)
+                        print("FILTER", filter_aliases)
                         # print(f"Found aliases in {time.time() - st} seconds.")
                         # Filter aliases
                         found_aliases, found_spans = prep_utils.filter_superset_aliases(found_aliases, found_spans, filter_aliases, filter_spans)
+                        print("FINAL", found_aliases)
                         found_qids = []
                         for j in range(len(found_aliases)):
                             alias = found_aliases[j]
@@ -241,7 +247,7 @@ def subprocess(all_args):
                             else:
                                 new_alias = choose_new_alias(alias, associated_qid, qid2alias_global, qid_to_aliases_top_30, aliasconflict_global, doc_entity, sentence['doc_sent_idx'])
                                 # new_alias = qid2singlealias_global.get(associated_qid, alias)
-                                # print(f"Swapping {alias} for {associated_qid} for new alias {new_alias}")
+                                print(f"Swapping {alias} for {associated_qid} for new alias {new_alias}")
                             added_alias_count += 1
                             found_aliases[j] = new_alias
                             found_qids.append(associated_qid)
@@ -413,6 +419,7 @@ def collect_aliases_to_qids_in_doc(doc, qid2alias_global):
                 if qid not in aliases_to_qids_in_doc[al]:
                     aliases_to_qids_in_doc[al][qid] = [0, top30_bool]
                 aliases_to_qids_in_doc[al][qid][0] += 1
+    print(aliases_to_qids_in_doc, doc_entity)
     return prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc)
 
 def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
@@ -421,7 +428,7 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     aliases_to_qids_in_doc_pruned = {}
     qid_to_aliases_in_doc_pruned = defaultdict(lambda: defaultdict())
     total_qid_count = sum(v[0] for qid_dict in aliases_to_qids_in_doc.values() for v in qid_dict.values())
-    # print(f"Total Count for {doc_entity} is {total_qid_count}")
+    print(f"Total Count for {doc_entity} is {total_qid_count}")
     # We want to assign some weight of doc_entity aliases -> doc_entity (they are often not actual link in Wikipedia so get a low weight by default)
     doc_entity_perc_of_total = 0.2
     # This is representing the popularity of the doc entity in a document. If there is some other QID that appears with some alias
@@ -452,7 +459,7 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     return aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned
 
 
-def get_qid2aliases(alias2qids_wd, entity_dump, out_dir):
+def get_qid2aliases(alias2qids, entity_dump, out_dir):
     """
     :param entity_dump:
     :param out_dir:
@@ -471,11 +478,11 @@ def get_qid2aliases(alias2qids_wd, entity_dump, out_dir):
     aliasconfict_values = []
     aliasconflict_f = os.path.join(out_dir, f'marisa_conflict.marisa')
     temp_qid2alias_single = {}
-    for alias in alias2qids_wd.keys():
+    for alias in alias2qids.keys():
         if alias not in entity_dump.get_all_aliases():
             continue
         assert len(alias) > 0
-        cands = [q for q in alias2qids_wd[alias] if q in entity_dump.get_qid_cands(alias)]
+        cands = [q[0] for q in alias2qids[alias] if q[0] in entity_dump.get_qid_cands(alias)]
         if len(cands) == 0:
             continue
         aliasconflict_keys.append(alias)
@@ -555,20 +562,18 @@ def main():
     # if in test mode, just take a single input file
     if args.test:
         in_files = in_files[:1]
+    in_files = [os.path.join(args.data_dir, args.filtered_alias_subdir, "wiki_48538217028220256.jsonl")]
 
     # this loads all entity information (aliases, titles, etc)
     entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
     print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
     # Load wikidata alias2qid
-    import ujson
-    alias_cand_map_file_wikidata = "augmented_alias_map_large_uncased_1216.jsonl"
-    alias2qid_wd = ujson.load(alias_cand_map_file_wikidata)
-    # alias2qid_wd = entity_dump.get_alias2qid()
+    alias2qid = entity_dump.get_alias2qids()
     # generates mappings from qids to aliases and a memmaped trie (aka dict) from alias to length of that aliases candidate list (measure of how conflicting that alias is)
-    qid2singlealias, aliasconflict_f, qid2alias = get_qid2aliases(alias2qid_wd, entity_dump, temp_outdir)
+    qid2singlealias, aliasconflict_f, qid2alias = get_qid2aliases(alias2qid, entity_dump, temp_outdir)
+    qid2 = "Q3493976"
     print(f"Created qid2alias map over {len(qid2alias)} QIDs.")
-
     # launch subprocesses and collect outputs
     print(f"Loaded {len(in_files)} files from {path}. Launching {args.processes} processes.")
     launch_subprocess(args, outdir, temp_outdir, qid2singlealias, qid2alias, aliasconflict_f, in_files)

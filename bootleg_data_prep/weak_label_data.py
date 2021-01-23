@@ -19,22 +19,26 @@ from bootleg_data_prep.utils.weak_label_funcs import wl_func
 
 ALIAS2QID = "alias2qids"
 QID2ALIAS = "qid2alias"
+QID2ALIASWD = "qid2aliaswd"
+
 
 class WLMetadata:
-    def __init__(self, entity_dump=None, qid2title=None, tri_collection_qids=None, tri_collection_aliases=None):
+    def __init__(self, entity_dump=None, alias2qid_wd=None, qid2title=None, tri_collection_qids=None, tri_collection_aliases=None, tri_collection_aliases_wd=None):
         if entity_dump is not None:
+            assert alias2qid_wd is not None, f"We are building things from scratch and require both entity_dump and alias2qid_wd"
             print(f"entity_dump is not None. Rebuilding WLMetadata")
             alias2qids = {}
             qid2alias = {}
+            qid2alias_wd = {}
+
             self.qid2title = entity_dump.get_qid2title()
             all_alias_len = []
             all_qid_len = []
             for alias in tqdm(entity_dump.get_all_aliases(), desc="Iterating over aliases"):
                 assert len(alias.strip()) > 0
                 alias2qids[alias] = []
-                cands = entity_dump.get_qid_cands(alias)
-                for idx, qid in enumerate(cands):
-                    if not qid in qid2alias:
+                for idx, qid in enumerate(entity_dump.get_qid_cands(alias)):
+                    if qid not in qid2alias:
                         qid2alias[qid] = []
                     qid2alias[qid].append(alias)
                     alias2qids[alias].append(qid)
@@ -43,15 +47,27 @@ class WLMetadata:
             for qid, alias_cands in tqdm(qid2alias.items(), desc="Iterating over qids"):
                 all_alias_len.append(len(alias_cands))
 
+            for alias in tqdm(alias2qid_wd, desc="Iterating over WD aliases"):
+                assert len(alias.strip()) > 0
+                for qid in alias2qid_wd[alias]:
+                    if qid not in qid2alias_wd:
+                        qid2alias_wd[qid] = []
+                    qid2alias_wd[qid].append(alias)
+
             max_cands = 100
             max_aliases = 100
-            print(f"Average number of connections {np.average(all_qid_len)}, 99.9th percentile {np.percentile(all_qid_len, 99.9)} - Trimming to {max_cands}")
-            print(f"Average number of connections {np.average(all_alias_len)}, 99.9th percentile {np.percentile(all_alias_len, 99.9)} - Trimming to {max_aliases}")
+            print(
+                f"Average number of connections {np.average(all_qid_len)}, 99.9th percentile {np.percentile(all_qid_len, 99.9)} - Trimming to {max_cands}")
+            print(
+                f"Average number of connections {np.average(all_alias_len)}, 99.9th percentile {np.percentile(all_alias_len, 99.9)} - Trimming to {max_aliases}")
             for alias in tqdm(list(alias2qids.keys()), desc="Iterating over aliases"):
                 alias2qids[alias] = alias2qids[alias][:max_cands]
 
             for qid in tqdm(list(qid2alias.keys()), desc="Iterating over qids"):
                 qid2alias[qid] = qid2alias[qid][:max_aliases]
+
+            for qid in tqdm(list(qid2alias_wd.keys()), desc="Iterating over WD qids"):
+                qid2alias_wd[qid] = qid2alias_wd[qid][:max_aliases]
 
             # This maps our keys that we use in the helper functions below to the right tri in tri collection.
             # The values are specific strings as outlines in the record trie collection class
@@ -61,25 +77,38 @@ class WLMetadata:
 
             print(f"Max Values {max_values}")
             self.tri_collection_qids = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=entity_dump.get_qid2eid(),
-                                                       fmt_types=fmt_types, max_values=max_values)
+                                                            fmt_types=fmt_types, max_values=max_values)
 
             # This maps our keys that we use in the helper functions below to the right tri in tri collection.
             # The values are specific strings as outlines in the record trie collection class
             fmt_types = {QID2ALIAS: "qid_cand"}
             max_values = {QID2ALIAS: max_aliases}
             input_dicts = {QID2ALIAS: qid2alias}
-            alias_vocab = {al:i for i, al in enumerate(alias2qids.keys())}
+            alias_vocab = {al: i for i, al in enumerate(alias2qids.keys())}
 
             print(f"Max Values {max_values}")
             self.tri_collection_aliases = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=alias_vocab,
-                                                       fmt_types=fmt_types, max_values=max_values)
+                                                               fmt_types=fmt_types, max_values=max_values)
+
+            # This maps our keys that we use in the helper functions below to the right tri in tri collection.
+            # The values are specific strings as outlines in the record trie collection class
+            fmt_types = {QID2ALIASWD: "qid_cand"}
+            max_values = {QID2ALIASWD: max_aliases}
+            input_dicts = {QID2ALIASWD: qid2alias_wd}
+            alias_vocab = {al: i for i, al in enumerate(alias2qid_wd.keys())}
+
+            print(f"Max Values {max_values}")
+            self.tri_collection_aliases_wd = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=alias_vocab,
+                                                               fmt_types=fmt_types, max_values=max_values)
         else:
             assert qid2title is not None, f"You have a None entity_dump, we require qid2title to not be None"
             assert tri_collection_qids is not None, f"You have a None entity_dump, we require tri_collection_qids to not be None"
             assert tri_collection_aliases is not None, f"You have a None entity_dump, we require tri_collection_aliases to not be None"
+            assert tri_collection_aliases_wd is not None, f"You have a None entity_dump, we require tri_collection_aliases to not be None"
             self.qid2title = qid2title
             self.tri_collection_qids = tri_collection_qids
             self.tri_collection_aliases = tri_collection_aliases
+            self.tri_collection_aliases_wd = tri_collection_aliases_wd
 
     @classmethod
     def get_qid_tri_dir(cls, dump_dir):
@@ -90,12 +119,17 @@ class WLMetadata:
         return os.path.join(dump_dir, "ALIASTRI")
 
     @classmethod
+    def get_alias_tri_wd_dir(cls, dump_dir):
+        return os.path.join(dump_dir, "ALIASTRIWD")
+
+    @classmethod
     def get_qid2title_file(cls, dump_dir):
         return os.path.join(dump_dir, "QID2TITLE.json")
 
     def dump(self, dump_dir):
         self.tri_collection_qids.dump(save_dir=self.get_qid_tri_dir(dump_dir))
         self.tri_collection_aliases.dump(save_dir=self.get_alias_tri_dir(dump_dir))
+        self.tri_collection_aliases_wd.dump(save_dir=self.get_alias_tri_wd_dir(dump_dir))
         with open(self.get_qid2title_file(dump_dir), "w") as out_f:
             ujson.dump(self.qid2title, out_f)
 
@@ -103,19 +137,29 @@ class WLMetadata:
     def load(cls, dump_dir):
         tri_collection_qids = RecordTrieCollection(load_dir=cls.get_qid_tri_dir(dump_dir))
         tri_collection_aliases = RecordTrieCollection(load_dir=cls.get_alias_tri_dir(dump_dir))
+        tri_collection_aliases_wd = RecordTrieCollection(load_dir=cls.get_alias_tri_wd_dir(dump_dir))
         with open(cls.get_qid2title_file(dump_dir)) as in_f:
             qid2title = ujson.load(in_f)
-        return cls(entity_dump=None, qid2title=qid2title, tri_collection_qids=tri_collection_qids, tri_collection_aliases=tri_collection_aliases)
+        return cls(entity_dump=None, alias2qid_wd=None, qid2title=qid2title, tri_collection_qids=tri_collection_qids, tri_collection_aliases=tri_collection_aliases, tri_collection_aliases_wd=tri_collection_aliases_wd)
 
     def contains_qid(self, qid):
         return self.tri_collection_aliases.is_key_in_trie(QID2ALIAS, qid)
+
+    def contains_qid_wd(self, qid):
+        return self.tri_collection_aliases_wd.is_key_in_trie(QID2ALIASWD, qid)
 
     def contains_alias(self, alias):
         return self.tri_collection_qids.is_key_in_trie(ALIAS2QID, alias)
 
     def get_all_aliases(self, qid: str, default: Any = None) -> Set[str]:
         if self.contains_qid(qid):
-            return set(self.tri_collection_aliases.get_value(QID2ALIAS, qid))
+            return self.tri_collection_aliases.get_value(QID2ALIAS, qid)
+        else:
+            return default
+
+    def get_all_aliases_wd(self, qid: str, default: Any = None) -> Set[str]:
+        if self.contains_qid_wd(qid):
+            return self.tri_collection_aliases_wd.get_value(QID2ALIASWD, qid)
         else:
             return default
 
@@ -137,24 +181,28 @@ class WLMetadata:
 def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/wiki_dump', help='Directory for data to be saved.')
-    parser.add_argument('--filtered_alias_subdir', type=str, default='alias_filtered_sentences', help = 'Subdirectory to save filtered sentences.')
-    parser.add_argument('--out_subdir', type = str, default = 'test_wl2', help = 'Where to write processed data to.')
-    parser.add_argument('--no_permute_alias', action='store_true', help = 'Turn on to not make the new alias of added entities be the most conflicting.')
+    parser.add_argument('--filtered_alias_subdir', type=str, default='alias_filtered_sentences', help='Subdirectory to save filtered sentences.')
+    parser.add_argument('--out_subdir', type=str, default='test_wl2', help='Where to write processed data to.')
+    parser.add_argument('--wd_aliases', type=str, default='/lfs/raiders10/0/lorr1/augmented_alias_map_large_uncased_1216.jsonl',
+                        help='Path to directory with JSONL mapping alias to QID')
+    parser.add_argument('--no_permute_alias', action='store_true',
+                        help='Turn on to not make the new alias of added entities be the most conflicting.')
     parser.add_argument('--max_candidates', type=int, default=30)
-    parser.add_argument('--processes', type=int, default=int(0.1*multiprocessing.cpu_count()))
-    parser.add_argument('--overwrite', action = 'store_true', help = 'Rebuild WL metadata.')
-    parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
+    parser.add_argument('--processes', type=int, default=int(0.1 * multiprocessing.cpu_count()))
+    parser.add_argument('--overwrite', action='store_true', help='Rebuild WL metadata.')
+    parser.add_argument('--test', action='store_true', help='If set, will only generate for one file.')
 
     args = parser.parse_args()
     return args
+
 
 def init_process(wl_metadata_dump):
     global wl_metadata_global
     wl_metadata_global = WLMetadata.load(wl_metadata_dump)
 
-def launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files):
 
-    all_process_args = [tuple([i+1,
+def launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files):
+    all_process_args = [tuple([i + 1,
                                len(in_files),
                                outdir,
                                temp_outdir,
@@ -170,6 +218,7 @@ def launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files):
     pool.close()
     return docs_not_qid
 
+
 def choose_new_alias(max_cands, alias, qid, wl_metadata, doc_ent, sentence_idx):
     # Set a seed to ensure that across ablations, the aliases chosen will be consistent. For example, if we are processing
     # the document for "Q123" and are on sentence 55 of that article, and are currently labeling the QID "Q88" then we will
@@ -183,15 +232,17 @@ def choose_new_alias(max_cands, alias, qid, wl_metadata, doc_ent, sentence_idx):
         return alias
     # Otherwise, find all other aliases for that qid that are in the top 30 and have at least 2 candidates, and randomly choose on
     top_mc_aliases = [al for al in wl_metadata.get_all_aliases(qid) if 0 <= wl_metadata.get_cand_pos(al, qid) < max_cands]
-    top_mc_gtr1_cand_aliases = [al for al in top_mc_aliases if wl_metadata.get_num_cands(al) > 1]
+    top_mc_gtr1_cand_aliases = sorted([[al, wl_metadata.get_num_cands(al)] for al in top_mc_aliases if wl_metadata.get_num_cands(al) > 1],
+                                      key=lambda x: x[1], reverse=True)
     if len(top_mc_gtr1_cand_aliases) > 0:
-        return random.choice(top_mc_gtr1_cand_aliases)
+        return top_mc_gtr1_cand_aliases[0][0] # random.choice(top_mc_gtr1_cand_aliases)
     # We might be in the situation where there are a bunch of aliases for that qid (and the top max cands (mc) condition is met) but they
     # all have only 1 candidate. That's better than nothing, so in that case, randomly return one of those aliases.
     if len(top_mc_aliases) > 0:
         return random.choice(top_mc_aliases)
     # If all of the above fail, then just return the original alias
     return alias
+
 
 def sort_aliases(spans, qids, aliases, sources):
     if len(aliases) == 0:
@@ -200,12 +251,15 @@ def sort_aliases(spans, qids, aliases, sources):
     spans, qids, aliases, sources = zip(*res)
     return spans, qids, aliases, sources
 
+
 def subprocess(all_args):
     prep_utils.print_memory()
     start_time = time.time()
     random.seed(1234)
 
     lfs = list(wl_func.all.values())
+    for lf in lfs:
+        assert lf.__name__ != "gold", f"The name \"gold\" is already reserved. Please name it something else."
     print("LFS", lfs)
 
     idx, total, outdir, temp_outdir, args, in_filepath = all_args
@@ -226,42 +280,44 @@ def subprocess(all_args):
 
             title = doc['title']
             doc_entity = str(doc['qid'])
+            # if doc_entity not in ["Q3493976", "Q2655944"]:
+            #     continue
 
             if doc_entity != "-1" and wl_metadata_global.contains_qid(doc_entity):
                 no_qid.append(title)
 
             # Gather all aliases -> qids in the document and qid -> list of aliases
             aliases_to_qids_in_doc, qid_to_aliases_in_doc = collect_aliases_to_qids_in_doc(doc, wl_metadata_global)
-
+            # print(aliases_to_qids_in_doc)
+            # print("*********************")
+            # print(qid_to_aliases_in_doc)
             new_sentences = []
             for sentence_idx, line in enumerate(doc['sentences']):
                 if len(line['spans']) > 0 and type(line['spans'][0]) is str:
                     line['spans'] = [list(map(int, s.split(":"))) for s in line["spans"]]
 
-                orig_spans, orig_qids, orig_aliases, orig_sources = line["spans"], line["qids"], line["aliases"], ["gold"]*len(line["aliases"])
+                orig_spans, orig_qids, orig_aliases, orig_sources = line["spans"], line["qids"], line["aliases"], ["gold"] * len(line["aliases"])
                 added_alias["gold"] += len(orig_aliases)
 
                 for lf in lfs:
-                    assert lf.__name__ != "gold", f"We use the name \"gold\" already for a LF. Please name it something else."
-                    st = time.time()
                     new_spans, new_qids, new_aliases = lf(doc_entity, line["sentence"], orig_spans,
                                                           orig_qids, orig_aliases,
                                                           aliases_to_qids_in_doc, wl_metadata_global)
-                    new_sources = [lf.__name__]*len(new_aliases)
+                    new_sources = [lf.__name__] * len(new_aliases)
                     assert len(new_spans) == len(new_qids) == len(new_aliases)
                     added_alias[lf.__name__] += len(new_aliases)
-                    # print("SENT:", line["sentence"])
                     # for sp, q, al in zip(new_spans, new_qids, new_aliases):
+                    #     print("SENT:", line["sentence"])
                     #     print("SP:", sp, "AL", al, "Q", q, "LF", lf.__name__)
                     # print(f"Time for lf {lf.__name__} is {time.time()-st}")
                     orig_spans.extend(new_spans)
                     orig_qids.extend(new_qids)
                     orig_aliases.extend(new_aliases)
                     orig_sources.extend(new_sources)
-
                     orig_spans, orig_qids, orig_aliases, orig_sources = sort_aliases(orig_spans, orig_qids, orig_aliases, orig_sources)
 
                 final_spans, final_qids, final_aliases, final_sources = list(orig_spans), list(orig_qids), list(orig_aliases), list(orig_sources)
+                final_orig_aliases = final_aliases[:]
                 # Permute aliases if flag is turned on
                 # If not permuting alias, just use the aliases given. HOWEVER, note that if the qid is not in the top-30 for this alias,
                 # then this label will be DROPPED from the training set later on. So it is likely recommended to leave permuting
@@ -272,13 +328,15 @@ def subprocess(all_args):
                         alias = final_aliases[j]
                         associated_qid = final_qids[j]
                         new_alias = choose_new_alias(args.max_candidates, alias, associated_qid, wl_metadata_global, doc_entity, line['doc_sent_idx'])
+                        # if alias != new_alias:
+                        #     print("SWAPPING", alias, "FOR", new_alias, "QID", associated_qid, wl_metadata_global.get_title(associated_qid))
+                        #     print(wl_metadata_global.get_cand_pos(alias, associated_qid), wl_metadata_global.get_num_cands(alias))
                         final_aliases[j] = new_alias
-                # print(f"Time for swap {time.time() - st}")
-
                 new_sentences.append({
                     'doc_sent_idx': line['doc_sent_idx'],
                     'sentence': line['sentence'],
                     'aliases': final_aliases,
+                    'unswap_aliases': final_orig_aliases,
                     'spans': final_spans,
                     'qids': final_qids,
                     'gold': [True if fs == "gold" else False for fs in final_sources],
@@ -292,12 +350,12 @@ def subprocess(all_args):
             doc['sentences'] = new_sentences
             out_file.write(ujson.dumps(doc) + '\n')
     out_file.close()
-    print(f"LEN: {len(filtered_qid_counts)} LEN: {len(filtered_aliases_to_qid_count)}")
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_alias_to_qid_count_{idx}.json"), filtered_aliases_to_qid_count)
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_qid_counts_{idx}.json"), filtered_qid_counts)
     print(f"Finished {idx}/{total}. Written to {out_fname}. {time.time() - start_time} seconds.")
     print(ujson.dumps(added_alias, indent=4))
     return no_qid
+
 
 def collect_aliases_to_qids_in_doc(doc, wl_metadata):
     """
@@ -313,7 +371,7 @@ def collect_aliases_to_qids_in_doc(doc, wl_metadata):
     doc_entity = str(doc['qid'])
 
     # Add aliases pointing to the document
-    aliases = wl_metadata.get_all_aliases(doc_entity, set())
+    aliases = wl_metadata.get_all_aliases_wd(doc_entity, set())
     for al in aliases:
         assert len(al) > 0
         # We correct this count below when pruning
@@ -323,11 +381,12 @@ def collect_aliases_to_qids_in_doc(doc, wl_metadata):
         sentence_qids = sentence['qids']
         # Update the aliases_to_qids_in_doc
         for qid in sentence_qids:
-            for al in wl_metadata.get_all_aliases(qid, set()):
+            for al in wl_metadata.get_all_aliases_wd(qid, set()):
                 aliases_to_qids_in_doc[al][qid] += 1
     aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned = prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc)
     # print(f"Time for collect aliases", time.time() - st)
     return aliases_to_qids_in_doc_pruned, qid_to_aliases_in_doc_pruned
+
 
 def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     """doc_entity: QID of page we are on
@@ -342,7 +401,7 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     # This is representing the popularity of the doc entity in a document. If there is some other QID that appears with some alias
     # also associated with the doc_entity more than doc_entity_count times, we remove this highly conflicting alias from consideration
     popularity_threshold = 5
-    doc_entity_count = max(doc_entity_perc_of_total*total_qid_count, 1.0)
+    doc_entity_count = max(doc_entity_perc_of_total * total_qid_count, 1.0)
     for al in aliases_to_qids_in_doc:
         qid_dict = aliases_to_qids_in_doc[al]
         # qid_dict is qid -> count of number of times al linked to qid; if only one qid, add it for that alias
@@ -358,7 +417,7 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
                 qid_dict[doc_entity] = doc_entity_count
             sorted_qids = list(sorted(qid_dict.items(), key=lambda x: x[1], reverse=True))
             # Only add if count is above threshold
-            if sorted_qids[0][1] > popularity_threshold*sorted_qids[1][1]:
+            if sorted_qids[0][1] > popularity_threshold * sorted_qids[1][1]:
                 qid_to_add = sorted_qids[0][0]
                 aliases_to_qids_in_doc_pruned[al] = qid_to_add
                 qid_to_aliases_in_doc_pruned[qid_to_add].append(al)
@@ -395,13 +454,14 @@ def modify_counts_and_dump(args, entity_dump):
     out_dir = os.path.join(args.data_dir, args.out_subdir, 'entity_db/entity_mappings')
     entity_dump.dump(out_dir)
 
+
 def main():
     gl_start = time.time()
     multiprocessing.set_start_method("fork", force=True)
     args = parse_args()
     print(ujson.dumps(vars(args), indent=4))
     outdir = prep_utils.get_outdir(args.data_dir, args.out_subdir, remove_old=True)
-    temp_outdir = prep_utils.get_outdir(args.data_dir, "_temp", remove_old=True)
+    temp_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.out_subdir), "_temp", remove_old=True)
     temp_metadata_outdir = prep_utils.get_outdir(os.path.join(args.data_dir, args.filtered_alias_subdir), "_for_rerun_WL", remove_old=False)
 
     # get inputs files 
@@ -420,8 +480,12 @@ def main():
         entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
         print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
+        print(f"Reading WD aliases")
+        with open(args.wd_aliases) as in_f:
+            wd_a2q = {k:v for k,v in ujson.load(in_f).items() if len(k.strip()) > 0}
+
         utils.ensure_dir(wl_metadata_dump)
-        wl_metadata = WLMetadata(entity_dump)
+        wl_metadata = WLMetadata(entity_dump, wd_a2q)
         wl_metadata.dump(wl_metadata_dump)
         print(f"Time to create WL metadata {time.time() - st}")
 
@@ -460,6 +524,7 @@ def main():
     vars(args)["out_dir"] = outdir
     prep_utils.save_config(args, "add_labels_single_func_config.json")
     print(f"Finished add_labels_single_func in {time.time() - gl_start} seconds.")
+
 
 if __name__ == '__main__':
     main()

@@ -108,15 +108,14 @@ def subprocess_step1(all_args):
                 qids = sentence['qids']
                 text = sentence['sentence']
                 spans = sentence['spans']
-                sources = sentence.get('sources', ["gold"]*len(aliases))
                 if len(spans) > 0 and type(spans[0]) is str:
                     spans = [list(map(int, s.split(":"))) for s in spans]
-                if 'gold' in sentence:
-                    gold = sentence['gold']
-                elif 'anchor' in sentence:
-                    gold = sentence['anchor']
-                else:
-                    gold = [True for _ in range(len(aliases))]
+                if 'gold' not in sentence:
+                    if 'anchor' in sentence:
+                        sentence['gold'] = sentence['anchor']
+                        del sentence['anchor']
+                    else:
+                        sentence['gold'] = [True for _ in range(len(aliases))]
                 if len(spans) > 0:
                     # Filter out sentences with invalid spans
                     if int(spans[-1][0]) >= len(text.split()):
@@ -124,24 +123,10 @@ def subprocess_step1(all_args):
                 if eval("{:s}.{:s}(args, aliases, qids, text, extras_global)".format(FILTER_FILE, args.sentence_filter_func)):
                     stats["filtered_func"] += 1
                     continue
-                aliases_final = aliases
-                qids_final = qids
-                spans_final = spans
-                gold_final = gold
-                sources_final = sources
-                all_qids.update(set(qids_final))
-                new_sent = {
-                    'parent_qid': qid,
-                    'parent_title': title,
-                    'doc_sent_idx': sentence['doc_sent_idx'],
-                    'sentence': text,
-                    'aliases': aliases_final,
-                    'qids': qids_final,
-                    'spans': spans_final,
-                    'gold': gold_final,
-                    'sources': sources_final
-                }
-                out_file.write(json.dumps(new_sent) + '\n')
+                all_qids.update(set(qids))
+                sentence["parent_qid"] = qid
+                sentence["parent_title"] = title
+                out_file.write(json.dumps(sentence) + '\n')
     out_file.close()
     print(f"Finished {i}/{total}. {len(all_qids)} number qids. Written to {out_fname}. {time.time() - start} seconds.")
     return all_qids
@@ -264,25 +249,26 @@ def subprocess_step2(all_args):
             # items = list(filter(lambda x:(not args.train_in_candidates) or ((x[0] in alias2qids) and (x[1] in [y[0] for y in alias2qids[x[0]]])),
             #                     zip(sent_obj['aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'])))
             # # LAUREL
-            items = list(filter(lambda x: (not args.train_in_candidates) or (x[1] in [y[0] for y in alias2qids[x[0]]]),
-                                zip(sent_obj['aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'], sent_obj['sources'])))
+            items = list(filter(lambda x: (not args.train_in_candidates) or (x[2] in [y[0] for y in alias2qids[x[0]]]),
+                                zip(sent_obj['aliases'], sent_obj['unswap_aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'], sent_obj['sources'])))
             temp_len = len(items)
             for x in items:
-                if x[1] not in qid2title:
+                if x[2] not in qid2title:
                     print("BAD", x)
                     print(json.dumps(sent_obj, indent=4))
-            items = list(filter(lambda x: x[1] in qid2title, items))
+            items = list(filter(lambda x: x[2] in qid2title, items))
             # there should be no difference between these
             assert temp_len - len(items) == 0
             if len(items) == 0:
                 statistics['total_dropped'] += len(sent_obj['qids'])
                 continue
-            aliases, qids, spans, golds, sources = zip(*items)
-            assert len(aliases) == len(qids) == len(spans) == len(golds) == len(sources), f"Lengths of filtered items isn't the same {zip(*items)}"
+            aliases, unswap_aliases, qids, spans, golds, sources = zip(*items)
+            assert len(aliases) == len(unswap_aliases) == len(qids) == len(spans) == len(golds) == len(sources), f"Lengths of filtered items isn't the same {zip(*items)}"
             statistics['total_dropped'] += len(sent_obj['qids']) - len(qids)
             if len(aliases) > 0:
                 new_sent_obj = sent_obj
                 new_sent_obj['aliases'] = aliases
+                new_sent_obj['unswap_aliases'] = unswap_aliases
                 new_sent_obj['qids'] = qids
                 new_sent_obj['spans'] = spans
                 new_sent_obj['gold'] = golds

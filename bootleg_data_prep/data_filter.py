@@ -102,7 +102,7 @@ def subprocess_step1(all_args):
         for line in in_file:
             doc = json.loads(line.strip())
             title = doc['title']
-            qid = doc["qid"]
+            parent_qid = doc["qid"]
             for sentence in doc['sentences']:
                 aliases = sentence['aliases']
                 qids = sentence['qids']
@@ -120,11 +120,11 @@ def subprocess_step1(all_args):
                     # Filter out sentences with invalid spans
                     if int(spans[-1][0]) >= len(text.split()):
                         continue 
-                if eval("{:s}.{:s}(args, aliases, qids, text, extras_global)".format(FILTER_FILE, args.sentence_filter_func)):
+                if eval("{:s}.{:s}(args, aliases, qids, parent_qid, text, extras_global)".format(FILTER_FILE, args.sentence_filter_func)):
                     stats["filtered_func"] += 1
                     continue
                 all_qids.update(set(qids))
-                sentence["parent_qid"] = qid
+                sentence["parent_qid"] = parent_qid
                 sentence["parent_title"] = title
                 out_file.write(json.dumps(sentence) + '\n')
     out_file.close()
@@ -152,7 +152,7 @@ def filter_entity_symbols(args, list_of_all_qids, benchmark_qids, entity_symbols
                 benchmark_qids.remove(b_qid)
                 print(f"Removing benchmark qid {b_qid}")
         all_qids.update(benchmark_qids)
-        print(f"Total qids for filtering {len(all_qids)} with {len(benchmark_qids)} benchmark qids")
+        print(f"Total qids to keep {len(all_qids)} with {len(benchmark_qids)} benchmark qids")
         alias2qids = {}
         all_aliases = set()
         # Final set of all qids

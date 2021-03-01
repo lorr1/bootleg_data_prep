@@ -30,10 +30,10 @@ def prep_standard(args):
 # True means filter/remove
 # False means keep
 
-def true_filter(args, aliases, qids, sentence, extras):
+def true_filter(args, aliases, qids, parent_qid, sentence, extras):
     return True
 
-def false_filter(args, aliases, qids, sentence, extras):
+def false_filter(args, aliases, qids, parent_qid, sentence, extras):
     return False
 
 def long_sentence(phrase):
@@ -41,22 +41,28 @@ def long_sentence(phrase):
         return True
     return False
 
-def sentence_filter_short(args, aliases, qids, sentence, extras):
+def sentence_filter_short(args, aliases, qids, parent_qid, sentence, extras):
     return long_sentence(sentence)
 
-def sentence_filterQID(args, aliases, qids, sentence, extras):
+def sentence_filterQID(args, aliases, qids, parent_qid, sentence, extras):
     qids_to_keep = extras['to_keep']
     discard = long_sentence(sentence)
     discard = discard | (len(set(qids).intersection(qids_to_keep)) == 0)
     return discard
 
-def sentence_filterAliases(args, aliases, qids, sentence, extras):
+def sentence_filterParentQID(args, aliases, qids, parent_qid, sentence, extras):
+    qids_to_keep = extras['to_keep']
+    discard = long_sentence(sentence)
+    discard = discard | (parent_qid not in qids_to_keep)
+    return discard
+
+def sentence_filterAliases(args, aliases, qids, parent_qid, sentence, extras):
     aliases_to_keep = extras['to_keep']
     discard = long_sentence(sentence)
     discard = discard | (len(set(aliases).intersection(aliases_to_keep)) == 0)
     return discard
 
-def sentence_filterQIDMarriage(args, aliases, qids, sentence, extras):
+def sentence_filterQIDMarriage(args, aliases, qids, parent_qid, sentence, extras):
     qids_to_keep = extras['to_keep']
     # Discard long sentences early to avoid large qid cross product
     discard = long_sentence(sentence)

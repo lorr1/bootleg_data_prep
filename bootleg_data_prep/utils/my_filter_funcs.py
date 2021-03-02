@@ -56,6 +56,12 @@ def sentence_filterParentQID(args, aliases, qids, parent_qid, sentence, extras):
     discard = discard | (parent_qid not in qids_to_keep)
     return discard
 
+def sentence_filterQIDorParentQID(args, aliases, qids, parent_qid, sentence, extras):
+    qids_to_keep = extras['to_keep']
+    discard = long_sentence(sentence)
+    discard = discard | ((parent_qid not in qids_to_keep) & (len(set(qids).intersection(qids_to_keep)) == 0))
+    return discard
+
 def sentence_filterAliases(args, aliases, qids, parent_qid, sentence, extras):
     aliases_to_keep = extras['to_keep']
     discard = long_sentence(sentence)

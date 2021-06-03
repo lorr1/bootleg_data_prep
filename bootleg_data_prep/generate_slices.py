@@ -116,7 +116,7 @@ def launch_subprocess(args, temp_folder, entity_symbols_plus_f, test_stats_dict_
 def subprocess(all_args):
     i, total, args, in_filepath_tupl, test_stats_dict_f = all_args
     in_filepath, test_folder = in_filepath_tupl
-    test_stats_dict = utils.load_json_file(test_stats_dict_f)
+    test_stats_dict = utils.load_pickle_file(test_stats_dict_f)
     print_memory()
     print(f"Starting {i}/{total}. Reading in {in_filepath}.")
 
@@ -501,7 +501,8 @@ def main():
         # Get stats file for alias-entity counts
         alias_qid = es_for_signals.load_alias_qid(args)
         test_stats_dict = slice_utils.get_test_stats_dict(args, alias_qid, entity_symbols_plus)
-        utils.dump_json_file(test_stats_dict_f, test_stats_dict)
+        utils.dump_pickle_file(test_stats_dict_f, test_stats_dict)
+
     start = time.time()
     all_test_folders, total_remaining, all_slices = launch_subprocess(args, temp_folder, entity_symbols_plus_f, test_stats_dict_f, all_files)
     logging.info(f"Done with filtering in {time.time() - start} seconds.")

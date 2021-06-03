@@ -27,6 +27,8 @@ def dump_json_file(filename, contents):
             ujson.dump(contents, f)
         except OverflowError:
             json.dump(contents, f)
+        except TypeError:
+            json.dump(contents, f)
 
 def load_json_file(filename):
     with open(filename, 'r') as f:

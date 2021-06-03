@@ -384,12 +384,10 @@ def main():
     max_cands, max_alias_len, alias2qids, qid2title, wpid2qid, cid2qid = gen_entity_dump(all_docs, concept_dict, set(splits["train"]))
     entity_symbols_new = EntitySymbols(
         max_candidates=max_cands,
-        max_alias_len=max_alias_len,
         alias2qids=alias2qids,
         qid2title=qid2title,
-        wpid2qid=wpid2qid
     )
-    entity_symbols_new.dump(os.path.join(out_dir, "entity_dump"))
+    entity_symbols_new.save(os.path.join(out_dir, "entity_dump"))
     # Write our alias and qid count file
     aliasqid_count = {}
     for al in alias2qids:

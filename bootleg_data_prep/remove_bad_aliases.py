@@ -266,13 +266,12 @@ def make_entity_symbol(alias2qid_from_curate, qid_counts, qid_to_title, benchmar
     # Make entity dump object
     entity_dump = EntitySymbols(
         max_candidates=max_candidates,
-        max_alias_len=max_alias_len,
         alias2qids=alias2qids_out,
         qid2title=qid2title_filt
     )
     out_dir = os.path.join(args.data_dir, args.out_subdir, "entity_db/entity_mappings")
     vars(args)["entity_dump_dir"] = out_dir
-    entity_dump.dump(out_dir)
+    entity_dump.save(out_dir)
 
 def main():
     gl_start = time.time()

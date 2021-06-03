@@ -16,6 +16,7 @@ import argparse
 from collections import defaultdict
 
 import psutil
+import ujson
 import ujson as json
 import multiprocessing
 import logging
@@ -357,6 +358,69 @@ def combine_data(out_file, folder, clean_up=True):
         shutil.rmtree(folder)
     return
 
+def write_out_entity_profile(args, folder, all_qids):
+    # KG relations
+    kg_folder = os.path.join(folder, "kg_mappings")
+    utils.ensure_dir(kg_folder)
+    qid2relations = {q:{} for q in all_qids}
+    kg_list = []
+    print("Writing out KG information")
+    try:
+        with open(os.path.join(args.emb_dir, args.kg_triples)) as in_f:
+            for line in tqdm(in_f):
+                s, p, o = line.strip().split()
+                if s not in qid2relations:
+                    continue
+                kg_list.append([s, o])
+                if p not in qid2relations[s]:
+                    qid2relations[s][p] = []
+                qid2relations[s][p].append(o)
+                qid2relations[s][p] = qid2relations[s][p][:args.max_relations]
+    except Exception as e:
+        print("ERROR WRITING QID2RELATIONS", e)
+    with open(os.path.join(kg_folder, "qid2relations.json"), "w") as out_f:
+        ujson.dump(qid2relations, out_f)
+    with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:
+        for item in kg_list:
+            out_f.write(f"{item[0]}\t{item[1]}\n")
+
+    ujson.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"))
+    print("Writing out wiki types")
+    dump_types(folder, "wiki", args.emb_dir, args.wd_vocab, args.wd_types, args.max_types, all_qids)
+    print("Writing out hyena types")
+    dump_types(folder, "hyena", args.emb_dir, args.hy_vocab, args.hy_types, args.max_types, all_qids)
+    print("Writing out relation types")
+    dump_types(folder, "relations", args.emb_dir, args.rel_vocab, args.rel_types, args.max_types_rel, all_qids)
+
+
+def dump_types(folder, subfolder, emb_dir, vocab, type_map, max_types, all_qids):
+    type_folder = os.path.join(folder, "type_mappings", subfolder)
+    utils.ensure_dir(type_folder)
+    qid2types = {q: {} for q in all_qids}
+    vocab_map = {}
+    type_mappings = {}
+    try:
+        vocab_map = ujson.load(open(os.path.join(emb_dir, vocab)))
+        vocab_inv = {v: k for k, v in vocab_map.items()}
+        with open(os.path.join(emb_dir, type_map)) as in_f:
+            type_mappings = ujson.load(in_f)
+            for qid in tqdm(type_mappings):
+                # Already has all qids inside
+                if qid in qid2types:
+                    qid2types[qid] = [vocab_inv[i] for i in type_mappings[qid]]
+
+            for qid in qid2types:
+                qid2types[qid] = qid2types[qid][:max_types]
+                if qid not in type_mappings:
+                    type_mappings[qid] = []
+                type_mappings[qid] = type_mappings[qid][:max_types]
+    except Exception as e:
+        print("ERROR WRITING QID2TYPES", type_map, "---", e)
+    ujson.dump(qid2types, open(os.path.join(type_folder, "qid2typenames.json"), "w"))
+    ujson.dump(type_mappings, open(os.path.join(type_folder, "qid2typeids.json"), "w"))
+    ujson.dump(vocab_map, open(os.path.join(type_folder, "type_vocab.json"), "w"))
+    ujson.dump({"max_types": max_types}, open(os.path.join(type_folder, "config.json"), "w"))
+
 
 def main():
     multiprocessing.set_start_method("forkserver", force=True)
@@ -415,7 +479,7 @@ def main():
     logging.info("=" * 10)
     logging.info("Loading entity symbols...")
     start = time.time()
-    entity_symbols = EntitySymbols(load_dir=os.path.join(load_dir, "entity_db/entity_mappings"))
+    entity_symbols = EntitySymbols.load_from_cache(load_dir=os.path.join(load_dir, "entity_db/entity_mappings"))
     logging.info(
         f"Loaded entity symbols with {entity_symbols.num_entities} entities and {len(entity_symbols.get_all_aliases())} aliases. {time.time() - start} seconds.")
 
@@ -462,7 +526,9 @@ def main():
         except Exception as e:
             logging.info(f"Error {e} when trying to combine {fold}.")
     # Dump entities in the final folder
-    entity_symbols.dump(os.path.join(out_dir, "entity_db/entity_mappings"))
+    entity_symbols.save(os.path.join(out_dir, "entity_db/entity_mappings"))
+    # Prepare the final type information
+    write_out_entity_profile(args, os.path.join(out_dir, "entity_db"), entity_symbols.get_all_qids())
     logging.info(f"Final Slices Are: {all_slices}")
     logging.info(f"Finished generate_slices in {time.time() - gl_start} seconds.")
 

@@ -81,7 +81,7 @@ def subprocess_gen_vocab_ints(all_args):
                 if t not in vocab_words:
                     vocab_words.add(t)
 
-    utils.dump_json_file(out_fname, vocab_words)
+    utils.dump_json_file(out_fname, list(vocab_words))
     print(f"Finished {idx}/{total}. Written to {out_fname}. {time.time() - start_time} seconds. {len(vocab_words)} words.")
     return None
 

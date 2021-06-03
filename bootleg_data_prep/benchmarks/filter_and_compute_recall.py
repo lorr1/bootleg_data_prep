@@ -152,14 +152,14 @@ def main(args):
 
     print(f"Candidate generator: {args.method}")
     if args.method == 'aida':
-        entity_dump = EntitySymbols(load_dir=args.entity_dump)
+        entity_dump = EntitySymbols.load_from_cache(load_dir=args.entity_dump)
         candidate_generator = AIDACand(args, entity_dump)
     elif args.method == 'standard':
-        entity_dump = EntitySymbols(load_dir=args.entity_dump)
+        entity_dump = EntitySymbols.load_from_cache(load_dir=args.entity_dump)
         candidate_generator = Standard(args, entity_dump)
     elif args.method == 'contextual':
         qid2page = load_wikipedia_pages(args)
-        entity_dump = EntitySymbols(load_dir=args.entity_dump)
+        entity_dump = EntitySymbols.load_from_cache(load_dir=args.entity_dump)
         alias_map = load_large_alias_map(args, entity_dump)
         title_map = load_large_title_map(args)
         alias_tri = marisa_trie.Trie(alias_map.keys())
@@ -182,7 +182,7 @@ def main(args):
     # save entity dump to output directory
     entity_dump_dir = os.path.join(out_dir, 'entity_db/entity_mappings')
     entity_dump._alias2qids = candidate_generator.new_alias2qid
-    entity_dump.dump(entity_dump_dir)
+    entity_dump.save(entity_dump_dir)
     print(f"Saved new entity dump to {entity_dump_dir}")
 
     result_fpath = os.path.join(errors_dir, 'recall_results.json')

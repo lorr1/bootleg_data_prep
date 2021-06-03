@@ -330,7 +330,7 @@ def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False,
 
     # load entity symbols
     print(f"Swap titles is {swap_titles} and Only first is {only_first_prn}")
-    entity_dump = EntitySymbols(load_dir=entity_dir)
+    entity_dump = EntitySymbols.load_from_cache(load_dir=entity_dir)
     print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
     qid2alias = get_qid2alias(entity_dump)
     # output is hardcoded. see process_file
@@ -354,12 +354,12 @@ def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False,
                     # print out when wd gender and predicted gender disagree
                     stats.append({'wd_gender': g, 'pred_gender': p, 'title':title})
     print(f'final stats: {c} have genders in {t}')
-    with open('res.jsonl', 'w') as fout:
+    with open('pronoun_run_res.jsonl', 'w') as fout:
         for res in stats:
             print(json.dumps(res), file=fout)
     entity_output_path = os.path.join(output_path, "entity_db/entity_mappings")
     print(f"Dumping entities to {entity_output_path}...")
-    entity_dump.dump(entity_output_path)
+    entity_dump.save(entity_output_path)
 
 if __name__ == '__main__':
     argh.dispatch_command(main)

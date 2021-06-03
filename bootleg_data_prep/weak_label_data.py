@@ -447,12 +447,11 @@ def modify_counts_and_dump(args, entity_dump):
     # Make entity dump object
     entity_dump = EntitySymbols(
         max_candidates=max_candidates,
-        max_alias_len=max_alias_len,
         alias2qids=alias2qids,
         qid2title=qid2title
     )
     out_dir = os.path.join(args.data_dir, args.out_subdir, 'entity_db/entity_mappings')
-    entity_dump.dump(out_dir)
+    entity_dump.save(out_dir)
 
 
 def main():
@@ -477,7 +476,7 @@ def main():
     if not os.path.exists(wl_metadata_dump) or args.overwrite:
         # this loads all entity information (aliases, titles, etc)
         print(f"Reading in entity dump...")
-        entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
+        entity_dump = EntitySymbols.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
         print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
         print(f"Reading WD aliases")
@@ -515,7 +514,7 @@ def main():
 
     if entity_dump is None:
         print(f"Reading in entity dump...")
-        entity_dump = EntitySymbols(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
+        entity_dump = EntitySymbols.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
         print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
     modify_counts_and_dump(args, entity_dump)

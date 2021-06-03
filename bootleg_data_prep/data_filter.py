@@ -337,7 +337,7 @@ def main():
     print("="*10)
     print("Loading entity symbols...")
     start = time.time()
-    entity_symbols = EntitySymbols(load_dir=os.path.join(load_dir, "entity_db/entity_mappings"))
+    entity_symbols = EntitySymbols.load_from_cache(load_dir=os.path.join(load_dir, "entity_db/entity_mappings"))
     print(f"Loaded entity symbols with {entity_symbols.num_entities} entities and {len(entity_symbols.get_all_aliases())} aliases. {time.time() - start} seconds.")
 
     print(f"Loading data from {load_dir}...")
@@ -366,11 +366,10 @@ def main():
     # make new one to reindex eids
     entity_symbols_new = EntitySymbols(
         max_candidates=max_candidates,
-        max_alias_len=max_alias_len,
         alias2qids=alias2qids,
         qid2title=qid2title
     )
-    entity_symbols_new.dump(os.path.join(out_dir_step2, "entity_db/entity_mappings"))
+    entity_symbols_new.save(os.path.join(out_dir_step2, "entity_db/entity_mappings"))
 
     # Get load data subfolder
     load_dir = out_dir_step1

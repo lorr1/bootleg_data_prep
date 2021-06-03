@@ -503,7 +503,7 @@ def main():
     # load entity symbols
     # create entity dump and get qid2alias
     print("Loading entity dump")
-    entity_symbols = EntitySymbols(load_dir=os.path.join(load_dir, 'entity_db/entity_mappings'))
+    entity_symbols = EntitySymbols.load_from_cache(load_dir=os.path.join(load_dir, 'entity_db/entity_mappings'))
     print(f"Loaded entity dump with {entity_symbols.num_entities} entities.")
 
     # Generating temp folders and dump files
@@ -536,31 +536,31 @@ def main():
     # '''
 
     # Counts of verbs associated with types
-    if os.path.exists(os.path.join(out_dir_temp, "AGG_TYPE_WORDS_FINAL.json")):
-        print(f"Loading agg type words final")
-        agg_type_words = utils.load_json_file(os.path.join(out_dir_temp, "AGG_TYPE_WORDS_FINAL.json"))
-        print(f"Loaded {len(agg_type_words)} type words")
-    else:
-        type_count_files = glob.glob(f"{out_dir_temp}/*_{TYPEWORDS}.json")
-        list_of_type_dicts = [utils.load_json_file(f) for f in tqdm(type_count_files, desc="Loading type files")]
-        agg_type_words = aggregate_list_of_tokens(list_of_type_dicts)
-        utils.dump_json_file(os.path.join(out_dir_temp, "AGG_TYPE_WORDS_FINAL.json"), agg_type_words)
-    tifidf_type_words = compute_tfidf(agg_type_words, vocab_out_file, args.top_k_affordance_words, out_dir_temp_tfidf, args.processes)
-    save_as_trie(args, tifidf_type_words, out_dir_types, TYPEWORDS, args.top_k_affordance_words)
+    # if os.path.exists(os.path.join(out_dir_temp, "AGG_TYPE_WORDS_FINAL.json")):
+    #     print(f"Loading agg type words final")
+    #     agg_type_words = utils.load_json_file(os.path.join(out_dir_temp, "AGG_TYPE_WORDS_FINAL.json"))
+    #     print(f"Loaded {len(agg_type_words)} type words")
+    # else:
+    #     type_count_files = glob.glob(f"{out_dir_temp}/*_{TYPEWORDS}.json")
+    #     list_of_type_dicts = [utils.load_json_file(f) for f in tqdm(type_count_files, desc="Loading type files")]
+    #     agg_type_words = aggregate_list_of_tokens(list_of_type_dicts)
+    #     utils.dump_json_file(os.path.join(out_dir_temp, "AGG_TYPE_WORDS_FINAL.json"), agg_type_words)
+    # tifidf_type_words = compute_tfidf(agg_type_words, vocab_out_file, args.top_k_affordance_words, out_dir_temp_tfidf, args.processes)
+    # save_as_trie(args, tifidf_type_words, out_dir_types, TYPEWORDS, args.top_k_affordance_words)
     print("Done with type tfidf")
     # '''
     # Counts of words associated with relation types
     # '''
-    if os.path.exists(os.path.join(out_dir_temp, "AGG_RELATION_WORDS_FINAL.json")):
-        print(f"Loading agg relation words final")
-        agg_rel_words = utils.load_json_file(os.path.join(out_dir_temp, "AGG_RELATION_WORDS_FINAL.json"))
-    else:
-        rel_type_count_files = glob.glob(f"{out_dir_temp}/*_{RELATIONWORDS}.json")
-        list_of_rel_type_dicts = [utils.load_json_file(f) for f in tqdm(rel_type_count_files, desc="Loading relation files")]
-        agg_rel_words = aggregate_list_of_tokens(list_of_rel_type_dicts)
-        utils.dump_json_file(os.path.join(out_dir_temp, "AGG_RELATION_WORDS_FINAL.json"), agg_rel_words)
-    tifidf_rel_words = compute_tfidf(agg_rel_words, vocab_out_file, args.top_k_affordance_words, out_dir_temp_tfidf, args.processes, max_words_item=15000)
-    save_as_trie(args, tifidf_rel_words, out_dir_rels, RELATIONWORDS, args.top_k_affordance_words)
+    # if os.path.exists(os.path.join(out_dir_temp, "AGG_RELATION_WORDS_FINAL.json")):
+    #     print(f"Loading agg relation words final")
+    #     agg_rel_words = utils.load_json_file(os.path.join(out_dir_temp, "AGG_RELATION_WORDS_FINAL.json"))
+    # else:
+    #     rel_type_count_files = glob.glob(f"{out_dir_temp}/*_{RELATIONWORDS}.json")
+    #     list_of_rel_type_dicts = [utils.load_json_file(f) for f in tqdm(rel_type_count_files, desc="Loading relation files")]
+    #     agg_rel_words = aggregate_list_of_tokens(list_of_rel_type_dicts)
+    #     utils.dump_json_file(os.path.join(out_dir_temp, "AGG_RELATION_WORDS_FINAL.json"), agg_rel_words)
+    # tifidf_rel_words = compute_tfidf(agg_rel_words, vocab_out_file, args.top_k_affordance_words, out_dir_temp_tfidf, args.processes, max_words_item=15000)
+    # save_as_trie(args, tifidf_rel_words, out_dir_rels, RELATIONWORDS, args.top_k_affordance_words)
     # '''
     print("Done with relation tfidf")
     print(f"Done gathering counts and aggregating...")

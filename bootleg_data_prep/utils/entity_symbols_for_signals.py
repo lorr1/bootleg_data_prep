@@ -487,7 +487,7 @@ def create_entity_symbols_for_slices(args, entity_symbols=None):
     entity_dump_dir = os.path.join(args.data_dir, f"{args.subfolder_name}", "entity_db/entity_mappings")
     print(f"Entity dump directory where all information is saved/loaded from is {entity_dump_dir}")
     if entity_symbols is None:
-        entity_symbols = EntitySymbols(load_dir=entity_dump_dir)
+        entity_symbols = EntitySymbols.load_from_cache(load_dir=entity_dump_dir)
     qid_count = load_qid_counts(args, entity_dump_dir)
     # Tri colleciton stores all mappings over QIDs (alias to candidates, entity to types, entity to relations)
     # Note that tri_collection may be None upon return. If so, it gets reconstructed in EntitySymbolsForSlice
@@ -550,7 +550,7 @@ def load_entity_symbol_objs(args, cache_dir, overwrite_cache=False):
     load_dir = os.path.join(args.data_dir, args.subfolder_name)
     entity_load_dir = os.path.join(load_dir, "entity_db/entity_mappings")
     print(f"Loading entity_symbols from {entity_load_dir}")
-    entity_symbols = EntitySymbols(load_dir=entity_load_dir)
+    entity_symbols = EntitySymbols.load_from_cache(load_dir=entity_load_dir)
     type_f_hy = os.path.join(cache_dir, "type_symbols_hy.pkl")
     type_f_wd = os.path.join(cache_dir, "type_symbols_wd.pkl")
     type_f_rel = os.path.join(cache_dir, "type_symbols_rel.pkl")

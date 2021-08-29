@@ -3,15 +3,15 @@ To run this code, you'll need to install the `requirements.txt` and run
 
 `python3 setup.py develop`.
 
-You will also need access to https://github.com/neelguha/wikidata-processor on the `bootleg` branch. Contact Laurel for getting access to this.
+You will also need to download https://github.com/neelguha/simple-wikidata-db. This will download Wikidata.
 
 ## Running
 For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. Replace this with your working directory. Note that the term "mention" and "alias" are used interchangably. We have more detailed descriptions of what each of the following functions do in the main folder's `README.MD`.
 
-0. **Download and extract wikidata** (place in `/lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json`) and process. This will allow us to more easily query for metadata.
+0. **Download and extract wikidata** (place in `/lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json`) and process. Follow the instructions on https://github.com/neelguha/simple-wikidata-db. I set my output directory to be `/lfs/raiders8/0/lorr1/wikidata_sv/processed_batches`.
 
     Expected Time: 15 hours
-    `python3 -m processor.process_dump --input_file /lfs/raiders8/0/lorr1/wikidata/raw_data/latest-all.json --out_dir /lfs/raiders8/0/lorr1/wikidata_sv/processed_batches --language_id sv --num_processes 40`
+
 
 1. **Make working folder and download wikipedia.**
     ```
@@ -33,7 +33,12 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     ```
     
     Expected Time: 5-15 hours (depending on the size of your Wikipedia dump)
-    `python3 -m bootleg_data_prep.wiki_extractor --output sentences --output2 pageids svwiki-20201120-pages-articles-multistream.xml --processes 5 &> wiki_extractor.out`
+
+    ```
+    python3 -m bootleg_data_prep.wiki_extractor --output sentences \\ 
+             --output2 pageids svwiki-20201120-pages-articles-multistream.xml \\
+             --processes 5 &> wiki_extractor.out
+    ```
     
     This will output
     ```
@@ -45,11 +50,12 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     We expect `ls sv_data` to output
     `pageids  sentences  svwiki-20201120-pages-articles-multistream.xml`
 
-2. **Get mapping of all wikipedia ids to QIDs.**
+
+2. **Get mapping of all wikipedia ids to QIDs.** I manually set to `total_wikipedia_xml_lines` for progress bars via the `wc -l` command but is not required.
 
     Expected Time: 20 minutes
     ```
-    python3 -m processor.bootleg.get_title_to_ids \
+    python3 -m bootleg_data_prep.wikidata.get_title_to_ids \
         --data /lfs/raiders8/0/lorr1/wikidata_sv \
         --wikipedia_xml /lfs/raiders8/0/lorr1/sv_data/svwiki-20201120-pages-articles-multistream.xml \
         --total_wikipedia_xml_lines 436717867 \
@@ -63,13 +69,14 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     
     Expected Time: less than 1 hour
     ```bash
-    python3 -m processor.bootleg.create_aliases \
+    python3 -m bootleg_data_prep.wikidata.create_aliases \
         --qids '' \
         --data /lfs/raiders8/0/lorr1/wikidata_sv \
         --out_file /lfs/raiders8/0/lorr1/sv_data/augmented_alias_map_large.jsonl
     ```
         
     If you run this, you should now have `augmented_alias_map_large.jsonl` in `sv_data`.
+
 
 3. **Curate alias and candidate mappings.** We mine aliases from Wikipedia hyperlinks. The `min_frequency` param controls the number of times and alias needs to be seen with an entity to count as a potential candidate. We also map all page titles (including redirect) to the QIDs and then merge these QIDs with those from Wikidata.
 
@@ -105,17 +112,17 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
 
     Expected Time: less than 1 hour.
     ```
-    python3 -m processor.bootleg.get_all_wikipedia_triples \
+    python3 -m bootleg_data_prep.wikidata.get_all_wikipedia_triples \
         --data /lfs/raiders8/0/lorr1/wikidata_sv \
         --out_dir wikidata_output \
         --processes 10 \
         --qids /lfs/raiders8/0/lorr1/sv_data/data/wiki_dump/alias_filtered_sentences/entity_db/entity_mappings/qid2title.json
-    python3 -m processor.bootleg.create_kg_adj \
+    python3 -m bootleg_data_prep.wikidata.create_kg_adj \
         --data /lfs/raiders8/0/lorr1/wikidata_sv \
         --out_dir wikidata_output \
         --processes 10 \
         --qids /lfs/raiders8/0/lorr1/sv_data/data/wiki_dump/alias_filtered_sentences/entity_db/entity_mappings/qid2title.json
-    python3 -m processor.bootleg.get_types \
+    python3 -m bootleg_data_prep.wikidata.get_types \
         --data /lfs/raiders8/0/lorr1/wikidata_sv \
         --out_dir wikidata_output \
         --processes 10 \
@@ -133,7 +140,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     ```
     Once things are in place, you can generate our final relation type mapping. The `pid_names.json` file can be found in `utils/param_files`.
     ```
-    python3 -m processor.bootleg.get_relation_types_from_triples \
+    python3 -m bootleg_data_prep.wikidata.get_relation_types_from_triples \
         --pid_file utils/param_files/pid_names.json \
         --kg_triples /lfs/raiders8/0/lorr1/sv_data/embs/kg_triples_1129.txt \
         --type_file /lfs/raiders8/0/lorr1/sv_data/embs/wikidata_types_1129.json \
@@ -255,87 +262,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     `cp -r sv_data/data/wiki_dump/full_wiki_final_-1_0 <path_to_model_training_data>/full_wiki_train`
 
 ## Run Bootleg Model
-See the Bootleg repo for more instructions. An example config is below to run Bootleg using our `emmental_master` branch. For speed, you might want to sample data to make the test and dev datasets smaller for eval during training (see `bootleg_emmental/utils/preprocessing/sample_eval_data.py`). See the README on the `emmental` branch for setup instructions. Comments in the YAML file indicate what you need to fill out.
-
-Note if you are using a different language, you might want to use a different BERT backend.
-
-```yaml
-emmental:
-  lr: 1e-4
-  n_epochs: 10
-  evaluation_freq: 1.0
-  log_path: logs
-  checkpointing: true
-  checkpoint_all: true
-  checkpoint_freq: 1
-run_config:
-  eval_batch_size: 256
-  dataloader_threads: 4
-  dataset_threads: 50
-  spawn_method: forkserver
-train_config:
-  batch_size: 96
-model_config:
-  hidden_size: 256
-  num_heads: 16
-  num_model_stages: 2
-  ff_inner_size: 1024
-  attn_class: BootlegM2E
-data_config:
-  data_dir: <path to full_wiki_train>  # FILL OUT
-  emb_dir: <path to sv_data/embs> # FILL OUT
-  ent_embeddings:
-       - key: learned
-         load_class: LearnedEntityEmb
-         freeze: false
-         args:
-           learned_embedding_size: 256
-           mask_perc: 0.0  # CONSTANT REGULARIZATION
-#           regularize_mapping: /dfs/scratch0/lorr1/bootleg/data/wiki_0906_pg_emm/qid2reg_2.csv # INVERSE REGULARIZATION - SEE bootleg_emmental/utils/preprocessing/build_regularization_mapping.py
-       - key: learned_type_wiki
-         load_class: LearnedTypeEmb
-         freeze: false
-         args:
-           type_labels: wikidata_types_0905.json # TYPES INSIDE EMBS FOLDER
-           max_types: 3
-           type_dim: 128
-           merge_func: addattn
-           attn_hidden_size: 128
-       - key: learned_type_relations
-         load_class: LearnedTypeEmb
-         freeze: false
-         args:
-           type_labels: kg_relation_types_0905.json # TYPES INSIDE EMBS FOLDER
-           max_types: 3
-           type_dim: 128
-           merge_func: addattn
-           attn_hidden_size: 128
-       - key: adj_index
-         load_class: KGIndices
-         batch_on_the_fly: true
-         dtype: int16
-         args:
-           kg_adj: kg_adj_0905.txt
-  entity_dir: <path to entity_dir INSIDE of full_wiki_train>  # FILL OUT
-  max_aliases: 10
-  max_seq_len: 100
-  overwrite_preprocessed_data: false
-  dev_dataset:
-    file: dev.jsonl
-    use_weak_label: true
-  test_dataset:
-    file: test.jsonl
-    use_weak_label: true
-  train_dataset:
-    file: train.jsonl
-    use_weak_label: true
-  train_in_candidates: true
-  word_embedding:
-    cache_dir: pretrained_bert_models # THIS WILL BE GENERATED IF IT DOESN'T EXIST OTHERWISE
-    freeze: true
-    layers: 12
-```
-
+See the Bootleg docs at https://bootleg.readthedocs.io/en/latest/index.html.
 
 
 

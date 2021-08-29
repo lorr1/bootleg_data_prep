@@ -56,6 +56,7 @@ def parse_args():
     parser.add_argument('--max_relations', type=int, default=150) # 90th percentile was 138
     parser.add_argument('--kg_adj', type=str, default='kg_adj_1229.txt')
     parser.add_argument('--kg_triples', type=str, default='kg_triples_1229.txt')
+    parser.add_argument('--kg_vocab', type=str, default='pid_vocab.json')
     parser.add_argument('--hy_vocab', type=str, default='hyena_vocab.json')
     parser.add_argument('--hy_types', type=str, default='hyena_types_1229.json')
     parser.add_argument('--wd_vocab', type=str, default='wikidatatitle_to_typeid_1229.json')
@@ -383,6 +384,9 @@ def write_out_entity_profile(args, folder, all_qids):
     with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:
         for item in kg_list:
             out_f.write(f"{item[0]}\t{item[1]}\n")
+    kg_vocab = ujson.load(open(os.path.join(args.emb_dir, args.kg_vocab)))
+    with open(os.path.join(kg_folder, "relation_vocab.json"), "w") as out_f:
+        ujson.dump(kg_vocab, out_f)
 
     ujson.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"))
     print("Writing out wiki types")

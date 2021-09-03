@@ -11,7 +11,7 @@ from tqdm import tqdm
 
 def get_arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pid_file', type = str, default = '/dfs/scratch0/lorr1/contextual-embeddings/wikidata_mappings/pid_names.json', help = 'path to pid file')
+    parser.add_argument('--pid_file', type = str, default = 'utils/param_files/pid_names.json', help = 'path to pid file')
     parser.add_argument('--kg_triples', type = str, default = '', help = 'path to kg_triples.json')
     parser.add_argument('--type_file', type = str, default = '', help = 'path to types.json')
     parser.add_argument('--output_file', type = str, default = '', help = 'path to output file')

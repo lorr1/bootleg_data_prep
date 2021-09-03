@@ -18,8 +18,7 @@ from multiprocessing import set_start_method, Pool
 
 from collections import defaultdict
 
-from processor.constants import * 
-from processor.utils import *
+import simple_wikidata_db.utils as utils
 
 def get_arg_parser():
     parser = argparse.ArgumentParser()
@@ -71,7 +70,7 @@ def load_and_filter_triples(message):
     job_index, num_jobs, filename, out_dir = message
     triples = {}
     print(f"Starting {job_index} / {num_jobs} on {filename}.")
-    for triple in jsonl_generator(filename):
+    for triple in utils.jsonl_generator(filename):
         qid, property_id, value = triple['qid'], triple['property_id'], triple['value']
         if len(filter_qids_global) == 0 or qid in filter_qids_global: # and value in filter_qids_global:
             if qid not in triples:
@@ -102,7 +101,8 @@ def main():
         else:
             filter_qids = set(filter_qids)
     print(f"Loaded {len(filter_qids)} qids.")
-    entity_table_files = get_batch_files("entity", args)
+    fdir = os.path.join(args.data, "processed_batches", "entity")
+    entity_table_files = utils.get_batch_files(fdir)
     launch_entity_table(entity_table_files, filter_qids, out_dir, args)
     print(f"Finihsed in {time.time() - start}s.")
 

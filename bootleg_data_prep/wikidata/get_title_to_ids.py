@@ -19,9 +19,7 @@ from urllib.parse import unquote
 from tqdm import tqdm
 
 from collections import defaultdict
-#
-# from processor.constants import *
-import processor.utils as utils
+import simple_wikidata_db.utils as utils
 import dateutil.parser
 
 def get_arg_parser():
@@ -133,7 +131,8 @@ def read_in_wikipedia_pageids(args):
 
 
 def read_in_wikipedia_title(args):
-    wikipedia_files = utils.get_batch_files("wikipedia", args)
+    fdir = os.path.join(args.data, "processed_batches", "wikipedia")
+    wikipedia_files = utils.get_batch_files(fdir)
     title_to_id = defaultdict(set)
     for file in tqdm(wikipedia_files, desc="Reading in wikipedia files"):
         with open(file, "r") as in_f:
@@ -143,7 +142,8 @@ def read_in_wikipedia_title(args):
     return title_to_id
 
 def read_in_wikidata_title(args):
-    wikidata_files = utils.get_batch_files("label", args)
+    fdir = os.path.join(args.data, "processed_batches", "label")
+    wikidata_files = utils.get_batch_files(fdir)
     id_to_title = defaultdict(set)
     for file in tqdm(wikidata_files, desc="Reading in wikidata files"):
         with open(file, "r") as in_f:

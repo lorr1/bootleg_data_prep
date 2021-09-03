@@ -3,7 +3,13 @@ To run this code, you'll need to install the `requirements.txt` and run
 
 `python3 setup.py develop`.
 
-You will also need to download https://github.com/neelguha/simple-wikidata-db. This will download Wikidata.
+You will also need to download https://github.com/neelguha/simple-wikidata-db. This will download Wikidata. This repo is not on pip. To install, run
+
+```
+git clone git@github.com:neelguha/simple-wikidata-db.git simple_wikidata_db
+cd simple-wikidata-db
+python3 setup.py develop
+```
 
 ## Running
 For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. Replace this with your working directory. Note that the term "mention" and "alias" are used interchangably. We have more detailed descriptions of what each of the following functions do in the main folder's `README.MD`.

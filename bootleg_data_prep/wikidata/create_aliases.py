@@ -19,8 +19,7 @@ from nameparser import HumanName
 from collections import defaultdict
 import unicodedata
 
-from processor.constants import * 
-from processor.utils import *
+import simple_wikidata_db.utils as utils
 from nltk.corpus import stopwords
 stopWords = set(stopwords.words('english'))
 
@@ -82,7 +81,7 @@ def load_value_file(message):
 
     job_index, num_jobs, filename  = message
     qid2alias = {}
-    for triple in jsonl_generator(filename):
+    for triple in utils.jsonl_generator(filename):
         qid, property_id, value = triple['qid'], triple['property_id'], triple['value'].lower()
         if not property_id in ALIAS_PROPERTIES:
             continue
@@ -106,7 +105,7 @@ def load_entity_file(message):
     job_index, num_jobs, filename  = message
     qid2alias = {}
     qid2type = {}
-    for triple in jsonl_generator(filename):
+    for triple in utils.jsonl_generator(filename):
         qid, property_id, value = triple['qid'], triple['property_id'], triple['value']
         if property_id in ALIAS_PROPERTIES:
             if not qid in qid2alias:
@@ -168,13 +167,16 @@ def main():
         qid_filter = set()
     print(f"Loaded {len(qid_filter)} qids.")
 
-    alias_table_files = get_batch_files("alias", args)
+    fdir = os.path.join(args.data, "processed_batches", "alias")
+    alias_table_files = utils.get_batch_files(fdir)
     list_of_qid2alias = get_aliases_from_table(alias_table_files, args)
 
-    value_table_files = get_batch_files("value", args)
+    fdir = os.path.join(args.data, "processed_batches", "value")
+    value_table_files = utils.get_batch_files(fdir)
     list_of_qid2alias.extend(get_aliases_from_values(value_table_files, args))
 
-    entity_table_files = get_batch_files("entity", args)
+    fdir = os.path.join(args.data, "processed_batches", "entity")
+    entity_table_files = utils.get_batch_files(fdir)
     _, list_of_qid2types = get_types_and_aliases_from_entities(entity_table_files, args)
 
     print("Building human type map")

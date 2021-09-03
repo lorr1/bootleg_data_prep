@@ -19,8 +19,7 @@ from multiprocessing import set_start_method, Pool
 
 from collections import defaultdict, Counter
 
-from processor.constants import * 
-from processor.utils import *
+import simple_wikidata_db.utils as utils
 
 HUMAN_QID = 'Q5'
 TWIN_QID = 'Q159979'
@@ -60,7 +59,7 @@ def load_entity_file(message):
     start = time.time()
     job_index, num_jobs, filename, out_dir = message
     type_dict = defaultdict(set)
-    for triple in jsonl_generator(filename):
+    for triple in utils.jsonl_generator(filename):
         qid, property_id, value = triple['qid'], triple['property_id'], triple['value']
         if property_id in TYPE_PIDS and value not in AVOID_TYPES and (len(filter_qids_global) == 0 or qid in filter_qids_global):
             type_dict[qid].add(value)
@@ -137,7 +136,8 @@ def write_types(out_dir, type_list, qid_to_title):
     print(f"Writtten to {out_dir}")
 
 def read_in_wikidata_title(args):
-    wikidata_files = get_batch_files("label", args)
+    fdir = os.path.join(args.data, "processed_batches", "label")
+    wikidata_files = utils.get_batch_files(fdir)
     id_to_title = {}
     for file in tqdm(wikidata_files, desc="Reading in wikidata files"):
         with open(file, "r") as in_f:
@@ -168,7 +168,8 @@ def main():
     else:
         filter_qids = []
     print(f"Loaded {len(filter_qids)} qids.")
-    entity_table_files = get_batch_files("entity", args)
+    fdir = os.path.join(args.data, "processed_batches", "entity")
+    entity_table_files = get_batch_files(fdir)
     launch_entity_table(entity_table_files, qid_to_title, filter_qids, out_dir, args)
     print(f"Finished in {time.time() - start}")
 

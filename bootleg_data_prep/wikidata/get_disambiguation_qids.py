@@ -5,8 +5,7 @@ from multiprocessing import set_start_method, Pool
 
 from collections import defaultdict
 
-from processor.constants import * 
-from processor.utils import *
+import simple_wikidata_db.utils as utils
 
 INSTANCE_OF_PROP = "P31"
 DISAMBIG_PAGE = {"Q4167410", "Q22808320"}
@@ -30,7 +29,7 @@ def load_entity_file(message):
     start = time.time()
     job_index, num_jobs, filename = message
     ids = set()
-    for triple in jsonl_generator(filename):
+    for triple in utils.jsonl_generator(filename):
         qid, property_id, value = triple['qid'], triple['property_id'], triple['value']
         if property_id == INSTANCE_OF_PROP and value in DISAMBIG_PAGE:
             ids.add(qid)
@@ -46,7 +45,8 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    external_tables = get_batch_files("entity", args)
+    fdir = os.path.join(args.data, "processed_batches", "entity")
+    external_tables = get_batch_files(fdir)
     all_ids = launch_entity_table(external_tables, args)
 
     final_ids = set()

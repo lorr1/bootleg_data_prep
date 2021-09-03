@@ -136,7 +136,7 @@ def write_types(out_dir, type_list, qid_to_title):
     print(f"Writtten to {out_dir}")
 
 def read_in_wikidata_title(args):
-    fdir = os.path.join(args.data, "processed_batches", "label")
+    fdir = os.path.join(args.data, "processed_batches", "labels")
     wikidata_files = utils.get_batch_files(fdir)
     id_to_title = {}
     for file in tqdm(wikidata_files, desc="Reading in wikidata files"):
@@ -168,7 +168,7 @@ def main():
     else:
         filter_qids = []
     print(f"Loaded {len(filter_qids)} qids.")
-    fdir = os.path.join(args.data, "processed_batches", "entity")
+    fdir = os.path.join(args.data, "processed_batches", "entity_rels")
     entity_table_files = get_batch_files(fdir)
     launch_entity_table(entity_table_files, qid_to_title, filter_qids, out_dir, args)
     print(f"Finished in {time.time() - start}")

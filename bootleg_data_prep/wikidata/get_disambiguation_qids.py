@@ -45,7 +45,7 @@ def main():
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
 
-    fdir = os.path.join(args.data, "processed_batches", "entity")
+    fdir = os.path.join(args.data, "processed_batches", "entity_rels")
     external_tables = get_batch_files(fdir)
     all_ids = launch_entity_table(external_tables, args)
 

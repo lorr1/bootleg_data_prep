@@ -167,15 +167,15 @@ def main():
         qid_filter = set()
     print(f"Loaded {len(qid_filter)} qids.")
 
-    fdir = os.path.join(args.data, "processed_batches", "alias")
+    fdir = os.path.join(args.data, "processed_batches", "aliases")
     alias_table_files = utils.get_batch_files(fdir)
     list_of_qid2alias = get_aliases_from_table(alias_table_files, args)
 
-    fdir = os.path.join(args.data, "processed_batches", "value")
+    fdir = os.path.join(args.data, "processed_batches", "entity_values")
     value_table_files = utils.get_batch_files(fdir)
     list_of_qid2alias.extend(get_aliases_from_values(value_table_files, args))
 
-    fdir = os.path.join(args.data, "processed_batches", "entity")
+    fdir = os.path.join(args.data, "processed_batches", "entity_rels")
     entity_table_files = utils.get_batch_files(fdir)
     _, list_of_qid2types = get_types_and_aliases_from_entities(entity_table_files, args)
 

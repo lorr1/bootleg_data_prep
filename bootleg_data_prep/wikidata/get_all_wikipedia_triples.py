@@ -101,7 +101,7 @@ def main():
         else:
             filter_qids = set(filter_qids)
     print(f"Loaded {len(filter_qids)} qids.")
-    fdir = os.path.join(args.data, "processed_batches", "entity")
+    fdir = os.path.join(args.data, "processed_batches", "entity_rels")
     entity_table_files = utils.get_batch_files(fdir)
     launch_entity_table(entity_table_files, filter_qids, out_dir, args)
     print(f"Finihsed in {time.time() - start}s.")

@@ -110,7 +110,7 @@ def main():
         if type(filter_qids) is dict:
             filter_qids = list(filter_qids.keys())
     print(f"Loaded {len(filter_qids)} qids.")
-    fdir = os.path.join(args.data, "processed_batches", "entity")
+    fdir = os.path.join(args.data, "processed_batches", "entity_rels")
     entity_table_files = utils.get_batch_files(fdir)
     launch_entity_table(entity_table_files, filter_qids, out_dir, args)
     print(f"Finished in {time.time() - start}")

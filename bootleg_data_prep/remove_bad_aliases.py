@@ -227,7 +227,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
     )
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_aliases_to_qid_count_{i}.json"), filtered_aliases_to_qid_count)
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_qid_count_{i}.json"), filtered_qid_count)
-    utils.dump_json_file(os.path.join(temp_outdir, f"wiki_page_qids_{i}.json"), wiki_page_qids)
+    utils.dump_json_file(os.path.join(temp_outdir, f"wiki_page_qids_{i}.json"), list(wiki_page_qids))
     utils.dump_json_file(os.path.join(temp_outdir, f"discarded_counts_{i}.json"), discarded_counts)
     utils.dump_json_file(os.path.join(temp_outdir, f"discarded_values_{i}.json"), discarded_values)
     return
@@ -353,7 +353,7 @@ def main():
     utils.dump_json_file(os.path.join(outdir, "discarded_bad_aliases.json"), discarded_values_stats)
     utils.dump_json_file(os.path.join(outdir, "alias_to_qid_count.json"), alias_to_qid_count)
     utils.dump_json_file(os.path.join(outdir, "qid_counts.json"), qid_counts)
-    utils.dump_json_file(os.path.join(outdir, "wiki_page_qids.json"), wiki_page_qids)
+    utils.dump_json_file(os.path.join(outdir, "wiki_page_qids.json"), list(wiki_page_qids))
     prep_utils.save_config(args, "remove_bad_aliases_config.json")
     print(f"Finished remove_bad_aliases in {time.time() - gl_start} seconds.")
 

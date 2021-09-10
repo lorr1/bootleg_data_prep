@@ -20,6 +20,7 @@ from collections import defaultdict
 import unicodedata
 
 import simple_wikidata_db.utils as utils
+from simple_wikidata_db.preprocess_dump import ALIAS_PROPERTIES
 from nltk.corpus import stopwords
 stopWords = set(stopwords.words('english'))
 
@@ -62,7 +63,7 @@ def load_alias_file(message):
 
     job_index, num_jobs, filename  = message
     qid2alias = {}
-    for triple in jsonl_generator(filename):
+    for triple in utils.jsonl_generator(filename):
         qid, alias = triple['qid'], triple['alias']
         if not qid in qid2alias:
             qid2alias[qid] = []

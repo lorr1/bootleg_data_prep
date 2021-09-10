@@ -67,8 +67,8 @@ class EntitySymbols:
         self.num_entities = len(self._qid2eid)
         self.num_entities_with_pad_and_nocand = self.num_entities + 2
         # For when we need to add new entities
-        self.max_eid = max(self._eid2qid.keys())
-        self.max_alid = max(self._id2alias.keys())
+        self.max_eid = max(self._eid2qid.keys()) if len(self._eid2qid.keys()) > 0 else 0
+        self.max_alid = max(self._id2alias.keys()) if len(self._id2alias.keys()) > 0 else 0
         self._qid2aliases = None
         self._alias_trie = None
         if self.edit_mode:
@@ -528,8 +528,8 @@ class EntitySymbols:
         self.num_entities_with_pad_and_nocand = self.num_entities + 2
         assert self.num_entities == len(entities_to_keep)
         # For when we need to add new entities
-        self.max_eid = max(self._eid2qid.keys())
-        self.max_alid = max(self._id2alias.keys())
+        self.max_eid = max(self._eid2qid.keys()) if len(self._eid2qid.keys()) > 0 else 0
+        self.max_alid = max(self._id2alias.keys()) if len(self._id2alias.keys()) > 0 else 0
 
     @edit_op
     def get_mentions(self, qid):

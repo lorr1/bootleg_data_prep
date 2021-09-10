@@ -46,7 +46,7 @@ def main():
         os.makedirs(out_dir)
 
     fdir = os.path.join(args.data, "processed_batches", "entity_rels")
-    external_tables = get_batch_files(fdir)
+    external_tables = utils.get_batch_files(fdir)
     all_ids = launch_entity_table(external_tables, args)
 
     final_ids = set()

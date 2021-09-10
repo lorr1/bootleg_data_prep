@@ -184,7 +184,8 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
     total_aliases_discarded = sum([len(alias_dict) for alias_dict in unpopular_removed.values()])
     vars(args)["total_unpopular_aliase_title_pairs_discarded"] = total_aliases_discarded
     print(f"{total_aliases_discarded} total alias-title discarded from freq.")
-    total_titles_discarded = len(set.union(*[set(alias_dict.keys()) for alias_dict in unpopular_removed.values()]))
+    keys = [set(alias_dict.keys()) for alias_dict in unpopular_removed.values()]
+    total_titles_discarded = len(set.union(*keys)) if keys else 0
     vars(args)["total_unpopular_titles_discarded"] = total_titles_discarded
     print(f"{total_aliases_discarded} total titles discarded from freq.")
     return filtered_aliasqid, filtered_qids, qid_unavailable, unpopular_removed
@@ -220,7 +221,7 @@ def merge_wikidata_aliases(args, aliases_to_qid, all_qids, wikidata_alias_to_qid
     vars(args)["number_added_qids_wikidata"] = stats['number_added_qids']
     vars(args)["number_added_aliases_wikidata"] = stats['number_added_aliases']
     vars(args)["number_added_qids_wikidata"] = len(new_qids_from_wikidata)
-    return aliases_to_qid, new_qids_from_wikidata
+    return aliases_to_qid, list(new_qids_from_wikidata)
 
 
 def main():

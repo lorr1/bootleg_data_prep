@@ -250,7 +250,8 @@ def subprocess_step2(all_args):
             #                     zip(sent_obj['aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'])))
             # # LAUREL
             items = list(filter(lambda x: (not args.train_in_candidates) or (x[2] in [y[0] for y in alias2qids[x[0]]]),
-                                zip(sent_obj['aliases'], sent_obj['unswap_aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'], sent_obj['sources'])))
+                                zip(sent_obj['aliases'], sent_obj.get("unswap_aliases", sent_obj["aliases"]), sent_obj['qids'],
+                                    sent_obj['spans'], sent_obj['gold'], sent_obj.get("souces", ["gold" for i in range(len(sent_obj["aliases"]))]))))
             temp_len = len(items)
             for x in items:
                 if x[2] not in qid2title:

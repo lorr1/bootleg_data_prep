@@ -1,8 +1,9 @@
 import os
 import shutil
 from argparse import Namespace
+from rich.progress import track
 from collections import defaultdict
-from tqdm import tqdm
+import ujson
 import marisa_trie
 import numpy as np
 
@@ -315,7 +316,7 @@ def load_relations(args, rel_file, all_qids):
     rel_mapping = {}
     num_lines = sum(1 for line in open(rel_file))
     with open(rel_file, 'r') as f:
-        for line in tqdm(f, total=num_lines):
+        for line in track(f, total=num_lines):
             head, tail = line.strip().split()
             if head not in all_qids or tail not in all_qids:
                 continue
@@ -335,18 +336,20 @@ def load_relations(args, rel_file, all_qids):
     return rel_mapping
 
 def load_contextual_relations(args, rel_file, entity_dump_dir, all_qids):
-    with open(rel_file, 'r') as in_f:
-        lines = [l.strip().split() for l in in_f.readlines()]
-        rels = sorted(list(set([line[1] for line in tqdm(lines)])))
-        rels_vocab = {r:i for i, r in enumerate(rels)}
-        keys = []
-        values= []
-        for line in tqdm(lines):
-            if line[0] not in all_qids or line[2] not in all_qids:
-                continue
-            if line[1] in rels:
-                key = f"{line[0]}_{line[2]}"
-                value = rels_vocab[line[1]]
+    all_relations = ujson.load(open(rel_file, "r"))
+    keys = []
+    values = []
+    all_rels = sorted(list(set([k for rel_dict in track(all_relations.values(), total=len(all_relations)) for k in rel_dict.keys()])))
+    rels_vocab = {r:i for i, r in enumerate(all_rels)}
+    for head_qid in all_relations:
+        if head_qid not in all_qids:
+            continue
+        for rel in all_relations[head_qid]:
+            for tail_qid in all_relations[head_qid][rel]:
+                if tail_qid not in all_qids:
+                    continue
+                key = f"{head_qid}_{tail_qid}"
+                value = rels_vocab[rel]
                 keys.append(key)
                 values.append(tuple([value]))
     if len(values) == 0:

@@ -131,7 +131,7 @@ def process_file(args):
                 g, p, title = row
                 # if gender is female or male
                 if 0 < g <= 2:
-                    print(json.dumps(add_pronoun(j, g, swap_titles, only_first_prn)), file=fout)
+                    print(json.dumps(add_pronoun(j, g, swap_titles, only_first_prn), ensure_ascii=False), file=fout)
                 else:
                     print(line.strip(), file=fout)
             return res

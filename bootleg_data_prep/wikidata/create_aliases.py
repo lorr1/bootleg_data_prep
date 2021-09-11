@@ -20,6 +20,9 @@ from collections import defaultdict
 import unicodedata
 
 import simple_wikidata_db.utils as utils
+
+ALIAS_PROPERTIES = set(['P138', 'P734', 'P735', 'P742', 'P1448', 'P1449', 'P1477', 'P1533', 'P1549', 'P1559', 'P1560', 'P1635', 'P1705', 'P1782', 'P1785', 'P1786', 'P1787', 'P1810', 'P1813', 'P1814', 'P1888', 'P1950', 'P2358', 'P2359', 'PP2365', 'P2366', 'P2521', 'P2562', 'P2976', 'PP3321', 'P4239', 'P4284', 'P4970', 'P5056', 'P5278', 'PP6978', 'P7383'])
+
 from nltk.corpus import stopwords
 stopWords = set(stopwords.words('english'))
 
@@ -62,7 +65,7 @@ def load_alias_file(message):
 
     job_index, num_jobs, filename  = message
     qid2alias = {}
-    for triple in jsonl_generator(filename):
+    for triple in utils.jsonl_generator(filename):
         qid, alias = triple['qid'], triple['alias']
         if not qid in qid2alias:
             qid2alias[qid] = []
@@ -187,8 +190,6 @@ def main():
                 human_qid[qid] = 1
     print(f"Found {len(human_qid)} entities of type individual.")
     qid2alias = merge_aliases(list_of_qid2alias, args.stripandlower)
-    print(qid2alias['Q10993'])
-    print('Q10993' in human_qid)
     qid2alias = generate_short_long_names(qid2alias, human_qid)
     print("Inverting qid2alias...")
     alias2qid = {}

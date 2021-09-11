@@ -3,12 +3,10 @@ import logging
 import os
 from datetime import datetime
 from typing import Dict, Optional
-
+from bootleg_data_prep.utils.constants import edit_op
+import bootleg_data_prep.utils.utils as utils
 import marisa_trie
 from tqdm import tqdm
-
-import bootleg.utils.utils as utils
-from bootleg.symbols.constants import edit_op
 
 logger = logging.getLogger(__name__)
 

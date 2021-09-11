@@ -42,7 +42,7 @@ def read_in_saved_title_file(title_file, total_lines):
             # the title is the url title that may be redirected to another wikipedia page
             qid, title, wikidata_title, wikipedia_title, wpid = items['qid'], items['title'], items['wikidata_title'], items['wikipedia_title'], items['id']
             # convert to string for hashing
-            wikititle2item[wikipedia_title].add(ujson.dumps(items))
+            wikititle2item[wikipedia_title].add(ujson.dumps(items, ensure_ascii=False))
     return wikititle2item
 
 def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, wikipedia_titles_to_wpid):
@@ -67,7 +67,7 @@ def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, 
                             "wikidata_title": wikidata_title,
                             "wikipedia_title": wikipedia_title
                         }
-                        out_f.write(ujson.dumps(res) + "\n")
+                        out_f.write(ujson.dumps(res, ensure_ascii=False) + "\n")
                         total_lines += 1
     return total_lines
 
@@ -113,7 +113,7 @@ def add_redirects(title_map, wikititle2item):
             for k in item_to_copy:
                 new_item[k] = item_to_copy[k]
             new_item["title"] = redirect_title_pair[1]
-            wikititle2item[good_title].add(ujson.dumps(new_item))
+            wikititle2item[good_title].add(ujson.dumps(new_item, ensure_ascii=False))
     return wikititle2item, wikititle2item_save
 
 
@@ -138,7 +138,7 @@ def read_in_wikipedia_title(args):
         with open(file, "r") as in_f:
             for line in in_f:
                 line = ujson.loads(line)
-                title_to_id[line["value"]].add(line["qid"])
+                title_to_id[line["wiki_title"]].add(line["qid"])
     return title_to_id
 
 def read_in_wikidata_title(args):
@@ -173,7 +173,7 @@ def main():
     assert len(redirect_title_map) > 0
     out_file = "temp_redicts.json"
     with open(out_file, "w") as out_f:
-        ujson.dump(redirect_title_map, out_f)
+        ujson.dump(redirect_title_map, out_f, ensure_ascii=False)
     # with open(out_file, "r") as in_f:
     #     redirect_title_map = ujson.load(in_f)
 

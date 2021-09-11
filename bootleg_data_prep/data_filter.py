@@ -126,7 +126,7 @@ def subprocess_step1(all_args):
                 all_qids.update(set(qids))
                 sentence["parent_qid"] = parent_qid
                 sentence["parent_title"] = title
-                out_file.write(json.dumps(sentence) + '\n')
+                out_file.write(json.dumps(sentence, ensure_ascii=False) + '\n')
     out_file.close()
     print(f"Finished {i}/{total}. {len(all_qids)} number qids. Written to {out_fname}. {time.time() - start} seconds.")
     return all_qids
@@ -249,13 +249,15 @@ def subprocess_step2(all_args):
             # items = list(filter(lambda x:(not args.train_in_candidates) or ((x[0] in alias2qids) and (x[1] in [y[0] for y in alias2qids[x[0]]])),
             #                     zip(sent_obj['aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'])))
             # # LAUREL
+            sent_obj['unswap_aliases'] = sent_obj.get('unswap_aliases', sent_obj['aliases'])
+            sent_obj['sources'] = sent_obj.get('sources', ['gold' for _ in range(len(sent_obj['aliases']))])
             items = list(filter(lambda x: (not args.train_in_candidates) or (x[2] in [y[0] for y in alias2qids[x[0]]]),
-                                zip(sent_obj['aliases'], sent_obj['unswap_aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'], sent_obj['sources'])))
+                                zip(sent_obj['aliases'], sent_obj['unswap_aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'], sent_obj["sources"])))
             temp_len = len(items)
             for x in items:
                 if x[2] not in qid2title:
                     print("BAD", x)
-                    print(json.dumps(sent_obj, indent=4))
+                    print(json.dumps(sent_obj, indent=4, ensure_ascii=False))
             items = list(filter(lambda x: x[2] in qid2title, items))
             # there should be no difference between these
             assert temp_len - len(items) == 0

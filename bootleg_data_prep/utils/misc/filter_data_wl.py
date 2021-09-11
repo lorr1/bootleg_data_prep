@@ -114,7 +114,7 @@ def filter_data_hlp(args):
             line["spans"] = new_spans
             line["gold"] = new_golds
             line["slices"] = new_slices
-            f_out.write(ujson.dumps(line) + "\n")
+            f_out.write(ujson.dumps(line, ensure_ascii=False) + "\n")
 
 
 def main():

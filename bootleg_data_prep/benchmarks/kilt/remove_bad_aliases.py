@@ -224,7 +224,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                 new_sent['gold'].append(True)
                 filtered_aliases_to_qid_count[alias][qid] += 1
                 filtered_qid_count[qid] += 1
-            out_file.write(json.dumps(new_sent) + '\n')
+            out_file.write(json.dumps(new_sent, ensure_ascii=False) + '\n')
     out_file.close()
     sum_discarded_counts = sum(discarded_counts.values())
     print(f"Finished {i}/{len_files}. Written to {out_fname}. {time.time() - start} seconds.\n"

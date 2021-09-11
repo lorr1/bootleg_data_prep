@@ -23,8 +23,7 @@ import logging
 import os
 import shutil
 import time
-
-from tqdm import tqdm
+from rich.progress import track
 
 import bootleg_data_prep.utils.utils as utils
 from bootleg_data_prep.utils.constants import PAIR_IDX_MATTER, \
@@ -86,7 +85,6 @@ def launch_subprocess(args, temp_folder, entity_symbols_plus_f, test_stats_dict_
     files = []
     all_test_folders = {}
     # key is dev, test, or train director
-
     for key in all_files:
         test_folder = prep_utils.get_outdir(key, f"folder_{args.file_id_start}_{args.file_id_end}", remove_old=True)
         all_test_folders[key] = test_folder
@@ -118,8 +116,10 @@ def subprocess(all_args):
     i, total, args, in_filepath_tupl, test_stats_dict_f = all_args
     in_filepath, test_folder = in_filepath_tupl
     test_stats_dict = utils.load_pickle_file(test_stats_dict_f)
-    print_memory()
-    print(f"Starting {i}/{total}. Reading in {in_filepath}.")
+    # print_memory()
+    process = psutil.Process(os.getpid())
+    mem = round(int(process.memory_info().rss) / 1024 ** 3, 2)
+    # print(f"Starting {i}/{total}. Reading in {in_filepath}.")
 
     out_fname = prep_utils.get_outfname(in_filepath)
     out_file = open(os.path.join(test_folder, out_fname), "w")
@@ -127,7 +127,7 @@ def subprocess(all_args):
     remaining_tot = defaultdict(int)
     all_slices = set()
     with open(in_filepath, "r") as in_f:
-        for line in in_f.readlines():
+        for line in track(in_f.readlines(), total=sum([1 for _ in open(in_filepath)]), description=f"{i} - {mem}GB"):
             sent_obj = json.loads(line)
             if len(sent_obj["aliases"]) <= 0:
                 print("LEN 0 ALIASES", sent_obj)
@@ -337,7 +337,7 @@ def make_slice_dict_probabilistic(slice_dict, num_aliases):
     return new_slice_dict
 
 def write_sentence(out_f, sent_obj):
-    out_f.write(json.dumps(sent_obj) + "\n")
+    out_f.write(json.dumps(sent_obj, ensure_ascii=False) + "\n")
 
 def combine_data(out_file, folder, clean_up=True):
     logging.info(f"Combining files from {folder}")
@@ -346,7 +346,7 @@ def combine_data(out_file, folder, clean_up=True):
         return
     with open(out_file, "w") as out_f:
         logging.info(f"Opening data file for writing {out_file}")
-        for f in tqdm(files, desc=f"{out_file}"):
+        for f in track(files, total=len(files), description=f"{out_file}"):
             # logging.info(f"Reading in file {f}")
             with open(f, 'r') as fd:
                 # for line in fd:
@@ -363,22 +363,13 @@ def write_out_entity_profile(args, folder, all_qids):
     # KG relations
     kg_folder = os.path.join(folder, "kg_mappings")
     utils.ensure_dir(kg_folder)
-    qid2relations = {q:{} for q in all_qids}
     kg_list = []
     print("Writing out KG information")
-    try:
-        with open(os.path.join(args.emb_dir, args.kg_triples)) as in_f:
-            for line in tqdm(in_f):
-                s, p, o = line.strip().split()
-                if s not in qid2relations:
-                    continue
-                kg_list.append([s, o])
-                if p not in qid2relations[s]:
-                    qid2relations[s][p] = []
-                qid2relations[s][p].append(o)
-                qid2relations[s][p] = qid2relations[s][p][:args.max_relations]
-    except Exception as e:
-        print("ERROR WRITING QID2RELATIONS", e)
+    all_relations = ujson.load(open(os.path.join(args.emb_dir, args.kg_triples)))
+    qid2relations = {k:v for k,v in all_relations.items() if k in all_qids}
+    for head_qid in track(qid2relations, total=len(qid2relations), description="Filt qid2rels"):
+        for rel in qid2relations[head_qid]:
+            qid2relations[head_qid][rel] = qid2relations[head_qid][rel][:args.max_relations]
     with open(os.path.join(kg_folder, "qid2relations.json"), "w") as out_f:
         ujson.dump(qid2relations, out_f)
     with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:
@@ -408,7 +399,7 @@ def dump_types(folder, subfolder, emb_dir, vocab, type_map, max_types, all_qids)
         vocab_inv = {v: k for k, v in vocab_map.items()}
         with open(os.path.join(emb_dir, type_map)) as in_f:
             type_mappings = ujson.load(in_f)
-            for qid in tqdm(type_mappings):
+            for qid in track(type_mappings, total=len(type_mappings)):
                 # Already has all qids inside
                 if qid in qid2types:
                     qid2types[qid] = [vocab_inv[i] for i in type_mappings[qid]]

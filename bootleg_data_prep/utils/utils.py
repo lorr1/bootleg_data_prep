@@ -24,11 +24,11 @@ def exists_dir(d):
 def dump_json_file(filename, contents):
     with open(filename, 'w') as f:
         try:
-            ujson.dump(contents, f)
+            ujson.dump(contents, f, ensure_ascii=False)
         except OverflowError:
-            json.dump(contents, f)
+            json.dump(contents, f, ensure_ascii=False)
         except TypeError:
-            json.dump(contents, f)
+            json.dump(contents, f, ensure_ascii=False)
 
 def load_json_file(filename):
     with open(filename, 'r') as f:

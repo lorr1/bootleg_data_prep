@@ -112,7 +112,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         --title_to_qid /lfs/raiders8/0/lorr1/sv_data/title_mappings/title_to_all_ids.jsonl \
         --benchmark_qids '' \
         --processes 10
-    ```
+    ````
 
 4. **Extract KG and Types.** This extract Wikidata metadata for Bootleg models.
 
@@ -138,17 +138,18 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     Then run
     ```
     mkdir /lfs/raiders8/0/lorr1/sv_data/embs
-    cp /lfs/raiders8/0/lorr1/wikidata_sv/wikidata_output/kg_triples.txt /lfs/raiders8/0/lorr1/sv_data/embs/kg_triples_1129.txt
+    cp /lfs/raiders8/0/lorr1/wikidata_sv/wikidata_output/kg_triples.json /lfs/raiders8/0/lorr1/sv_data/embs/kg_triples_1129.json
     cp /lfs/raiders8/0/lorr1/wikidata_sv/wikidata_output/kg_adj.txt /lfs/raiders8/0/lorr1/sv_data/embs/kg_adj_1129.txt
     cp /lfs/raiders8/0/lorr1/wikidata_sv/wikidata_output/wikidatatitle_to_typeqid.json /lfs/raiders8/0/lorr1/sv_data/embs/wikidatatitle_to_typeqid_1129.json
     cp /lfs/raiders8/0/lorr1/wikidata_sv/wikidata_output/wikidatatitle_to_typeid.json /lfs/raiders8/0/lorr1/sv_data/embs/wikidatatitle_to_typeid_1129.json
     cp /lfs/raiders8/0/lorr1/wikidata_sv/wikidata_output/wikidata_types.json /lfs/raiders8/0/lorr1/sv_data/embs/wikidata_types_1129.json
+    cp bootleg_data_prep/utils/param_files/pid_names.json /lfs/raiders8/0/lorr1/sv_data/embs/pid_vocab.json
     ```
     Once things are in place, you can generate our final relation type mapping. The `pid_names.json` file can be found in `utils/param_files`.
     ```
     python3 -m bootleg_data_prep.wikidata.get_relation_types_from_triples \
-        --pid_file utils/param_files/pid_names.json \
-        --kg_triples /lfs/raiders8/0/lorr1/sv_data/embs/kg_triples_1129.txt \
+        --pid_file bootleg_data_prep/utils/param_files/pid_names.json \
+        --kg_triples /lfs/raiders8/0/lorr1/sv_data/embs/kg_triples_1129.json \
         --type_file /lfs/raiders8/0/lorr1/sv_data/embs/wikidata_types_1129.json \
         --output_file /lfs/raiders8/0/lorr1/sv_data/embs/kg_relation_types_1129.json \
         --output_vocab_file /lfs/raiders8/0/lorr1/sv_data/embs/relation_to_typeid_1129.json
@@ -193,9 +194,8 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         --max_candidates 30 \
         --sentence_filter_func false_filter \
         --orig_dir alias_filtered_sentences \
-        --no_filter_disambig_entities \
         --data_dir /lfs/raiders8/0/lorr1/sv_data/data/wiki_dump \
-        --disambig_file '' --benchmark_qids ''
+        --benchmark_qids ''
     ```
 
 6. **Split data.** This will split data by Wikipedia pages (by default). With `--split 10`, 10% of pages will go to test, 10% to dev, and 80% to train.
@@ -238,7 +238,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         --processes 10 \
         --emb_dir /lfs/raiders8/0/lorr1/sv_data/embs \
         --kg_adj kg_adj_1129.txt \
-        --kg_triples kg_triples_1129.txt \
+        --kg_triples kg_triples_1129.json \
         --hy_vocab ''\
         --hy_types ''\
         --wd_vocab wikidatatitle_to_typeid_1129.json \
@@ -253,7 +253,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         --processes 10 \
         --emb_dir /lfs/raiders8/0/lorr1/sv_data/embs \
         --kg_adj kg_adj_1129.txt \
-        --kg_triples kg_triples_1129.txt \
+        --kg_triples kg_triples_1129.json \
         --hy_vocab ''\
         --hy_types ''\
         --wd_vocab wikidatatitle_to_typeid_1129.json \

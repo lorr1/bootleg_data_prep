@@ -377,7 +377,7 @@ def subprocess(all_args):
                         for k in range(j+1, len(qids)):
                             filtered_qids_cooccurence[qid][qids[k]] += 1
                             filtered_qids_cooccurence[qids[k]][qid] += 1
-            out_file.write(json.dumps(doc) + '\n')
+            out_file.write(json.dumps(doc, ensure_ascii=False) + '\n')
     out_file.close()
     print(f"LEN: {len(filtered_qid_counts)} LEN: {len(filtered_aliases_to_qid_count)} LEN: {len(filtered_aliases_cooccurence)}")
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_alias_to_qid_count_{idx}.json"), filtered_aliases_to_qid_count)

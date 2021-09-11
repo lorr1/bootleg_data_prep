@@ -63,8 +63,8 @@ def unswap_gold_aliases(sent):
     # Return the aliases to the original one for gold aliases (we swap for training to increase conflict)
     for i in range(len(sent['gold'])):
         if sent['gold'][i] is True:
-            if sent['unswap_aliases'][i] != sent['aliases'][i]:
-                sent['aliases'][i] = sent['unswap_aliases'][i]
+            if sent.get('unswap_aliases', 'aliases')[i] != sent['aliases'][i]:
+                sent['aliases'][i] = sent.get('unswap_aliases', 'aliases')[i]
     return sent
 
 def main():
@@ -171,7 +171,7 @@ def main():
                     counters[key] = tuple([idx, out_f])
                 line["sent_idx_unq"] = line_idx
                 line_idx += 1
-                out_f.write(json.dumps(line, sort_keys=True) + "\n")
+                out_f.write(json.dumps(line, sort_keys=True, ensure_ascii=False) + "\n")
 
     utils.dump_json_file(out_file_with, alias_qid_with)
     utils.dump_json_file(out_file_without, alias_qid_without)

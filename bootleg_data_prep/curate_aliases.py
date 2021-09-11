@@ -181,10 +181,11 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
     # Count the number of unpopular misses
     vars(args)["unique_unpopular_aliases_discarded"] = len(unpopular_removed)
     print(f"{len(unpopular_removed)} unique aliases discarded from freq.")
-    total_aliases_discarded = sum([len(alias_dict) for alias_dict in unpopular_removed.values()])
+    temp_alias_dict = [set(alias_dict.keys()) for alias_dict in unpopular_removed.values()]
+    total_aliases_discarded = sum([len(al_keys) for al_keys in temp_alias_dict])
     vars(args)["total_unpopular_aliase_title_pairs_discarded"] = total_aliases_discarded
     print(f"{total_aliases_discarded} total alias-title discarded from freq.")
-    total_titles_discarded = len(set.union(*[set(alias_dict.keys()) for alias_dict in unpopular_removed.values()]))
+    total_titles_discarded = len(set.union(*temp_alias_dict)) if len(temp_alias_dict) > 0 else 0
     vars(args)["total_unpopular_titles_discarded"] = total_titles_discarded
     print(f"{total_aliases_discarded} total titles discarded from freq.")
     return filtered_aliasqid, filtered_qids, qid_unavailable, unpopular_removed

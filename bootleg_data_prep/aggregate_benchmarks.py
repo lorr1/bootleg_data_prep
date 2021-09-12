@@ -11,6 +11,7 @@ import os
 import ujson as json
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
+from bootleg_data_prep.language import ensure_ascii
 from bootleg_data_prep.utils import utils
 
 BENCHMARK_DIRS = [
@@ -64,7 +65,7 @@ def main():
     all_qids = all_qids.union(get_candidates(args))
     print(f"{len(all_qids)} Qids collected from benchmarks.")
     with open(os.path.join(args.data_dir, 'benchmark_qids.json'), 'w') as out_file: 
-        json.dump(list(all_qids), out_file)
+        json.dump(list(all_qids), out_file, ensure_ascii=ensure_ascii)
 
     prep_utils.save_config(args, "aggregate_benchmarks.json")
     print(f"Data saved to {args.data_dir}")

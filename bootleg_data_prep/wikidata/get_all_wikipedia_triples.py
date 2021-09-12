@@ -20,6 +20,9 @@ from collections import defaultdict
 
 import simple_wikidata_db.utils as utils
 
+from bootleg_data_prep.language import ensure_ascii
+
+
 def get_arg_parser():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data', type = str, default = '/lfs/raiders8/0/lorr1/wikidata', help = 'path to output directory')
@@ -36,7 +39,7 @@ def init_process(args):
 
 def launch_entity_table(entity_files, filter_qids, out_dir, args):
     temp_f = os.path.join(out_dir, "_temp_filter.json")
-    json.dump(list(filter_qids), open(temp_f, "w"))
+    json.dump(list(filter_qids), open(temp_f, "w"), ensure_ascii=ensure_ascii)
     print(f"Starting with {args.processes} processes")
     pool = Pool(processes = args.processes, initializer=init_process, initargs=(tuple([temp_f]),))
     messages = [(i, len(entity_files), entity_files[i], out_dir) for i in range(len(entity_files))]
@@ -59,7 +62,7 @@ def merge_and_save(out_dir):
                 for qid2 in triples[qid][rel]:
                     final_triples[qid][rel].append(qid2)
     with open(out_f,'w') as wfd:
-        json.dump(final_triples, wfd)
+        json.dump(final_triples, wfd, ensure_ascii=ensure_ascii)
     print(f"Removing the temporary files")
     for file in in_files:
         os.remove(file)
@@ -80,7 +83,7 @@ def load_and_filter_triples(message):
             triples[qid][property_id].append(value)
     out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w")
     print(f"Found {len(triples)}")
-    json.dump(triples, out_f)
+    json.dump(triples, out_f, ensure_ascii=ensure_ascii)
     print(f"Finished {job_index} / {num_jobs}...{filename}. {time.time() - start} seconds. Saved in {out_f}.")
     return
             

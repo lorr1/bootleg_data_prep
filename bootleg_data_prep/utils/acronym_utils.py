@@ -4,6 +4,8 @@ This file contains helper functions for identifying acronyms in text
 
 import string
 
+from bootleg_data_prep.language import ignore_words
+
 
 def find_acronyms_from_parentheses(sentence_str, all_spans, all_qids, all_aliases):
     """
@@ -164,8 +166,6 @@ def find_manufactured_acronyms(sentence_str, all_spans, all_qids, all_aliases):
         # Exporting Countries" we would try both "OotPEC" and also "OPEC" (the 2nd one is correct). Thirdly, take the first letter
         # of each word, but make everything upper case (e.g. "Department of Defense" -> "DOD" instead of "DoD").
         potential_acronyms = []
-        ignore_words = set(["The", "the", "Of", "of", "And", "and", "For", "for", "In", "in",
-                            "To", "to"]) # maybe also try adding "with", "a", "on", etc. ??
         potential_acronyms.append(''.join([word[0] for word in named_entity]))
         potential_acronyms.append(''.join([word[0] for word in named_entity if word not in ignore_words]))
         potential_acronyms.append(''.join([word[0].upper() for word in named_entity]))

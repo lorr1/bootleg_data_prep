@@ -30,6 +30,7 @@ import bootleg_data_prep.utils.data_prep_utils as prep_utils
 # DO NOT REMOVE THIS IMPORT STATEMENT
 import bootleg_data_prep.utils.my_filter_funcs as my_filter_funcs
 # DO NOT REMOVE THIS NEXT LINE
+from bootleg_data_prep.language import ensure_ascii
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
 FILTER_FILE = "my_filter_funcs"
@@ -126,7 +127,7 @@ def subprocess_step1(all_args):
                 all_qids.update(set(qids))
                 sentence["parent_qid"] = parent_qid
                 sentence["parent_title"] = title
-                out_file.write(json.dumps(sentence) + '\n')
+                out_file.write(json.dumps(sentence, ensure_ascii=ensure_ascii) + '\n')
     out_file.close()
     print(f"Finished {i}/{total}. {len(all_qids)} number qids. Written to {out_fname}. {time.time() - start} seconds.")
     return all_qids
@@ -256,7 +257,7 @@ def subprocess_step2(all_args):
             for x in items:
                 if x[2] not in qid2title:
                     print("BAD", x)
-                    print(json.dumps(sent_obj, indent=4))
+                    print(json.dumps(sent_obj, indent=4, ensure_ascii=ensure_ascii))
             items = list(filter(lambda x: x[2] in qid2title, items))
             # there should be no difference between these
             assert temp_len - len(items) == 0
@@ -274,7 +275,7 @@ def subprocess_step2(all_args):
                 new_sent_obj['spans'] = spans
                 new_sent_obj['gold'] = golds
                 new_sent_obj['sources'] = sources
-                out_file.write(json.dumps(new_sent_obj) + '\n')
+                out_file.write(json.dumps(new_sent_obj, ensure_ascii=ensure_ascii) + '\n')
                 statistics['total_preserved'] += len(qids)
                 # Update stats
                 for alias, qid, gold in zip(aliases, qids, golds):

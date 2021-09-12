@@ -15,33 +15,14 @@ python3.6 -m
 import os, json, argparse, time, shutil
 from tqdm import tqdm 
 from multiprocessing import set_start_method, Pool
-from nameparser import HumanName
 from collections import defaultdict
 import unicodedata
 
 import simple_wikidata_db.utils as utils
 from simple_wikidata_db.preprocess_dump import ALIAS_PROPERTIES
-from nltk.corpus import stopwords
-stopWords = set(stopwords.words('english'))
 
-def get_lnrm(s, stripandlower):
-    """Convert a string to its lnrm form
-    We form the lower-cased normalized version l(s) of a string s by canonicalizing
-    its UTF-8 characters, eliminating diacritics, lower-casing the UTF-8 and
-    throwing out all ASCII-range characters that are not alpha-numeric.
-    from http://nlp.stanford.edu/pubs/subctackbp.pdf Section 2.3
-    Args:
-        input string
-    Returns:
-        the lnrm form of the string
-    """
-    if not stripandlower:
-        return s
-    lnrm = unicodedata.normalize('NFD', str(s))
-    lnrm = lnrm.lower()
-    lnrm = ''.join([x for x in lnrm if (not unicodedata.combining(x)
-                                        and x.isalnum() or x == ' ')])
-    return lnrm
+from bootleg_data_prep.language import stopwords, get_lnrm, ensure_ascii, HumanNameParser
+
 
 def get_arg_parser():
     parser = argparse.ArgumentParser()
@@ -138,10 +119,10 @@ def generate_short_long_names(qid2alias, human_qid):
         new_aliases = set(orig_aliases)
         if qid in human_qid:
             for alias in orig_aliases:
-                name = HumanName(alias)
-                if len(name.first) > 0 and name.first not in stopWords:
+                name = HumanNameParser(alias)
+                if len(name.first) > 0 and name.first not in stopwords:
                     new_aliases.add(name.first)
-                if len(name.last) > 0 and name.last not in stopWords:
+                if len(name.last) > 0 and name.last not in stopwords:
                     new_aliases.add(name.last)
                 print("ALIAS", alias, name.first, name.last)
         augmented_qid2alias[qid] = list(new_aliases)
@@ -203,7 +184,7 @@ def main():
     print(f"{len(alias2qid)} aliases.")
     print(f"Saving to file {args.out_file}...")
     with open(args.out_file, "w") as out_file: 
-        json.dump(alias2qid, out_file)
+        json.dump(alias2qid, out_file, ensure_ascii=ensure_ascii)
 
 
 if __name__ == "__main__":

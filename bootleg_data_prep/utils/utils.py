@@ -13,6 +13,8 @@ import pickle
 import sys
 import torch
 
+from bootleg_data_prep.language import ensure_ascii
+
 
 def ensure_dir(d):
     if not os.path.exists(d):
@@ -24,11 +26,11 @@ def exists_dir(d):
 def dump_json_file(filename, contents):
     with open(filename, 'w') as f:
         try:
-            ujson.dump(contents, f)
+            ujson.dump(contents, f, ensure_ascii=ensure_ascii)
         except OverflowError:
-            json.dump(contents, f)
+            json.dump(contents, f, ensure_ascii=ensure_ascii)
         except TypeError:
-            json.dump(contents, f)
+            json.dump(contents, f, ensure_ascii=ensure_ascii)
 
 def load_json_file(filename):
     with open(filename, 'r') as f:

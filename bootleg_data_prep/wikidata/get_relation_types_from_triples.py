@@ -8,6 +8,8 @@ from collections import defaultdict
 
 from tqdm import tqdm
 
+from bootleg_data_prep.language import ensure_ascii
+
 
 def get_arg_parser():
     parser = argparse.ArgumentParser()
@@ -67,11 +69,11 @@ def main():
         final_qid2type[qid] = types
 
 
-    json.dump(final_qid2type, out_file)
+    json.dump(final_qid2type, out_file, ensure_ascii=ensure_ascii)
 
     out_file.close()
     with open(args.output_vocab_file, "w") as out_f:
-        json.dump(rel_ids, out_f)
+        json.dump(rel_ids, out_f, ensure_ascii=ensure_ascii)
 
     print("Max number of relation types per qid", max_len)
 

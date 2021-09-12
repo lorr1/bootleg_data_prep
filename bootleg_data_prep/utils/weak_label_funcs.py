@@ -1,19 +1,8 @@
 import string
 
 import marisa_trie
-import nltk
-from nltk.corpus import stopwords
 
-from bootleg_data_prep.utils.data_prep_utils import get_lnrm
-
-PUNC = string.punctuation
-STOPWORDS = set(stopwords.words('english'))
-STOPWORDS.add("also")
-# Often left dangling in the sentence due to word splitting
-STOPWORDS.add("s")
-VERBS = set(['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
-NOUNS = set(["NN", "NNS", "NNP", "NNPS", "PRP"])
-TABLE = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for qkey in string.punctuation}
+from bootleg_data_prep.language import get_lnrm, pos_tag, ngrams, NOUNS, PUNC
 
 
 def regiater_funcs():
@@ -61,10 +50,10 @@ def find_aliases_in_sentence(sentence, all_aliases, max_alias_len, used_aliases=
     table = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
 
     sentence_split_raw = sentence.split()
-    tags = nltk.pos_tag(sentence_split_raw)
+    tags = pos_tag(sentence_split_raw)
     # find largest aliases first
     for n in range(max_alias_len + 1, 0, -1):
-        grams = nltk.ngrams(tags, n)
+        grams = ngrams(tags, n)
         w_st = -1
         w_end = n - 1
         for gram in grams:

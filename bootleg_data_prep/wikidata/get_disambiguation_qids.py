@@ -7,6 +7,8 @@ from collections import defaultdict
 
 import simple_wikidata_db.utils as utils
 
+from bootleg_data_prep.language import ensure_ascii
+
 INSTANCE_OF_PROP = "P31"
 DISAMBIG_PAGE = {"Q4167410", "Q22808320"}
 
@@ -55,7 +57,7 @@ def main():
 
     out_fpath = os.path.join(out_dir, 'disambig_qids.json')
     with open(out_fpath, 'w') as out_file:
-        out_file.write(json.dumps(final_ids) + "\n")
+        out_file.write(json.dumps(final_ids, ensure_ascii=ensure_ascii) + "\n")
     print(f"Written {len(final_ids)} to {out_file} in {time.time()-start}")
     
     

@@ -73,8 +73,8 @@ from bs4 import BeautifulSoup
 from multiprocessing import Queue, Process, Value, cpu_count
 from timeit import default_timer
 
-from nltk.tokenize import sent_tokenize
-from nltk.tokenize import word_tokenize
+from language import sent_tokenize, ensure_ascii
+from language import word_tokenize
 import jsonlines
 
 
@@ -640,7 +640,7 @@ class Extractor(object):
             'acronym_aliases': acronym_aliases,
             'aliases': all_aliases
         }
-        out_str = json.dumps(json_data, ensure_ascii=False)
+        out_str = json.dumps(json_data, ensure_ascii=ensure_ascii)
         if out == sys.stdout:   # option -a or -o -
             out_str = out_str.encode('utf-8')
         out.write(out_str)
@@ -656,7 +656,7 @@ class Extractor(object):
             'id': self.id,
             'title': self.title
         }
-        out_str = json.dumps(json_data, ensure_ascii=False)
+        out_str = json.dumps(json_data, ensure_ascii=ensure_ascii)
         if out == sys.stdout:   # option -a or -o -
             out_str = out_str.encode('utf-8')
         out.write(out_str)

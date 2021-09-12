@@ -26,6 +26,7 @@ import glob
 
 from tqdm import tqdm
 
+from bootleg_data_prep.language import get_lnrm
 from bootleg_data_prep.utils import utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 
@@ -79,11 +80,11 @@ def subprocess(all_args):
     with jsonlines.open(in_filepath, 'r') as in_file:
         for page_obj in in_file:
             for alias in page_obj.get("bold_aliases", []):
-                alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                alias = get_lnrm(alias, args.strip, args.lower)
                 if len(alias) > 0:
                     boldaliases_to_title[alias][page_obj["page_title"]] += 1
             for alias in page_obj.get("acronym_aliases", []):
-                alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                alias = get_lnrm(alias, args.strip, args.lower)
                 if len(alias) > 0:
                     acronymaliases_to_title[alias][page_obj["page_title"]] += 1
             # aliases is a list of sentences with aliases, their gold wikipedia page title, the text, and spans
@@ -91,7 +92,7 @@ def subprocess(all_args):
                 pairs = zip(sentence["aliases"], sentence["titles"])
                 for alias, title in pairs:
                     # normalize alias
-                    alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                    alias = get_lnrm(alias, args.strip, args.lower)
                     if len(alias) > 0:
                         aliases_to_title[alias][title] += 1
     utils.dump_json_file(outfilename, aliases_to_title)
@@ -159,7 +160,7 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
     # we increment the count here to represent that each page links to itself; as we compute counts later, this is just for sorting
     for qid in qid_to_all_titles:
         for title in qid_to_all_titles[qid]:
-            alias = prep_utils.get_lnrm(title, args.strip, args.lower)
+            alias = get_lnrm(title, args.strip, args.lower)
             if len(alias) > 0:
                 filtered_aliasqid[alias][qid] += 1
                 filtered_qids[qid] += 1
@@ -200,7 +201,7 @@ def merge_wikidata_aliases(args, aliases_to_qid, all_qids, wikidata_alias_to_qid
     stats = defaultdict(int)
     new_qids_from_wikidata = set()
     for wd_alias, qids in tqdm(wikidata_alias_to_qid.items()):
-        wd_alias = prep_utils.get_lnrm(wd_alias, args.strip, args.lower)
+        wd_alias = get_lnrm(wd_alias, args.strip, args.lower)
         if len(wd_alias) <= 0:
             continue
         if wd_alias in aliases_to_qid:

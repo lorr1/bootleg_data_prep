@@ -30,6 +30,7 @@ from tqdm import tqdm
 
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
+from bootleg_data_prep.language import get_lnrm, ensure_ascii
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
 
@@ -181,7 +182,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                         discarded_counts['no_qid'] += 1
                         discarded_values['no_qid'][alias][title] += 1
                         continue
-                    alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                    alias = get_lnrm(alias, args.strip, args.lower)
                     if len(alias) <= 0:
                         discarded_counts['len_zero_alias'] += 1
                         discarded_values['len_zero_alias'][alias][title] += 1
@@ -216,7 +217,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                     filtered_aliases_to_qid_count[alias][qid] += 1
                     filtered_qid_count[qid] += 1
                 new_doc['sentences'].append(new_sent)
-            out_file.write(json.dumps(new_doc) + '\n')
+            out_file.write(json.dumps(new_doc, ensure_ascii=ensure_ascii) + '\n')
     out_file.close()
     sum_discarded_counts = sum(discarded_counts.values())
     print(f"Finished {i}/{len_files}. Written to {out_fname}. {time.time() - start} seconds.\n"

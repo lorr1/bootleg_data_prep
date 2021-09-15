@@ -22,7 +22,7 @@ from tqdm import tqdm
 
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg_data_prep.language import ensure_ascii
+from bootleg_data_prep.language import ENSURE_ASCII
 
 
 def parse_args():
@@ -172,7 +172,7 @@ def main():
                     counters[key] = tuple([idx, out_f])
                 line["sent_idx_unq"] = line_idx
                 line_idx += 1
-                out_f.write(json.dumps(line, sort_keys=True, ensure_ascii=ensure_ascii) + "\n")
+                out_f.write(json.dumps(line, sort_keys=True, ensure_ascii=ENSURE_ASCII) + "\n")
 
     utils.dump_json_file(out_file_with, alias_qid_with)
     utils.dump_json_file(out_file_without, alias_qid_without)

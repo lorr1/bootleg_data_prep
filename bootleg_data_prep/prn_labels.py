@@ -18,7 +18,7 @@ import numpy as np
 from tqdm import tqdm
 
 # data prep
-from bootleg_data_prep.language import ensure_ascii, gender_qid_map, pronoun_map, pronoun_possessive_map, UNKNOWN
+from bootleg_data_prep.language import ENSURE_ASCII, gender_qid_map, pronoun_map, pronoun_possessive_map, UNKNOWN
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
 person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
@@ -65,7 +65,7 @@ def process_file(args):
                 g, p, title = row
                 # if gender is female or male
                 if 0 < g <= 2:
-                    print(json.dumps(add_pronoun(j, g, swap_titles, only_first_prn), ensure_ascii=ensure_ascii), file=fout)
+                    print(json.dumps(add_pronoun(j, g, swap_titles, only_first_prn), ensure_ascii=ENSURE_ASCII), file=fout)
                 else:
                     print(line.strip(), file=fout)
             return res
@@ -290,7 +290,7 @@ def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False,
     print(f'final stats: {c} have genders in {t}')
     with open('pronoun_run_res.jsonl', 'w') as fout:
         for res in stats:
-            print(json.dumps(res, ensure_ascii=ensure_ascii), file=fout)
+            print(json.dumps(res, ensure_ascii=ENSURE_ASCII), file=fout)
     entity_output_path = os.path.join(output_path, "entity_db/entity_mappings")
     print(f"Dumping entities to {entity_output_path}...")
     entity_dump.save(entity_output_path)

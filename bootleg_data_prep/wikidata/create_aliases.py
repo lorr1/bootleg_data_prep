@@ -12,16 +12,15 @@ python3.6 -m
 ''' 
 
     
-import os, json, argparse, time, shutil
+import os, json, argparse, time
 from tqdm import tqdm 
 from multiprocessing import set_start_method, Pool
 from collections import defaultdict
-import unicodedata
 
 import simple_wikidata_db.utils as utils
 from simple_wikidata_db.preprocess_dump import ALIAS_PROPERTIES
 
-from bootleg_data_prep.language import stopwords, get_lnrm, ensure_ascii, HumanNameParser
+from bootleg_data_prep.language import BASE_STOPWORDS, get_lnrm, ENSURE_ASCII, HumanNameParser
 
 
 def get_arg_parser():
@@ -120,9 +119,9 @@ def generate_short_long_names(qid2alias, human_qid):
         if qid in human_qid:
             for alias in orig_aliases:
                 name = HumanNameParser(alias)
-                if len(name.first) > 0 and name.first not in stopwords:
+                if len(name.first) > 0 and name.first not in BASE_STOPWORDS:
                     new_aliases.add(name.first)
-                if len(name.last) > 0 and name.last not in stopwords:
+                if len(name.last) > 0 and name.last not in BASE_STOPWORDS:
                     new_aliases.add(name.last)
                 print("ALIAS", alias, name.first, name.last)
         augmented_qid2alias[qid] = list(new_aliases)
@@ -184,7 +183,7 @@ def main():
     print(f"{len(alias2qid)} aliases.")
     print(f"Saving to file {args.out_file}...")
     with open(args.out_file, "w") as out_file: 
-        json.dump(alias2qid, out_file, ensure_ascii=ensure_ascii)
+        json.dump(alias2qid, out_file, ensure_ascii=ENSURE_ASCII)
 
 
 if __name__ == "__main__":

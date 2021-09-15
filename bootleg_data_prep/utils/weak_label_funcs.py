@@ -1,5 +1,3 @@
-import string
-
 import marisa_trie
 
 from bootleg_data_prep.language import get_lnrm, pos_tag, ngrams, NOUNS, PUNC

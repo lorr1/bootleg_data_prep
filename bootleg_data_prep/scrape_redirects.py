@@ -1,11 +1,11 @@
 from collections import defaultdict
-import os, sys, ujson, jsonlines
+import ujson, jsonlines
 from tqdm import tqdm
-from urllib.parse import quote, unquote
+from urllib.parse import unquote
 import html
 import copy
 
-from bootleg_data_prep.language import ensure_ascii
+from bootleg_data_prep.language import ENSURE_ASCII
 
 
 def convert_title(title):
@@ -18,7 +18,7 @@ with jsonlines.open(title_file, 'r') as in_file:
         # the title is the url title that may be redirected to another wikipedia page
         qid, title, wikidata_title, wikipedia_title, wpid = items['qid'], items['title'], items['wikidata_title'], items['wikipedia_title'], items['id']
         # convert to string for hashing
-        wikititle2item[wikipedia_title].add(ujson.dumps(items, ensure_ascii=ensure_ascii))
+        wikititle2item[wikipedia_title].add(ujson.dumps(items, ensure_ascii=ENSURE_ASCII))
 
 wikititle2item_save = copy.deepcopy(wikititle2item)
 in_filename = "enwiki-latest-pages-articles-multistream.xml"
@@ -43,7 +43,7 @@ for k in tqdm(title_map):
 
 out_file = "temp_redicts.json"
 with open(out_file, "w") as out_f:
-    ujson.dump(new_dict, out_f, ensure_ascii=ensure_ascii)
+    ujson.dump(new_dict, out_f, ensure_ascii=ENSURE_ASCII)
 
 
 for good_title in title_map:
@@ -62,7 +62,7 @@ for good_title in title_map:
         for k in item_to_copy:
             new_item[k] = item_to_copy[k]
         new_item["title"] = redirect_title
-        wikititle2item[good_title].add(ujson.dumps(new_item, ensure_ascii=ensure_ascii))
+        wikititle2item[good_title].add(ujson.dumps(new_item, ensure_ascii=ENSURE_ASCII))
 
 
 

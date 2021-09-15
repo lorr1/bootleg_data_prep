@@ -27,9 +27,9 @@ import time
 from tqdm import tqdm
 
 import bootleg_data_prep.utils.utils as utils
-from bootleg_data_prep.language import ensure_ascii
+from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils.constants import PAIR_IDX_MATTER, \
-    POSSIBLE_SLICE_FOLDERS, TAILONLY, NOHEADCAND, NOSINGLE, NOCTX, TORSOONLY, HEADONLY, TOESONLY
+    POSSIBLE_SLICE_FOLDERS, TAILONLY, NOHEADCAND, NOSINGLE, TORSOONLY, HEADONLY, TOESONLY
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 import bootleg_data_prep.utils.slice_definitions as slice_utils
@@ -338,7 +338,7 @@ def make_slice_dict_probabilistic(slice_dict, num_aliases):
     return new_slice_dict
 
 def write_sentence(out_f, sent_obj):
-    out_f.write(json.dumps(sent_obj, ensure_ascii=ensure_ascii) + "\n")
+    out_f.write(json.dumps(sent_obj, ensure_ascii=ENSURE_ASCII) + "\n")
 
 def combine_data(out_file, folder, clean_up=True):
     logging.info(f"Combining files from {folder}")

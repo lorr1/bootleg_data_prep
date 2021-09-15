@@ -10,18 +10,18 @@ python3.6 -m processor.get_types
 ''' 
 
     
-import os, json, argparse, time, shutil
+import os, json, argparse, time
 from glob import glob
 
 import marisa_trie
 from tqdm import tqdm 
 from multiprocessing import set_start_method, Pool
 
-from collections import defaultdict, Counter
+from collections import defaultdict
 
 import simple_wikidata_db.utils as utils
 
-from bootleg_data_prep.language import ensure_ascii
+from bootleg_data_prep.language import ENSURE_ASCII
 
 HUMAN_QID = 'Q5'
 TWIN_QID = 'Q159979'
@@ -49,7 +49,7 @@ def init_process(args):
 
 def launch_entity_table(entity_files, qid_to_title, filter_qids, out_dir, args):
     temp_f = os.path.join(out_dir, "_temp_filter.json")
-    json.dump(list(filter_qids), open(temp_f, "w"), ensure_ascii=ensure_ascii)
+    json.dump(list(filter_qids), open(temp_f, "w"), ensure_ascii=ENSURE_ASCII)
     print(f"Starting with {args.processes} processes")
     pool = Pool(processes = args.processes, initializer=init_process, initargs=(tuple([temp_f]),))
     messages = [(i, len(entity_files), entity_files[i], out_dir) for i in range(len(entity_files))]
@@ -72,7 +72,7 @@ def load_entity_file(message):
     # convert to list type for json serialization
     for k in list(type_dict.keys()):
         type_dict[k] = list(type_dict[k])
-    json.dump(type_dict, out_f, ensure_ascii=ensure_ascii)
+    json.dump(type_dict, out_f, ensure_ascii=ENSURE_ASCII)
     print(f"Finished {job_index} / {num_jobs}...{filename}. Fetched types for {len(type_dict)} entities. {time.time() - start} seconds.")
     return dict(type_dict)
 
@@ -91,7 +91,7 @@ def merge_and_save(out_dir, qid_to_title):
     write_types(out_dir, sorted_typs, qid_to_title)
 
     with open(os.path.join(out_dir, 'type_freqs.json'), 'w') as out_file:
-        json.dump(type_freq, out_file, ensure_ascii=ensure_ascii)
+        json.dump(type_freq, out_file, ensure_ascii=ENSURE_ASCII)
     print(f"Removing the temporary files")
     for file in in_files:
         os.remove(file)
@@ -129,12 +129,12 @@ def write_types(out_dir, type_list, qid_to_title):
                     index += 1
                 type_indices.append(typeqid2index[qtype])
             new_type_list[qid] = type_indices
-        json.dump(new_type_list, out_file, ensure_ascii=ensure_ascii)
+        json.dump(new_type_list, out_file, ensure_ascii=ENSURE_ASCII)
     
     with open(os.path.join(out_dir, 'wikidatatitle_to_typeid.json'), 'w') as out_file:
-        json.dump(typetitle2index, out_file, ensure_ascii=ensure_ascii)
+        json.dump(typetitle2index, out_file, ensure_ascii=ENSURE_ASCII)
     with open(os.path.join(out_dir, 'wikidatatitle_to_typeqid.json'), 'w') as out_file:
-        json.dump(title2typeqid, out_file, ensure_ascii=ensure_ascii)
+        json.dump(title2typeqid, out_file, ensure_ascii=ENSURE_ASCII)
     print(f"Writtten to {out_dir}")
 
 def read_in_wikidata_title(args):

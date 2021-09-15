@@ -1,13 +1,10 @@
 
-import os, json, argparse, time, shutil
-from tqdm import tqdm 
-from multiprocessing import set_start_method, Pool
-
-from collections import defaultdict
+import os, json, argparse, time
+from multiprocessing import Pool
 
 import simple_wikidata_db.utils as utils
 
-from bootleg_data_prep.language import ensure_ascii
+from bootleg_data_prep.language import ENSURE_ASCII
 
 INSTANCE_OF_PROP = "P31"
 DISAMBIG_PAGE = {"Q4167410", "Q22808320"}
@@ -57,7 +54,7 @@ def main():
 
     out_fpath = os.path.join(out_dir, 'disambig_qids.json')
     with open(out_fpath, 'w') as out_file:
-        out_file.write(json.dumps(final_ids, ensure_ascii=ensure_ascii) + "\n")
+        out_file.write(json.dumps(final_ids, ensure_ascii=ENSURE_ASCII) + "\n")
     print(f"Written {len(final_ids)} to {out_file} in {time.time()-start}")
     
     

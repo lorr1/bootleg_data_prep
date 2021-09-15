@@ -8,7 +8,7 @@ import time
 import shutil
 import html
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg_data_prep.language import ensure_ascii
+from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils import utils
 
 def parse_args():
@@ -28,7 +28,7 @@ def extract(api_query, still_unknown, no_wpid_list, wpid_to_qid, stats, in_f):
     except Exception as e:
         print(f"Error {e} \n processing request")
         print("Unknowns", still_unknown)
-        print(json.dumps(res, indent=4, ensure_ascii=ensure_ascii))
+        print(json.dumps(res, indent=4, ensure_ascii=ENSURE_ASCII))
         return 0
 
     # If len(still_unknown) > 1, the results returned from the query are out of order; we have to use mappings to get back the original title
@@ -46,7 +46,7 @@ def extract(api_query, still_unknown, no_wpid_list, wpid_to_qid, stats, in_f):
     for wpid in pages:
         if int(wpid) < 0:
             stats["no_wpid"] += 1
-            no_wpid_list.add(json.dumps(pages[wpid], ensure_ascii=ensure_ascii))
+            no_wpid_list.add(json.dumps(pages[wpid], ensure_ascii=ENSURE_ASCII))
             continue
         title = pages[wpid]["title"]
         orig_title = title
@@ -68,7 +68,7 @@ def extract(api_query, still_unknown, no_wpid_list, wpid_to_qid, stats, in_f):
         item = {"qid": qid, "title": orig_title, "id": wpid}
         new_items.append(item)
     for item in new_items:
-        in_f.write(json.dumps(item, ensure_ascii=ensure_ascii) + "\n")
+        in_f.write(json.dumps(item, ensure_ascii=ENSURE_ASCII) + "\n")
     time.sleep(1)
     return 1
 

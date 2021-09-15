@@ -22,7 +22,7 @@ from collections import defaultdict
 import simple_wikidata_db.utils as utils
 import dateutil.parser
 
-from bootleg_data_prep.language import ensure_ascii
+from bootleg_data_prep.language import ENSURE_ASCII
 
 
 def get_arg_parser():
@@ -45,7 +45,7 @@ def read_in_saved_title_file(title_file, total_lines):
             # the title is the url title that may be redirected to another wikipedia page
             qid, title, wikidata_title, wikipedia_title, wpid = items['qid'], items['title'], items['wikidata_title'], items['wikipedia_title'], items['id']
             # convert to string for hashing
-            wikititle2item[wikipedia_title].add(json.dumps(items, default=str, ensure_ascii=ensure_ascii))
+            wikititle2item[wikipedia_title].add(json.dumps(items, default=str, ensure_ascii=ENSURE_ASCII))
     return wikititle2item
 
 def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, wikipedia_titles_to_wpid):
@@ -70,7 +70,7 @@ def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, 
                             "wikidata_title": wikidata_title,
                             "wikipedia_title": wikipedia_title
                         }
-                        out_f.write(json.dumps(res, default=str, ensure_ascii=ensure_ascii) + "\n")
+                        out_f.write(json.dumps(res, default=str, ensure_ascii=ENSURE_ASCII) + "\n")
                         total_lines += 1
     return total_lines
 
@@ -116,7 +116,7 @@ def add_redirects(title_map, wikititle2item):
             for k in item_to_copy:
                 new_item[k] = item_to_copy[k]
             new_item["title"] = redirect_title_pair[1]
-            wikititle2item[good_title].add(json.dumps(new_item, default=str, ensure_ascii=ensure_ascii))
+            wikititle2item[good_title].add(json.dumps(new_item, default=str, ensure_ascii=ENSURE_ASCII))
     return wikititle2item, wikititle2item_save
 
 
@@ -176,7 +176,7 @@ def main():
     assert len(redirect_title_map) > 0
     out_file = "temp_redicts.json"
     with open(out_file, "w") as out_f:
-        json.dump(redirect_title_map, out_f, default=str, ensure_ascii=ensure_ascii)
+        json.dump(redirect_title_map, out_f, default=str, ensure_ascii=ENSURE_ASCII)
     # with open(out_file, "r") as in_f:
     #     redirect_title_map = ujson.load(in_f)
 

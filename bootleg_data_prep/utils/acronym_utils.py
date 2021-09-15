@@ -4,7 +4,7 @@ This file contains helper functions for identifying acronyms in text
 
 import string
 
-from bootleg_data_prep.language import ignore_words
+from bootleg_data_prep.language import IGNORE_WORDS
 
 
 def find_acronyms_from_parentheses(sentence_str, all_spans, all_qids, all_aliases):
@@ -167,7 +167,7 @@ def find_manufactured_acronyms(sentence_str, all_spans, all_qids, all_aliases):
         # of each word, but make everything upper case (e.g. "Department of Defense" -> "DOD" instead of "DoD").
         potential_acronyms = []
         potential_acronyms.append(''.join([word[0] for word in named_entity]))
-        potential_acronyms.append(''.join([word[0] for word in named_entity if word not in ignore_words]))
+        potential_acronyms.append(''.join([word[0] for word in named_entity if word not in IGNORE_WORDS]))
         potential_acronyms.append(''.join([word[0].upper() for word in named_entity]))
         for potential_acronym in potential_acronyms:
             # Only consider words that are at least 3 letters long. With 1 or 2 letters, it's too easy

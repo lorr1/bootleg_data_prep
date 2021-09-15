@@ -73,10 +73,8 @@ from bs4 import BeautifulSoup
 from multiprocessing import Queue, Process, Value, cpu_count
 from timeit import default_timer
 
-from language import sent_tokenize, ensure_ascii
-from language import word_tokenize
-import jsonlines
-
+from bootleg_data_prep.language import sent_tokenize, ENSURE_ASCII
+from bootleg_data_prep.language import word_tokenize
 
 PY2 = sys.version_info[0] == 2
 # Python 2.7 compatibiity
@@ -640,7 +638,7 @@ class Extractor(object):
             'acronym_aliases': acronym_aliases,
             'aliases': all_aliases
         }
-        out_str = json.dumps(json_data, ensure_ascii=ensure_ascii)
+        out_str = json.dumps(json_data, ensure_ascii=ENSURE_ASCII)
         if out == sys.stdout:   # option -a or -o -
             out_str = out_str.encode('utf-8')
         out.write(out_str)
@@ -656,7 +654,7 @@ class Extractor(object):
             'id': self.id,
             'title': self.title
         }
-        out_str = json.dumps(json_data, ensure_ascii=ensure_ascii)
+        out_str = json.dumps(json_data, ensure_ascii=ENSURE_ASCII)
         if out == sys.stdout:   # option -a or -o -
             out_str = out_str.encode('utf-8')
         out.write(out_str)

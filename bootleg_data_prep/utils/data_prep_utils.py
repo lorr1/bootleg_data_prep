@@ -12,7 +12,7 @@ from collections import defaultdict
 from datetime import datetime
 import os
 
-from bootleg_data_prep.language import stem, pos_tag, bigrams, PUNC_TRANSLATION_TABLE, VERBS, STOPWORDS, NOUNS, WORDS_TO_AVOID, get_lnrm
+from bootleg_data_prep.language import stem, pos_tag, bigrams, PUNC_TRANSLATION_TABLE, VERBS, EXTENDED_STOPWORDS, NOUNS, WORDS_TO_AVOID, get_lnrm
 from bootleg_data_prep.utils import utils
 
 
@@ -210,18 +210,18 @@ def clean_sentence_to_tokens_en(sentence, skip_verbs=True):
     if not skip_verbs:
         pos_tagged_tokens = pos_tag(tokens)
         for i, t in zip(tokens_pos, pos_tagged_tokens):
-            if (t[0].lower() not in STOPWORDS) and t[1] in VERBS:
+            if (t[0].lower() not in EXTENDED_STOPWORDS) and t[1] in VERBS:
                 verb_unigrams.append(stem(t[0].lower()))
                 verb_unigrams_pos.append(i)
         for i, t_pair in zip(tokens_pos, bigrams(pos_tagged_tokens)):
             pair_l, pair_r = t_pair
-            if (pair_l[1] in VERBS or pair_r[1] in VERBS) and (pair_l[0].lower() not in STOPWORDS) and (pair_r[0].lower() not in STOPWORDS):
+            if (pair_l[1] in VERBS or pair_r[1] in VERBS) and (pair_l[0].lower() not in EXTENDED_STOPWORDS) and (pair_r[0].lower() not in EXTENDED_STOPWORDS):
                 verb_bigrams.append(" ".join([stem(pair_l[0].lower()), stem(pair_r[0].lower())]))
                 verb_bigrams_pos.append(i)
     final_tokens = []
     final_tokens_pos = []
     for i, t in zip(tokens_pos, tokens):
-        if (t.lower() not in STOPWORDS):
+        if (t.lower() not in EXTENDED_STOPWORDS):
             final_tokens.append(stem(t.lower()))
             final_tokens_pos.append(i)
     # tokens = [stem(t.lower()) for t in sentence.split(' ') if len(t.strip()) > 0 and (t.lower() not in STOPWORDS)]

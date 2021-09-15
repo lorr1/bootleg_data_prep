@@ -40,7 +40,7 @@ import ujson as json
 from tqdm import tqdm
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg_data_prep.language import ensure_ascii
+from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 from bootleg_data_prep.utils import utils
 from bootleg_data_prep.utils.acronym_utils import find_acronyms_from_parentheses, find_manufactured_acronyms, augment_first_sentence
@@ -378,7 +378,7 @@ def subprocess(all_args):
                         for k in range(j+1, len(qids)):
                             filtered_qids_cooccurence[qid][qids[k]] += 1
                             filtered_qids_cooccurence[qids[k]][qid] += 1
-            out_file.write(json.dumps(doc, ensure_ascii=ensure_ascii) + '\n')
+            out_file.write(json.dumps(doc, ensure_ascii=ENSURE_ASCII) + '\n')
     out_file.close()
     print(f"LEN: {len(filtered_qid_counts)} LEN: {len(filtered_aliases_to_qid_count)} LEN: {len(filtered_aliases_cooccurence)}")
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_alias_to_qid_count_{idx}.json"), filtered_aliases_to_qid_count)

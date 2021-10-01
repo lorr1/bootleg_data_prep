@@ -18,6 +18,7 @@ import ujson as json
 
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
+from bootleg_data_prep import language
 
 
 def parse_args():
@@ -70,7 +71,7 @@ def subprocess_gen_vocab_ints(all_args):
     vocab_words = set()
     with jsonlines.open(in_filepath, 'r') as in_file:
         for sent_idx, sent_obj in enumerate(in_file):
-            tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos = prep_utils.clean_sentence_to_tokens(sent_obj["sentence"], args.multilingual)
+            tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos = language.clean_sentence_to_tokens(sent_obj["sentence"])
             for t in tokens:
                 if t not in vocab_words:
                     vocab_words.add(t)

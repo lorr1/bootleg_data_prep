@@ -1,10 +1,3 @@
-export BOOTLEG_BASE_DIR=/home/rubmz/chatterbox/bootleg
-export BOOTLEG_LANG_CODE=he
-export BOOTLEG_PROCESS_COUNT=64
-SCRIPTS_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )"
-export BOOTLEG_LANG_FILE=$SCRIPTS_DIR/hebrew.py
-export BOOTLEG_WIKIPEDIA_DIR=$BOOTLEG_BASE_DIR/"$BOOTLEG_LANG_CODE"_data
-export BOOTLEG_WIKIDATA_DIR=$BOOTLEG_BASE_DIR/wikidata_"$BOOTLEG_LANG_CODE"
-export BOOTLEG_WIKIPEDIA_DUMP_URL=https://dumps.wikimedia.org/hewiki/20210901/hewiki-20210901-pages-articles-multistream.xml.bz2
-export BOOTLEG_WIKIPEDIA_DUMP_BZ2_FILENAME=hewiki-20210901-pages-articles-multistream.xml.bz2
-export BOOTLEG_WIKIPEDIA_DUMP_FILENAME=hewiki-20210901-pages-articles-multistream.xml
+set -e
+output=$(python3 ./envs.py $*)
+eval $output

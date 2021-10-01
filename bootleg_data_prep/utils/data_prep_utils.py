@@ -132,8 +132,6 @@ def get_outdir(save_dir, subfolder, remove_old=False):
     os.makedirs(out_dir, exist_ok=True)
     return out_dir
 
-def ngrams(words, n):
-    return [ words[i:i+n] for i in range(len(words)-n+1) ]
 
 # If we find any alias in aliases that is a strict supset of an alias in superset_aliases, we remove it
 # Ex:
@@ -174,65 +172,6 @@ def filter_superset_aliases(aliases, spans, superset_aliases, superset_spans):
         aliases_to_keep.append(aliases[idx])
         spans_to_keep.append([spans_l[idx], spans_r[idx]])
     return aliases_to_keep, spans_to_keep
-
-def clean_sentence_to_tokens_multilingual(sentence):
-    sentence_split = sentence.strip().split(' ')
-    # Remove PUNC from string
-    tokens = []
-    tokens_pos = []
-    for i, word in enumerate(sentence_split):
-        word = word.translate(PUNC_TRANSLATION_TABLE)
-        if len(word.strip()) > 0:
-            tokens.append(word)
-            tokens_pos.append(i)
-    verb_unigrams = []
-    verb_unigrams_pos = []
-    verb_bigrams = []
-    verb_bigrams_pos = []
-    return tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos
-
-def clean_sentence_to_tokens_en(sentence, skip_verbs=True):
-    sentence_split = sentence.strip().split(' ')
-    # Remove PUNC from string
-    tokens = []
-    tokens_pos = []
-    for i, word in enumerate(sentence_split):
-        word = word.translate(PUNC_TRANSLATION_TABLE)
-        if len(word.strip()) > 0:
-            tokens.append(word)
-            tokens_pos.append(i)
-    # Unigrams for verb_tokens
-    verb_unigrams = []
-    verb_unigrams_pos = []
-    # Collect bigrams containing verb
-    verb_bigrams = []
-    verb_bigrams_pos = []
-    if not skip_verbs:
-        pos_tagged_tokens = pos_tag(tokens)
-        for i, t in zip(tokens_pos, pos_tagged_tokens):
-            if (t[0].lower() not in EXTENDED_STOPWORDS) and t[1] in VERBS:
-                verb_unigrams.append(stem(t[0].lower()))
-                verb_unigrams_pos.append(i)
-        for i, t_pair in zip(tokens_pos, bigrams(pos_tagged_tokens)):
-            pair_l, pair_r = t_pair
-            if (pair_l[1] in VERBS or pair_r[1] in VERBS) and (pair_l[0].lower() not in EXTENDED_STOPWORDS) and (pair_r[0].lower() not in EXTENDED_STOPWORDS):
-                verb_bigrams.append(" ".join([stem(pair_l[0].lower()), stem(pair_r[0].lower())]))
-                verb_bigrams_pos.append(i)
-    final_tokens = []
-    final_tokens_pos = []
-    for i, t in zip(tokens_pos, tokens):
-        if (t.lower() not in EXTENDED_STOPWORDS):
-            final_tokens.append(stem(t.lower()))
-            final_tokens_pos.append(i)
-    # tokens = [stem(t.lower()) for t in sentence.split(' ') if len(t.strip()) > 0 and (t.lower() not in STOPWORDS)]
-    return final_tokens, final_tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos
-
-def clean_sentence_to_tokens(sentence, is_multilingual, skip_verbs=True):
-    if not is_multilingual:
-        return clean_sentence_to_tokens_en(sentence, skip_verbs)
-    else:
-        return clean_sentence_to_tokens_multilingual(sentence)
-
 
 # Given a sequence of [a, b, c, ...] with positions in sentence [0, 2, 4, ...]. Filter the sequence so that only items with postition pos
 # such that if L = spans[0]-threshold, R = spans[1]+threshold, then L <= pos and pos < R
@@ -304,6 +243,9 @@ def create_trie(vocab, out_file = ""):
     if out_file != "":
         trie.save(out_file)
     return trie
+
+def ngrams(words, n):
+    return [ words[i:i+n] for i in range(len(words)-n+1) ]
 
 def find_aliases_in_sentence_tag(sentence, all_aliases, max_alias_len, special_tag = "|||"):
     if len(all_aliases) == 0:

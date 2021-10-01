@@ -134,18 +134,18 @@ def read_in_wikipedia_pageids(args):
 
 
 def read_in_wikipedia_title(args):
-    fdir = os.path.join(args.data, "processed_batches", "wikipedia")
+    fdir = os.path.join(args.data, "processed_batches", "wikipedia_links")
     wikipedia_files = utils.get_batch_files(fdir)
     title_to_id = defaultdict(set)
     for file in tqdm(wikipedia_files, desc="Reading in wikipedia files"):
         with open(file, "r") as in_f:
             for line in in_f:
                 line = json.loads(line)
-                title_to_id[line["value"]].add(line["qid"])
+                title_to_id[line["wiki_title"]].add(line["qid"])
     return title_to_id
 
 def read_in_wikidata_title(args):
-    fdir = os.path.join(args.data, "processed_batches", "label")
+    fdir = os.path.join(args.data, "processed_batches", "labels")
     wikidata_files = utils.get_batch_files(fdir)
     id_to_title = defaultdict(set)
     for file in tqdm(wikidata_files, desc="Reading in wikidata files"):

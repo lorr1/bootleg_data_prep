@@ -38,8 +38,7 @@ def get_arg_parser():
     parser.add_argument('--data_dir', type=str, default='data/wiki_dump', help='Where files saved')
     parser.add_argument('--out_subdir', type=str, default='curate_aliases', help='Where files saved')
     parser.add_argument('--title_to_qid', type=str, default='/lfs/raiders10/0/lorr1/title_to_all_ids.jsonl')
-    parser.add_argument('--wd_aliases', type=str, default='/lfs/raiders10/0/lorr1/augmented_alias_map_large_uncased_1216.jsonl',
-                        help='Path to directory with JSONL mapping alias to QID')
+    parser.add_argument('--wd_aliases', type=str, default=None, help='Path to directory with JSONL mapping alias to QID')
     parser.add_argument('--min_frequency', type=int, default=4, help='Minimum number of times a QID must appear with an alias')
     parser.add_argument('--strip', action='store_true', help='If set, will strip punctuation of aliases.')
     parser.add_argument('--lower', action='store_true', help='If set, will lower case all aliases.')
@@ -274,7 +273,7 @@ def main():
 
     # load wikidata aliases; each line is json if alias: qid value
     wikidata_alias_to_qid = {}
-    if args.wd_aliases != "":
+    if args.wd_aliases:
         with jsonlines.open(args.wd_aliases) as in_f:
             for line in in_f:
                 for k in line:

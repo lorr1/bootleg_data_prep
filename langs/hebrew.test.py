@@ -17,15 +17,10 @@ assert isinstance(language.VERBS, set)
 assert isinstance(language.NOUNS, list)
 sent_tokenized = language.sent_tokenize('משפט תקין, אומר הכל. אוכל עוגה - ויושן בעריסה')
 assert isinstance(sent_tokenized, list)
-# NOTE:
-# The tokenization / pos tagging needs to be refactored out of the code into the language module.
-# For now, I just skip the tests (the code should work, not the test)
-
-# assert isinstance(sent_tokenized[0], str)
-# word_tokenized = language.word_tokenize('one world')
-# assert isinstance(word_tokenized, list)
-# assert isinstance(word_tokenized[0], str)
-
+assert isinstance(sent_tokenized[0], str)
+word_tokenized = language.word_tokenize('one world')
+assert isinstance(word_tokenized, list)
+assert isinstance(word_tokenized[0], str)
 assert isinstance(language.stem('אשתובב לי קצת ואדלג בין השלוליות'), str)
 pos_tagged = language.pos_tag(['בא', 'לי', 'פיצה'])
 assert isinstance(pos_tagged, list)

@@ -16,3 +16,5 @@ scispacy==0.3.0
 spacy==2.3.4
 SPARQLWrapper==1.8.5
 xmltodict==0.12.0
+pycountry
+bootleg

@@ -70,11 +70,11 @@ import sys
 import time
 from io import StringIO
 from bs4 import BeautifulSoup
-from multiprocessing import Queue, Process, Value, cpu_count
+from multiprocessing import Process, Value, cpu_count, Manager, Pool
 from timeit import default_timer
+from concurrent.futures import ThreadPoolExecutor
 
-from bootleg_data_prep.language import sent_tokenize, ENSURE_ASCII
-from bootleg_data_prep.language import word_tokenize
+from bootleg_data_prep.language import *
 
 PY2 = sys.version_info[0] == 2
 # Python 2.7 compatibiity
@@ -931,6 +931,7 @@ class Extractor(object):
         # $text = $this->formatHeadings( $text, $origText, $isMain );
 
         # LAUREL: we want to capture aliases that are indicated by bold text and parenthesis after bold text in the first 3 sentences of any wikipedia page
+        text = text[0:100]
         sentences = sent_tokenize(text)[:3]
         bold_aliases = []
         not_allowed = {"]]", ";", ":"}
@@ -2979,7 +2980,7 @@ class OutputSplitter(object):
 tagRE = re.compile(r'(.*?)<(/?\w+)[^>]*?>(?:([^<]*)(<.*?>)?)?')
 #                    1     2               3      4
 keyRE = re.compile(r'key="(\d*)"')
-catRE = re.compile(r'\[\[Category:([^\|]+).*\]\].*')  # capture the category name [[Category:Category name|Sortkey]]"
+catRE = re.compile(CATEGORY_LINE_CAPTURE)  # capture the category name [[Category:Category name|Sortkey]]"
 
 def load_templates(file, output_file=None):
     """
@@ -3047,7 +3048,7 @@ def pages_from(input):
             if inText:
                 page.append(line)
                 # extract categories
-                if line.lstrip().startswith('[[Category:'):
+                if line.lstrip().startswith(CATEGORY_LINE_START):
                     mCat = catRE.search(line)
                     if mCat:
                         catSet.add(mCat.group(1))
@@ -3096,6 +3097,13 @@ def pages_from(input):
             page = []
 
 
+def thread_wrapped(function, *args):
+    def wrapped_function(*args):
+        """ https://github.com/pytorch/pytorch/issues/17199 """
+        # return ThreadPoolExecutor().submit(function, *args).result()
+        return function(*args)
+    return wrapped_function
+
 def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file_size, file_compress,
                  process_count):
     """
@@ -3115,7 +3123,8 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     # collect siteinfo
     for line in input:
         # When an input file is .bz2 or .gz, line can be a bytes even in Python 3.
-        if not isinstance(line, text_type): line = line.decode('utf-8')
+        if not isinstance(line, text_type):
+            line = line.decode('utf-8')
         m = tagRE.search(line)
         if not m:
             continue
@@ -3174,7 +3183,10 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     process_count = max(1, process_count)
     maxsize = 10 * process_count
     # output queue
-    output_queue = Queue(maxsize=maxsize)
+    pool = Pool()
+    manager = Manager()
+    output_queue = manager.Queue(maxsize=maxsize)
+    jobs_queue = manager.Queue(maxsize=maxsize)
 
     if out_file == '-':
         out_file = None
@@ -3195,22 +3207,12 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     spool_length = Value('i', 0, lock=False)
 
     # reduce job that sorts and prints output
-    reduce = Process(target=reduce_process,
-                     args=(options, output_queue, spool_length,
-                           out_file, out_file2, file_size, file_compress))
-    reduce.start()
-
-    # initialize jobs queue
-    jobs_queue = Queue(maxsize=maxsize)
-
+    pool.apply_async(reduce_process, args=(options, output_queue, spool_length, out_file, out_file2, file_size, file_compress))
     # start worker processes
     logging.info("Using %d extract processes.", worker_count)
     workers = []
     for i in range(worker_count):
-        extractor = Process(target=extract_process,
-                            args=(options, i, jobs_queue, output_queue))
-        extractor.daemon = True  # only live while parent process lives
-        extractor.start()
+        extractor = pool.apply_async(extract_process, args=(options, i, jobs_queue, output_queue))
         workers.append(extractor)
 
     # Mapper process
@@ -3247,14 +3249,10 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     # signal termination
     for _ in workers:
         jobs_queue.put(None)
-    # wait for workers to terminate
-    for w in workers:
-        w.join()
-
-    # signal end of work to reduce process
     output_queue.put(None)
     # wait for it to finish
-    reduce.join()
+    pool.close()
+    pool.join()
 
     extract_duration = default_timer() - extract_start
     extract_rate = page_num / extract_duration
@@ -3267,15 +3265,12 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
 # Multiprocess support
 
 
-def extract_process(opts, i, jobs_queue, output_queue):
+def extract_process(options, i, jobs_queue, output_queue):
     """Pull tuples of raw page content, do CPU/regex-heavy fixup, push finished text
     :param i: process id.
     :param jobs_queue: where to get jobs.
     :param output_queue: where to queue extracted text for output.
     """
-
-    global options
-    options = opts
 
     createLogger(options.quiet, options.debug, options.log_file)
     # LAUREL added out2
@@ -3310,11 +3305,9 @@ def extract_process(opts, i, jobs_queue, output_queue):
     out2.close()
 
 
-report_period = 10000           # progress report period
-def reduce_process(opts, output_queue, spool_length,
-                   out_file=None, out_file2=None, file_size=0, file_compress=True):
+def reduce_process(options, output_queue, spool_length, out_file=None, out_file2=None, file_size=0, file_compress=True):
     """Pull finished article text, write series of files (or stdout)
-    :param opts: global parameters.
+    :param options: global parameters.
     :param output_queue: text to be output.
     :param spool_length: spool length.
     :param out_file: filename where to print.
@@ -3322,8 +3315,6 @@ def reduce_process(opts, output_queue, spool_length,
     :param file_compress: whether to compress output.
     """
 
-    global options
-    options = opts
     # LAUREL added out2
     createLogger(options.quiet, options.debug, options.log_file)
 
@@ -3356,6 +3347,7 @@ def reduce_process(opts, output_queue, spool_length,
             # tell mapper our load:
             spool_length.value = len(spool)
             # progress report
+            report_period = 10000           # progress report period
             if next_page % report_period == 0:
                 interval_rate = report_period / (default_timer() - interval_start)
                 logging.info("Extracted %d articles (%.1f art/s)",

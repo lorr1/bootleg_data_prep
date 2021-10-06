@@ -34,8 +34,6 @@ from bootleg_data_prep.language import *
 # ----------------------------------------------------------------------
 
 # match tail after wikilink
-from wiki_extractor import modules
-
 tailRE = re.compile('\w+')
 syntaxhighlight = re.compile('&lt;syntaxhighlight .*?&gt;(.*?)&lt;/syntaxhighlight&gt;', re.DOTALL)
 
@@ -136,8 +134,7 @@ def get_url(urlbase, uid):
 
 # ======================================================================
 
-
-def clean(extractor, text, expand_templates=False, html_safe=True):
+def transform(extractor, text, expand_templates=False):
     """
     Transforms wiki markup. If the command line flag --escapedoc is set then the text is also escaped
     @see https://www.mediawiki.org/wiki/Help:Formatting
@@ -167,7 +164,9 @@ def clean(extractor, text, expand_templates=False, html_safe=True):
 
     # drop MagicWords behavioral switches
     text = magicWordsRE.sub('', text)
+    return text
 
+def clean(extractor, text, html_safe=False):
     # ############### Process HTML ###############
 
     # turn into HTML, except for the content of <syntaxhighlight>
@@ -887,9 +886,10 @@ class Extractor:
 
     ## LAUREL
     redirects = {}
-    lower_aliases = True
+    lower_aliases = False
     keep_tables = True
     toHTML = False
+    min_text_length = 0
 
     def __init__(self, id, revid, urlbase, title, page):
         """
@@ -907,8 +907,7 @@ class Extractor:
         self.recursion_exceeded_3_errs = 0  # parameter recursion
         self.template_title_errs = 0
 
-    def clean_text(self, text, mark_headers=False, expand_templates=False,
-                   html_safe=True):
+    def clean_text(self, text, mark_headers=False, html_safe=False):
         """
         :param mark_headers: True to distinguish headers from paragraphs
           e.g. "## Section 1"
@@ -921,9 +920,7 @@ class Extractor:
         self.magicWords['currenthour'] = time.strftime('%H')
         self.magicWords['currenttime'] = time.strftime('%H:%M:%S')
 
-        text = clean(self, text, expand_templates=expand_templates,
-                     html_safe=html_safe)
-
+        text = clean(self, text, html_safe=html_safe)
         text = compact(text, mark_headers=mark_headers)
         return text
 
@@ -990,7 +987,10 @@ class Extractor:
             # add the raw text back in
             # print("MID CURW", cur_w)
             # will sometimes have a # marking the section at the end of the title
-            title = undo_remove_punc_title_laurel(html.unescape(unquote(t.get("href")).split("#")[0].strip()))
+            try:
+                title = undo_remove_punc_title_laurel(html.unescape(unquote(t.get("href")).split("#")[0].strip()))
+            except BaseException as e:
+                continue
             # this requires that the templates are used and loaded
             if title in self.redirects:
                 title = self.redirects[title]
@@ -1091,7 +1091,6 @@ class Extractor:
         # $text = $this->formatHeadings( $text, $origText, $isMain );
 
         # LAUREL: we want to capture aliases that are indicated by bold text and parenthesis after bold text in the first 3 sentences of any wikipedia page
-        text = text[0:100]
         sentences = sent_tokenize(text)[:3]
         bold_aliases = []
         not_allowed = {"]]", ";", ":"}
@@ -1117,7 +1116,6 @@ class Extractor:
             found_ac = self.extract_acronyms(sent)
             found_acronyms.update(found_ac)
         found_acronyms = list(found_acronyms)
-
         # Drop tables
         # first drop residual templates, or else empty parameter |} might look like end of table.
         if not self.keep_tables:
@@ -1154,17 +1152,25 @@ class Extractor:
         text = res + unescape(text[cur:])
         return text, bold_aliases, found_acronyms
 
-    def extract(self, out1, out2, html_safe=True):
+    def extract(self, out1, out2, html_safe=False):
         """
         :param out: a memory file.
         :param html_safe: whether to escape HTML entities.
         """
         logging.debug("%s\t%s", self.id, self.title)
         self.write_output(out2)
+        # RUBI: I left things awkward on purpose. Explanation:
+        # transform() and clean() along few other functions were extracted by attardi outside of the Extractor class for use by
+        #  their outside utilities (clean.py and cirrus-extract.py) which we don't need. They pass extractor as first variable - here: self.
+        # This is awkward, but for the sake of future comparisons with attardi's code - it's best left as it is.
         text = ''.join(self.page)
-        text = self.clean_text(text, html_safe=html_safe)
+        text = transform(self, text)
         text, bold_aliases, acronym_aliases = self.wiki2text(text)
-        # text = " ".join(compact(clean(self, text)))
+        text_clean_parts = self.clean_text(text, html_safe=html_safe)
+        text = '\n'.join(text_clean_parts)
+        if self.min_text_length > 0 and sum(len(line) for line in text) < self.min_text_length:
+            return
+
         all_aliases = []
         sent_idx = 0
         # the etc. messes with the sentence tokenization
@@ -1198,7 +1204,7 @@ class Extractor:
                 #     print("BADERROR")
                 #     print("TEXT", text)
                 #     print("SENT", sent)
-            except ValueError as e:
+            except BaseException as e:
                 end_idx += 1
                 continue
             sent = " ".join(word_tokenize(sent)) + " ."
@@ -1920,28 +1926,28 @@ def sharp_switch(primary, *params):
     return ''
 
 
-# Extension Scribuntu
-def sharp_invoke(module, function, frame):
-    functions = modules.get(module)
-    if functions:
-        funct = functions.get(function)
-        if funct:
-            # find parameters in frame whose title is the one of the original
-            # template invocation
-            templateTitle = fullyQualifiedTemplateTitle(function)
-            if not templateTitle:
-                logging.warn("Template with empty title")
-            pair = next((x for x in frame if x[0] == templateTitle), None)
-            if pair:
-                params = pair[1]
-                # extract positional args
-                params = [params.get(str(i + 1)) for i in range(len(params))]
-                return funct(*params)
-            else:
-                return funct()
-    return ''
-
-
+# # Extension Scribuntu
+# def sharp_invoke(module, function, frame):
+#     functions = modules.get(module)
+#     if functions:
+#         funct = functions.get(function)
+#         if funct:
+#             # find parameters in frame whose title is the one of the original
+#             # template invocation
+#             templateTitle = fullyQualifiedTemplateTitle(function)
+#             if not templateTitle:
+#                 logging.warn("Template with empty title")
+#             pair = next((x for x in frame if x[0] == templateTitle), None)
+#             if pair:
+#                 params = pair[1]
+#                 # extract positional args
+#                 params = [params.get(str(i + 1)) for i in range(len(params))]
+#                 return funct(*params)
+#             else:
+#                 return funct()
+#     return ''
+#
+#
 parserFunctions = {
 
     '#expr': sharp_expr,
@@ -1997,9 +2003,10 @@ def callParserFunction(functionName, args, frame):
     try:
         if functionName == '#invoke':
             # special handling of frame
-            ret = sharp_invoke(args[0].strip(), args[1].strip(), frame)
+            # ret = sharp_invoke(args[0].strip(), args[1].strip(), frame)
             # logging.debug('parserFunction> %s %s', functionName, ret)
-            return ret
+            # return ret
+            pass
         if functionName in parserFunctions:
             ret = parserFunctions[functionName](*args)
             # logging.debug('parserFunction> %s %s', functionName, ret)

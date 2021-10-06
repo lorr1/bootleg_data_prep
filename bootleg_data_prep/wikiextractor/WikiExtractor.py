@@ -64,7 +64,10 @@ from io import StringIO
 from multiprocessing import Queue, Process, cpu_count
 from timeit import default_timer
 
-from .extract import Extractor, ignoreTag, define_template, acceptedNamespaces
+try:
+    from extract import Extractor, ignoreTag, define_template, acceptedNamespaces
+except:
+    from .extract import Extractor, ignoreTag, define_template, acceptedNamespaces
 
 # ===========================================================================
 
@@ -89,6 +92,8 @@ moduleNamespace = ''
 
 # ----------------------------------------------------------------------
 # Modules
+
+short_debug_items = 1000
 
 # Only minimal support
 # FIXME: import Lua modules.
@@ -182,7 +187,7 @@ class OutputSplitter():
         if self.compress:
             return bz2.BZ2File(filename + '.bz2', 'w')
         else:
-            return open(filename, 'w')
+            return open(filename, 'w', encoding='utf-8')
 
 
 # ----------------------------------------------------------------------
@@ -191,8 +196,7 @@ class OutputSplitter():
 tagRE = re.compile(r'(.*?)<(/?\w+)[^>]*>(?:([^<]*)(<.*?>)?)?')
 #                    1     2               3      4
 
-
-def load_templates(file, output_file=None):
+def load_templates(file, output_file, short_debug):
     """
     Load templates from :param file:.
     :param output_file: file where to save templates and modules.
@@ -206,7 +210,7 @@ def load_templates(file, output_file=None):
     page = []
     inText = False
     if output_file:
-        output = open(output_file, 'w')
+        output = open(output_file, 'w', encoding='utf-8')
     for line in file:
         #line = line.decode('utf-8')
         if '<' not in line:  # faster than doing re.search()
@@ -257,6 +261,8 @@ def load_templates(file, output_file=None):
                 output.write('</page>\n')
             page = []
             articles += 1
+            if short_debug and articles >= short_debug_items:
+                break
             if articles % 100000 == 0:
                 logging.info("Preprocessed %d pages", articles)
     if output_file:
@@ -265,7 +271,7 @@ def load_templates(file, output_file=None):
     return templates
 
 
-def decode_open(filename, mode='rt', encoding='utf-8'):
+def decode_open(filename, mode='r', encoding='utf-8'):
     """
     Open a file, decode and decompress, depending on extension `gz`, or 'bz2`.
     :param filename: the file to open.
@@ -287,7 +293,7 @@ def thread_wrapped(function):
     return wrapped_function
 
 def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file_size, file_compress,
-                 process_count, html_safe):
+                 process_count, html_safe, short_debug):
     """
     :param input_file: name of the wikipedia dump file; '-' to read from stdin
     :param template_file: optional file with template definitions.
@@ -317,13 +323,17 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
             base = m.group(3)
             urlbase = base[:base.rfind("/")]
         elif tag == 'namespace':
-            knownNamespaces.add(m.group(3))
-            if re.search('key="10"', line):
-                templateNamespace = m.group(3)
-                templatePrefix = templateNamespace + ':'
-            elif re.search('key="828"', line):
-                moduleNamespace = m.group(3)
-                modulePrefix = moduleNamespace + ':'
+            tag_namespace = m.group(3).strip()
+            if tag_namespace:
+                knownNamespaces.add(tag_namespace)
+                if re.search('key="10"', line):
+                    templateNamespace = tag_namespace
+                    templatePrefix = templateNamespace + ':'
+                elif re.search('key="828"', line):
+                    moduleNamespace = tag_namespace
+                    modulePrefix = moduleNamespace + ':'
+            else:
+                logging.warning(f'Seems namespace tag has no namespace after all ... line={line}')
         elif tag == '/siteinfo':
             break
 
@@ -333,14 +343,14 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
         if template_file and os.path.exists(template_file):
             logging.info("Preprocessing '%s' to collect template definitions: this may take some time.", template_file)
             file = decode_open(template_file)
-            templates = load_templates(file)
+            templates = load_templates(file, None, short_debug)
             file.close()
         else:
             if input_file == '-':
                 # can't scan then reset stdin; must error w/ suggestion to specify template_file
                 raise ValueError("to use templates with stdin dump, must supply explicit template-file")
             logging.info("Preprocessing '%s' to collect template definitions: this may take some time.", input_file)
-            templates = load_templates(input, template_file)
+            templates = load_templates(input, template_file, short_debug)
             input.close()
             input = decode_open(input_file)
         template_load_elapsed = default_timer() - template_load_start
@@ -407,7 +417,9 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     ordinal = 0  # page count
     inText = False
     redirect = False
-    for line in input:
+    for i, line in enumerate(input):
+        if short_debug and i > short_debug_items:
+            break
         if '<' not in line:  # faster than doing re.search()
             if inText:
                 page.append(line)
@@ -584,7 +596,7 @@ def main():
                         help="use or create file containing templates")
     groupP.add_argument("--no-templates", action="store_false",
                         help="Do not expand templates")
-    groupP.add_argument("--html-safe", default=True,
+    groupP.add_argument("--html-safe", default=False,
                         help="use to produce HTML safe output within <doc>...</doc>")
     default_process_count = cpu_count() - 1
     parser.add_argument("--processes", type=int, default=default_process_count,
@@ -595,6 +607,8 @@ def main():
                         help="suppress reporting progress info")
     groupS.add_argument("--debug", action="store_true",
                         help="print debug info")
+    groupS.add_argument("--short_debug", action="store_true",
+                        help=f"do only first {short_debug_items} items")
     groupS.add_argument("-a", "--article", action="store_true",
                         help="analyze a file containing a single article (debug option)")
     groupS.add_argument("-v", "--version", action="version",
@@ -646,10 +660,10 @@ def main():
     if args.article:
         if args.templates:
             if os.path.exists(args.templates):
-                with open(args.templates) as file:
-                    load_templates(file)
+                with open(args.templates, 'r', encoding='utf-8') as file:
+                    load_templates(file, None, args.short_debug)
 
-        with open(input_file) as file:
+        with open(input_file, 'r', encoding='utf-8') as file:
             page = file.read()
             ids = re.findall(r'<id>(\d*?)</id>', page)
             id = ids[0] if ids else ''
@@ -687,7 +701,7 @@ def main():
 
     st = time.time()
     process_dump(input_file, args.id_ranges, args.templates, output_path, output_path2, file_size,
-                 args.compress, args.processes, args.html_safe)
+                 args.compress, args.processes, args.html_safe, args.short_debug)
     print(f"Final end time {time.time() - st}s")
 
 if __name__ == '__main__':

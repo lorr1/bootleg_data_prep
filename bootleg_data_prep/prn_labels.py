@@ -2,8 +2,15 @@
 Read json files where each line represents a wp article with tokenized sentences.
 detect primary pronouns for person entities and link the pronouns to the primary entity
 
+To get wikidata mappings
+
+python3 -m bootleg_data_prep.wikidata.get_person_gender_qids \
+        --data /lfs/raiders8/0/lorr1/wikidata_09_21 \
+        --out_dir wikidata_output \
+        --processes 10
+
 To run
-python prn.py wiki04102020/orig_nocoref/ --num_workers 72 && tar cf - wiki04102020_prn/orig_nocoref/ | pigz - > wiki_05152020_prn.tgz
+python prn.py data/wiki_dump/orig_wl/ data/wiki_dump/orig_wl_prn data/wiki_dump/orig_wl/entity_db/entity_mappings --num_workers 72 --swap_titles
 """
 import random
 import shutil
@@ -87,32 +94,26 @@ gender_qid_map = {
     "Q859614" : 5, # bigender
     "somevalue": 5,
 }
-person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
-print('person data loaded')
-
 
 def prepare_person_numpy():
     """utility function for preparing person.npy"""
     person_set = set()
-    with open('wiki04102020/person_qids') as f:
-        # file contains a list of qids for person entities
-        for line in tqdm(f, desc='loading persons'):
-            person_set.add(line.strip())
+    with open('wikidata_09_21/wikidata_output/person_qids.json') as f:
+        person_set = set(json.load(f))
     print('person list loaded')
     gender_map = {}
-    with open('wiki04102020/person_gender.json') as f:
-        # file contains a list of jsons with person id and the gender id
-        for line in tqdm(f, desc='loading gender'):
-            j = json.loads(line)
-            qid = j['person']
-            gender = gender_qid_map[j['gender']]
-            if qid in gender_map:
-                old = gender_map[qid]
-                if gender >= old:
-                    continue
+    with open('wikidata_09_21/wikidata_output/person_gender.json') as f:
+        gender_map_old = json.load(f)
+        gender_map = {}
+        for qid, gender in gender_map_old.items():
+            gender = gender_qid_map.get(gender, 5)
             gender_map[qid] = gender
     print('gender map loaded')
+    return person_set, gender_map
 
+person_set, gender_map = prepare_person_numpy()
+print(list(person_set)[:10])
+print(list(gender_map.items())[:10])
     
 def process_file(args):
     filename, output_path, swap_titles, only_first_prn = args

@@ -41,8 +41,8 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     Expected Time: 5-15 hours (depending on the size of your Wikipedia dump)
 
     ```
-    python3 -m bootleg_data_prep.wiki_extractor --output sentences \\ 
-             --output2 pageids svwiki-20201120-pages-articles-multistream.xml \\
+    python3 -m bootleg_data_prep.wiki_extractor --output sentences \ 
+             --output2 pageids svwiki-20201120-pages-articles-multistream.xml \
              --processes 5 &> wiki_extractor.out
     ```
     
@@ -104,14 +104,14 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
         --data_dir /lfs/raiders8/0/lorr1/sv_data/data/wiki_dump \
         --wd_aliases /lfs/raiders8/0/lorr1/sv_data/augmented_alias_map_large.jsonl \
         --title_to_qid /lfs/raiders8/0/lorr1/sv_data/title_mappings/title_to_all_ids.jsonl \
-        --processes 10
+        --processes 10 --strip --lower
     
     python3 -m bootleg_data_prep.remove_bad_aliases \
         --sentence_dir /lfs/raiders8/0/lorr1/sv_data/sentences \
         --data_dir /lfs/raiders8/0/lorr1/sv_data/data/wiki_dump \
         --title_to_qid /lfs/raiders8/0/lorr1/sv_data/title_mappings/title_to_all_ids.jsonl \
         --benchmark_qids '' \
-        --processes 10
+        --processes 10 --strip --lower
     ````
 
 4. **Extract KG and Types.** This extract Wikidata metadata for Bootleg models.
@@ -163,7 +163,7 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     
     Note that if you'd like to filter the type system or something else, you can. We also support adding a coarser grained type system (we use Hyena) if desired. They are left blank by default.
     
-    (Optional) **Weak labeling.** Our weak labelling pipeline is still being iterated on and optimized. We support labelling pronouns and alternate names of entities. These are the files `add_labels_single_func.py` and `prn_labels.py`. If you'd like to use these, let Laurel know. We hope to release optimized and more modifiable versions of these files by the end of Dec.
+    (Optional) **Weak labeling.** Our weak labelling pipeline is still being iterated on and optimized. We support labelling pronouns and alternate names of entities. These are the files `add_labels_single_func.py` and `prn_labels.py`. If you'd like to use these, let Laurel know. We hope to release optimized and more modifiable versions of these files.
 <!---
     [comment]: <> Add alternate names will read in the Wikipedia data from the last step along with entity dump and add mentions to sentences based on two heuristics. (1) If an alias for QIDX appears on QIDX's Wikipedia page, assume that alias points to QIDX. (2) If aliasY uniquely (or very often) points to QIDY on QIDX's Wikipedia page, add mentions of aliasY in the rest of the page and have them point to QIDY. Further, by default, we perform alias permutation where the aliases of added mentions are chosen to be highly conflicting aliases. To turn this off add (`--no_permute_alias`). If you do not want to use heuristic (2), add (--`no_coref`).
     

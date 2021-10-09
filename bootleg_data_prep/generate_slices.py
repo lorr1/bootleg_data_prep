@@ -53,15 +53,15 @@ def parse_args():
     parser.add_argument('--max_types', type=int, default=3)
     parser.add_argument('--max_types_rel', type=int, default=50)
     parser.add_argument('--max_relations', type=int, default=150) # 90th percentile was 138
-    parser.add_argument('--kg_adj', type=str, default='kg_adj_1229.txt')
-    parser.add_argument('--kg_triples', type=str, default='kg_triples_1229.txt')
+    parser.add_argument('--kg_adj', type=str, default='kg_adj_092921.txt')
+    parser.add_argument('--kg_triples', type=str, default='kg_triples_092921.json')
     parser.add_argument('--kg_vocab', type=str, default='pid_vocab.json')
     parser.add_argument('--hy_vocab', type=str, default='hyena_vocab.json')
-    parser.add_argument('--hy_types', type=str, default='hyena_types_1229.json')
-    parser.add_argument('--wd_vocab', type=str, default='wikidatatitle_to_typeid_1229.json')
-    parser.add_argument('--wd_types', type=str, default='wikidata_types_1229.json')
-    parser.add_argument('--rel_vocab', type=str, default='relation_to_typeid_1229.json')
-    parser.add_argument('--rel_types', type=str, default='kg_relation_types_1229.json')
+    parser.add_argument('--hy_types', type=str, default='hyena_types_092921.json')
+    parser.add_argument('--wd_vocab', type=str, default='wikidatatitle_to_typeid_092921.json')
+    parser.add_argument('--wd_types', type=str, default='wikidata_types_092921.json')
+    parser.add_argument('--rel_vocab', type=str, default='relation_to_typeid_092921.json')
+    parser.add_argument('--rel_types', type=str, default='kg_relation_types_092921.json')
     args = parser.parse_args()
     return args
 

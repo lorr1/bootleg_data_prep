@@ -49,7 +49,7 @@ def parse_args():
     parser = argparse.ArgumentParser()
     parser.add_argument('--data_dir', type=str, default='data/wiki_dump', help='Directory for data to be saved.')
     parser.add_argument('--filtered_alias_subdir', type=str, default='alias_filtered_sentences', help = 'Subdirectory to save filtered sentences.')
-    parser.add_argument('--out_subdir', type = str, default = 'orig_wl_testing', help = 'Where to write processed data to.')
+    parser.add_argument('--out_subdir', type = str, default = 'orig_wl', help = 'Where to write processed data to.')
     parser.add_argument('--no_coref', action='store_true', help = 'Turn on to not do coref.')
     parser.add_argument('--no_permute_alias', action='store_true', help = 'Turn on to not use alias swapping. Swapping avoids aliases with a single qid (trivial), and ensures that labeled aliases have the qid in the top 30 (to avoid being dropped).')
     parser.add_argument('--no_acronyms', action='store_true', help = 'Turn on to not do any acronym mining.')
@@ -141,11 +141,8 @@ def subprocess(all_args):
         for doc_idx, doc in enumerate(in_file):
             title = doc['title']
             doc_entity = str(doc['qid'])
-            if doc['qid'] not in ["Q3493976", "Q2655944"]:
-                continue
-            print("HERE")
             if not doc_entity == "-1" and doc_entity in qid2alias_global:
-                print(f"Starting {title} ({doc_entity})")
+                # print(f"Starting {title} ({doc_entity})")
                 aliases_to_qids_in_doc, qid_to_aliases_in_doc = collect_aliases_to_qids_in_doc(doc, qid2alias_global)
                 if args.no_coref:
                     aliases_for_finding = marisa_trie.Trie(qid_to_aliases_in_doc[doc_entity])
@@ -161,7 +158,7 @@ def subprocess(all_args):
                 max_alias_len = 0
                 if len(aliases_to_qids_in_doc) > 0:
                     max_alias_len = max([len(alias.split(" ")) for alias in aliases_to_qids_in_doc.keys()])
-                print(f"Aliases dict {aliases_to_qids_in_doc} \n\nQID Dict {qid_to_aliases_in_doc}")
+                # print(f"Aliases dict {aliases_to_qids_in_doc} \n\nQID Dict {qid_to_aliases_in_doc}")
                 new_sentences = []
                 possible_acronyms = {} # dictionary of acronym -> tuple(qid, original alias)
                 for sentence_idx, sentence in enumerate(doc['sentences']):
@@ -172,7 +169,7 @@ def subprocess(all_args):
                     sentence_str = sentence_str.split(" ")
 
                     if args.no_weak_labeling:
-                        found_spans, found_aliases, found_qids, found_sources = [], [], [], []
+                        found_spans, unswapped_aliases, found_aliases, found_qids, found_sources = [], [], [], [], []
                     else:
                         if not args.no_acronyms:
                             # Check if first sentence of article contains same words as the title of the page; if so, add this so we can use it for acronym mining
@@ -219,15 +216,16 @@ def subprocess(all_args):
                         # st = time.time()
                         # Find aliases
                         found_aliases, found_spans = prep_utils.find_aliases_in_sentence_tag(sentence_str, aliases_for_finding, max_alias_len)
-                        print("SENTENCe", sentence_str)
-                        print("FOUND", found_aliases)
+                        # print("SENTENCe", sentence_str)
+                        # print("FOUND", found_aliases)
                         # Find aliases that should be filtered
                         filter_aliases, filter_spans = prep_utils.find_aliases_in_sentence_tag(sentence_str, aliases_for_filtering, max_alias_len)
-                        print("FILTER", filter_aliases)
+                        # print("FILTER", filter_aliases)
                         # print(f"Found aliases in {time.time() - st} seconds.")
                         # Filter aliases
                         found_aliases, found_spans = prep_utils.filter_superset_aliases(found_aliases, found_spans, filter_aliases, filter_spans)
-                        print("FINAL", found_aliases)
+                        # print("FINAL", found_aliases)
+                        unswapped_aliases = found_aliases[:]
                         found_qids = []
                         for j in range(len(found_aliases)):
                             alias = found_aliases[j]
@@ -247,7 +245,7 @@ def subprocess(all_args):
                             else:
                                 new_alias = choose_new_alias(alias, associated_qid, qid2alias_global, qid_to_aliases_top_30, aliasconflict_global, doc_entity, sentence['doc_sent_idx'])
                                 # new_alias = qid2singlealias_global.get(associated_qid, alias)
-                                print(f"Swapping {alias} for {associated_qid} for new alias {new_alias}")
+                                # print(f"Swapping {alias} for {associated_qid} for new alias {new_alias}")
                             added_alias_count += 1
                             found_aliases[j] = new_alias
                             found_qids.append(associated_qid)
@@ -279,6 +277,7 @@ def subprocess(all_args):
                                     continue
                                 # Check if the current word is in possible_acronyms (case sensitive)
                                 if word in possible_acronyms:
+                                    unswapped_aliases.append(word.lower())
                                     if not args.no_permute_alias: # use alias swapping
                                         if word.lower() in qid_to_aliases_in_doc.get(possible_acronyms[word][0], []):
                                             found_aliases.append(choose_new_alias(word.lower(), possible_acronyms[word][0], qid2alias_global, qid_to_aliases_top_30, aliasconflict_global, doc_entity, sentence['doc_sent_idx']))
@@ -302,13 +301,14 @@ def subprocess(all_args):
                         # Now sort found_aliases, found_qids, found_sources, and found_spans based on found_spans (so they are in order 
                         # of appearance in the sentence)
                         if len(found_spans) > 1:
-                            zipped = list(zip(found_spans, found_aliases, found_qids, found_sources))
+                            zipped = list(zip(found_spans, unswapped_aliases, found_aliases, found_qids, found_sources))
                             zipped.sort(key = lambda x: x[0][0])
-                            found_spans, found_aliases, found_qids, found_sources = [list(x) for x in zip(*zipped)]
+                            found_spans, unswapped_aliases, found_aliases, found_qids, found_sources = [list(x) for x in zip(*zipped)]
 
                     # We merge the new sentence together
                     #TODO: We can just sort based on the index of the span. this is much faster.
                     new_aliases = []
+                    new_unswapped_aliases = []
                     new_spans = [] 
                     new_qids = []
                     sources = []
@@ -327,7 +327,8 @@ def subprocess(all_args):
                             found_span_start = sent_len
                         if old_span_start < found_span_start:
                             # Permute aliases for the gold labels (previously we only permuted the found labels)
-                            temp_alias = sentence['aliases'][old_index]                            
+                            temp_alias = sentence['aliases'][old_index]
+                            new_unswapped_aliases.append(temp_alias)
                             if args.no_permute_alias:
                                 new_aliases.append(temp_alias)
                             else:
@@ -339,6 +340,7 @@ def subprocess(all_args):
                             old_index += 1
                             from_gold.append(True)
                         else:
+                            new_unswapped_aliases.append(unswapped_aliases[found_index])
                             # Don't need to worry about permuting aliases here, because that has already been done above for all found aliases
                             new_aliases.append(found_aliases[found_index])
                             new_qids.append(found_qids[found_index])
@@ -350,6 +352,7 @@ def subprocess(all_args):
                         'doc_sent_idx': sentence['doc_sent_idx'],
                         'sentence': sentence['sentence'],
                         'aliases': new_aliases,
+                        'unswap_aliases': new_unswapped_aliases,
                         'spans': new_spans,
                         'qids': new_qids,
                         'gold': from_gold,
@@ -360,6 +363,7 @@ def subprocess(all_args):
                 no_qid.append(title)
                 for i in range(len(doc['sentences'])):
                     doc['sentences'][i]['gold'] = [True for _ in range(len(doc['sentences'][i]['aliases']))]
+                    doc['sentences'][i]['unswap_aliases'] = doc['sentences'][i]['aliases'][:]
             # update stats
             for i in range(len(doc["sentences"])):
                 aliases = doc["sentences"][i]["aliases"]
@@ -419,7 +423,6 @@ def collect_aliases_to_qids_in_doc(doc, qid2alias_global):
                 if qid not in aliases_to_qids_in_doc[al]:
                     aliases_to_qids_in_doc[al][qid] = [0, top30_bool]
                 aliases_to_qids_in_doc[al][qid][0] += 1
-    print(aliases_to_qids_in_doc, doc_entity)
     return prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc)
 
 def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
@@ -428,7 +431,7 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
     aliases_to_qids_in_doc_pruned = {}
     qid_to_aliases_in_doc_pruned = defaultdict(lambda: defaultdict())
     total_qid_count = sum(v[0] for qid_dict in aliases_to_qids_in_doc.values() for v in qid_dict.values())
-    print(f"Total Count for {doc_entity} is {total_qid_count}")
+    # print(f"Total Count for {doc_entity} is {total_qid_count}")
     # We want to assign some weight of doc_entity aliases -> doc_entity (they are often not actual link in Wikipedia so get a low weight by default)
     doc_entity_perc_of_total = 0.2
     # This is representing the popularity of the doc entity in a document. If there is some other QID that appears with some alias
@@ -528,7 +531,6 @@ def modify_counts_and_dump(args, filtered_aliases_to_qid, entity_dump):
         del qid2title["-1"]
 
     max_candidates = entity_dump.max_candidates
-    max_alias_len = entity_dump.max_alias_len
 
     for al in alias2qids:
         all_pairs = alias2qids[al]
@@ -561,7 +563,6 @@ def main():
     # if in test mode, just take a single input file
     if args.test:
         in_files = in_files[:1]
-    in_files = [os.path.join(args.data_dir, args.filtered_alias_subdir, "wiki_48538217028220256.jsonl")]
 
     # this loads all entity information (aliases, titles, etc)
     entity_dump = EntitySymbols.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
@@ -571,7 +572,6 @@ def main():
     alias2qid = entity_dump.get_alias2qids()
     # generates mappings from qids to aliases and a memmaped trie (aka dict) from alias to length of that aliases candidate list (measure of how conflicting that alias is)
     qid2singlealias, aliasconflict_f, qid2alias = get_qid2aliases(alias2qid, entity_dump, temp_outdir)
-    qid2 = "Q3493976"
     print(f"Created qid2alias map over {len(qid2alias)} QIDs.")
     # launch subprocesses and collect outputs
     print(f"Loaded {len(in_files)} files from {path}. Launching {args.processes} processes.")

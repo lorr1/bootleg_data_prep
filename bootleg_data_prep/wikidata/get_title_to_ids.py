@@ -174,6 +174,7 @@ def main():
 
     redirect_title_map = read_in_redirects(args.wikipedia_xml, args.total_wikipedia_xml_lines)
     assert len(redirect_title_map) > 0
+    print('Writing down temp_redirects.json which may take a couple of minutes ...')
     out_file = "temp_redicts.json"
     with open(out_file, "w") as out_f:
         json.dump(redirect_title_map, out_f, default=str, ensure_ascii=ENSURE_ASCII)
@@ -183,7 +184,7 @@ def main():
     # Add redirects from Wikidata
     wikititle2item = read_in_saved_title_file(output_file, total_lines)
     wikititle2item, wikititle2item_original = add_redirects(redirect_title_map, wikititle2item)
-
+    print('Writing down title_to_all_ids.jsonl which may take a couple of minutes ...')
     output_file = os.path.join(out_dir, "title_to_all_ids.jsonl")
     with jsonlines.open(output_file, 'w') as out_file:
         for good_title in wikititle2item:

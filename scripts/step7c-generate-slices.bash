@@ -5,9 +5,10 @@ python3 -m bootleg_data_prep.generate_slices \
   --processes $BOOTLEG_PROCESS_COUNT \
   --emb_dir $BOOTLEG_WIKIPEDIA_DIR/embs \
   --kg_adj kg_adj_1129.txt \
-  --kg_triples kg_triples_1129.txt \
+  --kg_triples kg_triples_1129.json \
   --hy_vocab ''\
   --hy_types ''\
+  --kg_vocab $BOOTLEG_CODE_DIR/bootleg_data_prep/utils/param_files/pid_names_$BOOTLEG_LANG_CODE.json \
   --wd_vocab wikidatatitle_to_typeid_1129.json \
   --wd_types wikidata_types_1129.json \
   --rel_vocab relation_to_typeid_1129.json \

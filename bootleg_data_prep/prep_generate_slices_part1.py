@@ -28,7 +28,6 @@ def parse_args():
     parser.add_argument('--processes', type=int, default=int(0.8*multiprocessing.cpu_count()))
     parser.add_argument('--file_id_start', type=int, default=0, help="start file index to read of files for each folder; start idx 4 will start reading 4th file from dev and 4th from test")
     parser.add_argument('--file_id_end', type=int, default=-1, help="end file index to read (-1 for all) (exclusive)")
-    parser.add_argument('--multilingual', action = 'store_true', help = 'If set, will not do english-based language processing (e.g. stemming).')
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
 
     args = parser.parse_args()

@@ -17,6 +17,8 @@ python3.6 -m contextual_embeddings.bootleg_data_prep.data_filter --max_candidate
 '''
 import argparse
 import collections
+from pathlib import Path
+
 import ujson as json
 import multiprocessing
 import os
@@ -32,7 +34,9 @@ import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
-FILTER_FILE = "my_filter_funcs"
+FILTER_FILE = "my_filter_funcs.py"
+FILTER_FILE_ABS_PATH = str(Path.joinpath(Path(__file__).resolve().parent, 'utils', FILTER_FILE))
+exec(open(FILTER_FILE_ABS_PATH).read())  # AKA include/import the file
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -71,7 +75,7 @@ def init_process(args):
 def launch_subprocess_step1(args, out_dir, in_files):
     extras = {}
     if args.prep_func != "":
-        extras = eval("{:s}.{:s}(args)".format(FILTER_FILE, args.prep_func))
+        extras = eval(f'{args.prep_func}(args)')
     extras_f = os.path.join(out_dir, "extras.pkl")
     utils.dump_pickle_file(extras_f, extras)
 
@@ -120,7 +124,7 @@ def subprocess_step1(all_args):
                     # Filter out sentences with invalid spans
                     if int(spans[-1][0]) >= len(text.split()):
                         continue 
-                if eval("{:s}.{:s}(args, aliases, qids, parent_qid, text, extras_global)".format(FILTER_FILE, args.sentence_filter_func)):
+                if eval(f'{args.sentence_filter_func}(args, aliases, qids, parent_qid, text, extras_global)'):
                     stats["filtered_func"] += 1
                     continue
                 all_qids.update(set(qids))
@@ -211,7 +215,7 @@ def launch_subprocess_step2(args, out_dir, out_dir_stats, entity_symbols, files)
                                qid2title_f,
                                alias2qids_f
                                ]) for i in range(len(files))]
-    pool = multiprocessing.Pool(processes=args.processes)
+    pool = multiprocessing.Pool(processes=args.processes // 4)  # this can be optimized better ... but the memory consumption at this stage is very high
     list_of_stats = pool.map(subprocess_step2, all_process_args, chunksize=1)
     stats = prep_utils.aggregate_list_of_dictionaries(list_of_stats)
     pool.close()

@@ -16,14 +16,14 @@ import argparse
 from collections import defaultdict
 
 import psutil
-import ujson
-import ujson as json
+import json
 import multiprocessing
 import logging
 import os
 import shutil
 import time
 
+from rich.progress import track
 from tqdm import tqdm
 
 import bootleg_data_prep.utils.utils as utils
@@ -56,8 +56,8 @@ def parse_args():
     parser.add_argument('--max_types_rel', type=int, default=50)
     parser.add_argument('--max_relations', type=int, default=150) # 90th percentile was 138
     parser.add_argument('--kg_adj', type=str, default='kg_adj_1229.txt')
-    parser.add_argument('--kg_triples', type=str, default='kg_triples_1229.txt')
-    parser.add_argument('--kg_vocab', type=str, default='pid_vocab.json')
+    parser.add_argument('--kg_triples', type=str, default='kg_triples_1229.json')
+    parser.add_argument('--kg_vocab', type=str, default='utils/param_files/pid_names_en.json')
     parser.add_argument('--hy_vocab', type=str, default='hyena_vocab.json')
     parser.add_argument('--hy_types', type=str, default='hyena_types_1229.json')
     parser.add_argument('--wd_vocab', type=str, default='wikidatatitle_to_typeid_1229.json')
@@ -364,56 +364,52 @@ def write_out_entity_profile(args, folder, all_qids):
     # KG relations
     kg_folder = os.path.join(folder, "kg_mappings")
     utils.ensure_dir(kg_folder)
-    qid2relations = {q:{} for q in all_qids}
     kg_list = []
     print("Writing out KG information")
-    try:
-        with open(os.path.join(args.emb_dir, args.kg_triples)) as in_f:
-            for line in tqdm(in_f):
-                s, p, o = line.strip().split()
-                if s not in qid2relations:
-                    continue
-                kg_list.append([s, o])
-                if p not in qid2relations[s]:
-                    qid2relations[s][p] = []
-                qid2relations[s][p].append(o)
-                qid2relations[s][p] = qid2relations[s][p][:args.max_relations]
-    except Exception as e:
-        print("ERROR WRITING QID2RELATIONS", e)
+    all_relations = json.load(open(os.path.join(args.emb_dir, args.kg_triples)))
+    qid2relations = {k:v for k,v in all_relations.items() if k in all_qids}
+    for head_qid in track(qid2relations, total=len(qid2relations), description="Filt qid2rels"):
+        for rel in qid2relations[head_qid]:
+            qid2relations[head_qid][rel] = qid2relations[head_qid][rel][:args.max_relations]
     with open(os.path.join(kg_folder, "qid2relations.json"), "w") as out_f:
-        ujson.dump(qid2relations, out_f)
+        json.dump(qid2relations, out_f, ensure_ascii=ENSURE_ASCII)
     with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:
         for item in kg_list:
             out_f.write(f"{item[0]}\t{item[1]}\n")
-    kg_vocab = ujson.load(open(os.path.join(args.emb_dir, args.kg_vocab)))
     with open(os.path.join(kg_folder, "relation_vocab.json"), "w") as out_f:
-        ujson.dump(kg_vocab, out_f)
-
-    ujson.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"))
+        json.dump(args.kg_vocab, out_f, ensure_ascii=ENSURE_ASCII)
+    json.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"), ensure_ascii=ENSURE_ASCII)
     print("Writing out wiki types")
     dump_types(folder, "wiki", args.emb_dir, args.wd_vocab, args.wd_types, args.max_types, all_qids)
-    print("Writing out hyena types")
-    dump_types(folder, "hyena", args.emb_dir, args.hy_vocab, args.hy_types, args.max_types, all_qids)
-    print("Writing out relation types")
-    dump_types(folder, "relations", args.emb_dir, args.rel_vocab, args.rel_types, args.max_types_rel, all_qids)
+    if args.hy_vocab:
+        print("Writing out hyena types")
+        dump_types(folder, "hyena", args.emb_dir, args.hy_vocab, args.hy_types, args.max_types, all_qids)
+    if args.rel_vocab:
+        print("Writing out relation types")
+        dump_types(folder, "relations", args.emb_dir, args.rel_vocab, args.rel_types, args.max_types_rel, all_qids)
 
 
 def dump_types(folder, subfolder, emb_dir, vocab, type_map, max_types, all_qids):
     type_folder = os.path.join(folder, "type_mappings", subfolder)
     utils.ensure_dir(type_folder)
-    qid2types = {q: {} for q in all_qids}
+    qid2types = {q: [] for q in all_qids}
     vocab_map = {}
     type_mappings = {}
     try:
-        vocab_map = ujson.load(open(os.path.join(emb_dir, vocab)))
+        filename = os.path.join(emb_dir, vocab)
+        print(f'Trying to open 1: {filename}')
+        vocab_map = json.load(open(os.path.join(emb_dir, vocab)))
+        print('succeeded')
         vocab_inv = {v: k for k, v in vocab_map.items()}
-        with open(os.path.join(emb_dir, type_map)) as in_f:
-            type_mappings = ujson.load(in_f)
-            for qid in tqdm(type_mappings):
+        filename = os.path.join(emb_dir, type_map)
+        print(f'Trying to open 2: {filename}')
+        with open(filename) as in_f:
+            print('succeeded')
+            type_mappings = json.load(in_f)
+            for qid in track(type_mappings, total=len(type_mappings)):
                 # Already has all qids inside
                 if qid in qid2types:
                     qid2types[qid] = [vocab_inv[i] for i in type_mappings[qid]]
-
             for qid in qid2types:
                 qid2types[qid] = qid2types[qid][:max_types]
                 if qid not in type_mappings:
@@ -421,11 +417,10 @@ def dump_types(folder, subfolder, emb_dir, vocab, type_map, max_types, all_qids)
                 type_mappings[qid] = type_mappings[qid][:max_types]
     except Exception as e:
         print("ERROR WRITING QID2TYPES", type_map, "---", e)
-    ujson.dump(qid2types, open(os.path.join(type_folder, "qid2typenames.json"), "w"))
-    ujson.dump(type_mappings, open(os.path.join(type_folder, "qid2typeids.json"), "w"))
-    ujson.dump(vocab_map, open(os.path.join(type_folder, "type_vocab.json"), "w"))
-    ujson.dump({"max_types": max_types}, open(os.path.join(type_folder, "config.json"), "w"))
-
+    json.dump(qid2types, open(os.path.join(type_folder, "qid2typenames.json"), "w"), ensure_ascii=ENSURE_ASCII)
+    json.dump(type_mappings, open(os.path.join(type_folder, "qid2typeids.json"), "w"), ensure_ascii=ENSURE_ASCII)
+    json.dump(vocab_map, open(os.path.join(type_folder, "type_vocab.json"), "w"), ensure_ascii=ENSURE_ASCII)
+    json.dump({"max_types": max_types}, open(os.path.join(type_folder, "config.json"), "w"), ensure_ascii=ENSURE_ASCII)
 
 def main():
     multiprocessing.set_start_method("forkserver", force=True)

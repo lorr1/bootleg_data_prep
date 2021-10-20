@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from config import *
 import pycountry
 
@@ -9,8 +11,11 @@ for lang in pycountry.languages:
 if not lang_module_name:
     raise Exception(f'BOOTLEG_LANG_CODE set to wrong language code "{BOOTLEG_LANG_CODE}"')
 
+path_to_code_dir = Path(__file__).resolve().parent.parent
+
 envs = {
     'BOOTLEG_BASE_DIR': f'{BOOTLEG_BASE_DIR}',
+    'BOOTLEG_CODE_DIR': f'{path_to_code_dir}',
     'BOOTLEG_LANG_MODULE': f'{lang_module_name}',
     'BOOTLEG_LANG_CODE': f'{BOOTLEG_LANG_CODE}',
     'BOOTLEG_PROCESS_COUNT': f'{BOOTLEG_PROCESS_COUNT}',

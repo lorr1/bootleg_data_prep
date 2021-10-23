@@ -25,41 +25,34 @@ ENSURE_ASCII = False
 CATEGORY_LINE_START = '[[קטגוריה:'
 CATEGORY_LINE_CAPTURE = r'\[\[קטגוריה:([^\|]+).*\]\].*'
 
+strong_separators = {'.', ',', ':', '!', ';'}
 re_space_match = re.compile(r'\s+')
 
-def tokens_to_words(tokens):
-    return [token[1] for token in tokens]
-
-def split_by_punct(tokens):
+# The ugly thing here is that we try to separate the text when it is comprised of text + html tags. ugly.
+def sent_tokenize(text):
+    tokens = list(tokenize(text))
     sents = []
     start = 0
     last_token = len(tokens) - 1
     for i, token in enumerate(tokens):
-        if token[0] == Groups.PUNCTUATION or i == last_token:
-            new_sent = tokens_to_words(tokens[start: i])
+        token_is_sep = token[1] in strong_separators
+        if token_is_sep or i == last_token:
+            new_sent = tokens[start: i + (0 if token_is_sep else 1)]
             if len(new_sent) > 0:
-                sents.append(new_sent)
+                sents.append(text[new_sent[0][3][0]:new_sent[-1][3][1]])
             start = i + 1
     return sents
 
-fullpath = os.path.expanduser((os.path.join('~/stanza_resources', 'he')))
-if not os.path.isdir(fullpath):
-    stanza.download('he')
-stanza_tokenizer = stanza.Pipeline(lang='he', processors='tokenize', use_gpu=os.getenv('BOOTLEG_LANG_MODULE_USE_GPU'))
-
-# This function does not pass the test! As it purposely does both sent_tokenize + word_tokenize an
-def sent_tokenize(text):
-    print(f'sent_tokenize() - text length={len(text)}')
-    s = [s.text for s in stanza_tokenizer(text).sentences]
-    print(f'sent_tokenize() - after')
-    return s
-
 def word_tokenize(sent):
-    return [t.text for t in stanza_tokenizer(sent).iter_tokens()]
+    sent_tokenized = list(tokenize(sent))
+    return [token[1] for token in sent_tokenized]
 
 def stem(text):
     return text  # There are hebrew stemmers, but to date they are... less accurate.
 
+fullpath = os.path.expanduser((os.path.join('~/stanza_resources', 'he')))
+if not os.path.isdir(fullpath):
+    stanza.download('he')
 stanza_pos = stanza.Pipeline(lang='he', processors='tokenize,pos', use_gpu=os.getenv('BOOTLEG_LANG_MODULE_USE_GPU'))
 def pos_tag(tokens):
     res = []

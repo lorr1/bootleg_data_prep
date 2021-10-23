@@ -62,6 +62,7 @@ import sys
 import time
 from io import StringIO
 from multiprocessing import Queue, Process, cpu_count
+from threading import Thread
 from timeit import default_timer
 
 try:
@@ -118,6 +119,7 @@ modules = {
 # ------------------------------------------------------------------------------
 # Output
 
+article_count = -1
 
 class NextFile():
 
@@ -307,9 +309,11 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     global moduleNamespace, modulePrefix
 
     urlbase = ''                # This is obtained from <siteinfo>
-
+    # print('Counting articles...')
     input = decode_open(input_file)
-
+    # article_count = sum(1 for i in input)
+    # input.seek(0, 0)
+    print(f'Processing {article_count} articles')
     # collect siteinfo
     for line in input:
         line = line #.decode('utf-8')
@@ -384,14 +388,18 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     # Parallel Map/Reduce:
     # - pages to be processed are dispatched to workers
     # - a reduce process collects the results, sort them and print them.
-
+    process_count = 1 if short_debug else process_count
     maxsize = 10 * process_count
     # output queue
     output_queue = Queue(maxsize=maxsize)
 
     # Reduce job that sorts and prints output
-    reduce = Process(target=thread_wrapped(reduce_process), args=(output_queue, output, output2))
-    reduce.start()
+    if short_debug:
+        reduce = Thread(target=thread_wrapped(reduce_process), args=(output_queue, output, output2))
+        reduce.start()
+    else:
+        reduce = Process(target=thread_wrapped(reduce_process), args=(output_queue, output, output2))
+        reduce.start()
 
     # initialize jobs queue
     jobs_queue = Queue(maxsize=maxsize)
@@ -400,10 +408,15 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     logging.info("Using %d extract processes.", process_count)
     workers = []
     for _ in range(max(1, process_count)):
-        extractor = Process(target=thread_wrapped(extract_process),
-                            args=(jobs_queue, output_queue, html_safe))
-        extractor.daemon = True  # only live while parent process lives
-        extractor.start()
+        if short_debug:
+            extractor = Thread(target=thread_wrapped(extract_process),
+                               args=(jobs_queue, output_queue, html_safe))
+            extractor.start()
+        else:
+            extractor = Process(target=thread_wrapped(extract_process),
+                                args=(jobs_queue, output_queue, html_safe))
+            extractor.daemon = True  # only live while parent process lives
+            extractor.start()
         workers.append(extractor)
 
     # Mapper process
@@ -541,8 +554,7 @@ def reduce_process(output_queue, output, output2):
             # progress report
             if next_ordinal % period == 0:
                 interval_rate = period / (default_timer() - interval_start)
-                logging.info("Extracted %d articles (%.1f art/s)",
-                             next_ordinal, interval_rate)
+                logging.info(f'Extracted {next_ordinal} articles (of {article_count} at {interval_rate:.1f} articles/second)')
                 interval_start = default_timer()
         else:
             # mapper puts None to signal finish
@@ -618,7 +630,7 @@ def main():
     args = parser.parse_args()
 
     Extractor.keepLinks = args.links
-    Extractor.HtmlFormatting = args.html
+    Extractor.HtmlFormatting = True
     if args.html:
         Extractor.keepLinks = True
     Extractor.to_json = args.json

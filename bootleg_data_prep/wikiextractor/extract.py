@@ -563,7 +563,7 @@ def makeInternalLink(title, label):
     if Extractor.keepLinks:
         # LAUREL: remove periods from the label to ensure sentence splitting works later
         # label -> label.replace(".", "")
-        return '<a href="%s">%s</a>' % (remove_punc_title_laurel(quote(title.encode('utf-8'))), remove_punc_label_laurel(label))
+        return '<a href="%s">%s</a>' % (remove_punc_title_laurel(quote(title, encoding='utf8')), remove_punc_label_laurel(label))
     else:
         return label
 
@@ -878,7 +878,7 @@ class Extractor:
 
     ##
     # Whether to output text with HTML formatting elements in <doc> files.
-    HtmlFormatting = False
+    HtmlFormatting = True
 
     ##
     # Whether to produce json instead of the default <doc> output format.
@@ -995,7 +995,7 @@ class Extractor:
             if title in self.redirects:
                 title = self.redirects[title]
             res += t.text
-            al_arr = word_tokenize(t.text)
+            # al_arr = word_tokenize(t.text)
             # print("TITLE", title, "ALIAS ARR 1", al_arr)
             # due to weird tokenization that is dependent on the rest of the sentence, it's better to take it from the res tokenization
             al_arr = word_tokenize(res)[cur_w:]
@@ -1091,6 +1091,7 @@ class Extractor:
         # $text = $this->formatHeadings( $text, $origText, $isMain );
 
         # LAUREL: we want to capture aliases that are indicated by bold text and parenthesis after bold text in the first 3 sentences of any wikipedia page
+        # print(f'sent_tokenize(1) - text length={len(text)}')
         sentences = sent_tokenize(text)[:3]
         bold_aliases = []
         not_allowed = {"]]", ";", ":"}

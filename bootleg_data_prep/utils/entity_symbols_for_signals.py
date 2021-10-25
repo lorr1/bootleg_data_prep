@@ -1,9 +1,12 @@
+import json
 import os
 import shutil
 from argparse import Namespace
 from rich.progress import track
 from collections import defaultdict
-import ujson
+
+from rich.progress import track
+from tqdm import tqdm
 import marisa_trie
 import numpy as np
 
@@ -336,7 +339,7 @@ def load_relations(args, rel_file, all_qids):
     return rel_mapping
 
 def load_contextual_relations(args, rel_file, entity_dump_dir, all_qids):
-    all_relations = ujson.load(open(rel_file, "r"))
+    all_relations = json.load(open(rel_file, "r"))
     keys = []
     values = []
     all_rels = sorted(list(set([k for rel_dict in track(all_relations.values(), total=len(all_relations)) for k in rel_dict.keys()])))

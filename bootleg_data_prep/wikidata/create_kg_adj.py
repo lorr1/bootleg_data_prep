@@ -10,16 +10,15 @@ python3.6 -m processor.get_rels_as
 ''' 
 
     
-import os, sys, json, argparse, time, shutil
+import os, json, argparse, time
 
 import marisa_trie
 from tqdm import tqdm
 from glob import glob
 from multiprocessing import set_start_method, Pool
-
-from collections import defaultdict
-
 import simple_wikidata_db.utils as utils
+from bootleg_data_prep.language import ENSURE_ASCII
+
 
 def get_arg_parser():
     parser = argparse.ArgumentParser()
@@ -37,7 +36,7 @@ def init_process(args):
 
 def launch_entity_table(entity_files, filter_qids, out_dir, args):
     temp_f = os.path.join(out_dir, "_temp_filter.json")
-    json.dump(list(filter_qids), open(temp_f, "w"))
+    json.dump(list(filter_qids), open(temp_f, "w"), ensure_ascii=ENSURE_ASCII)
     print(f"Starting with {args.processes} processes")
     pool = Pool(processes = args.processes, initializer=init_process, initargs=(tuple([temp_f]),))
     messages = [(i, len(entity_files), entity_files[i], out_dir) for i in range(len(entity_files))]
@@ -64,7 +63,7 @@ def load_entity_file(message):
 
     out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w")
     print(f"Found {len(rel_dict)}")
-    json.dump(rel_dict, out_f)
+    json.dump(rel_dict, out_f, ensure_ascii=ENSURE_ASCII)
     print(f"Finished {job_index} / {num_jobs}...{filename}. {time.time() - start} seconds. Saved in {out_f}.")
     return
 

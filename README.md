@@ -41,8 +41,8 @@ For all these instructions, my working directory was `/lfs/raiders8/0/lorr1/`. R
     Expected Time: 5-15 hours (depending on the size of your Wikipedia dump)
 
     ```
-    python3 -m bootleg_data_prep.wiki_extractor --output sentences \ 
-             --output2 pageids svwiki-20201120-pages-articles-multistream.xml \
+    python3 -m bootleg_data_prep.wikiextractor.WikiExtractor --output sentences \\ 
+             --output2 pageids svwiki-20201120-pages-articles-multistream.xml \\
              --processes 5 &> wiki_extractor.out
     ```
     

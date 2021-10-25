@@ -25,75 +25,11 @@ import numpy as np
 from tqdm import tqdm
 
 # data prep
+from bootleg_data_prep.language import ENSURE_ASCII, gender_qid_map, pronoun_map, pronoun_possessive_map, UNKNOWN
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
-pronoun_map = {
-    'him': 1,
-    "he": 1,
-    "his": 1,
-    "himself": 1,
-    'her': 2,
-    "she": 2,
-    "herself": 2,
-    'it': 3,
-    "its": 3,
-    "itself": 3,
-    'they': 4,
-    "them": 4,
-    "themselves": 4,
-}
-pronoun_possessive_map = {
-    'him': 0,
-    "he": 0,
-    "his": 1,
-    "himself": 0,
-    'her': 1,
-    "she": 0,
-    "herself": 0,
-    'it': 0,
-    "its": 0,
-    "itself": 0,
-    'they': 0,
-    "them": 0,
-    "themselves": 0
-}
-SINGULAR_MASCULINE = 1  # him, he, his, himself
-SINGULAR_FEMININE = 2 # her, she, her, herself
-SINGULAR_INPERSONAL = 3  # it, its, itself
-PLURAL_PERSONAL = 4  # they, them, their, themselves
-UNKNOWN = 5
-gender_qid_map = {
-    "novalue": 5,
-    "Q1052281" : 5, # trans m->f
-    "Q1097630" : 5, # intersex, both
-    "Q1289754" : 5, # neutrois non-binary
-    "Q12964198" : 5, # genderqueer
-    "Q15145778" : 1, # cisgender male, assigned and identify male
-    "Q15145779" : 2, # cisgender female, assigned and identify female
-    "Q179294" : 1, # eunuch
-    "Q18116794" : 5, # genderfluid
-    "Q189125" : 5, # trans
-    "Q207959" : 5, # androgyny, combine both traits
-    "Q2333502" : 5, # skeleton
-    "Q2449503" : 5, # trans f -> m
-    "Q27679684" : 5, # transfeminine
-    "Q27679766" : 5, # transmasculine
-    "Q301702" : 5, # two spirit
-    "Q3277905" : 5, # third
-    "Q4233718" : 5, #annoymous
-    "Q43445" : 2, # female organism
-    "Q44148" : 1, # male organism
-    "Q48270" : 5, # non-binary
-    "Q499327" : 1, #masculine
-    "Q505371" : 5, # agender
-    "Q52261234" : 5, # neutral
-    "Q6581072" : 2, # female
-    "Q6581097" : 1, # male
-    "Q660882" : 5, # hijra third
-    "Q7130936" : 5, # pangender
-    "Q859614" : 5, # bigender
-    "somevalue": 5,
-}
+person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
+print('person data loaded')
 
 def prepare_person_numpy():
     """utility function for preparing person.npy"""
@@ -111,9 +47,9 @@ def prepare_person_numpy():
     print('gender map loaded')
     return person_set, gender_map
 
-person_set, gender_map = prepare_person_numpy()
-print(list(person_set)[:10])
-print(list(gender_map.items())[:10])
+# person_set, gender_map = prepare_person_numpy()
+# print(list(person_set)[:10])
+# print(list(gender_map.items())[:10])
     
 def process_file(args):
     filename, output_path, swap_titles, only_first_prn = args
@@ -132,7 +68,7 @@ def process_file(args):
                 g, p, title = row
                 # if gender is female or male
                 if 0 < g <= 2:
-                    print(json.dumps(add_pronoun(j, g, swap_titles, only_first_prn), ensure_ascii=False), file=fout)
+                    print(json.dumps(add_pronoun(j, g, swap_titles, only_first_prn), ensure_ascii=ENSURE_ASCII), file=fout)
                 else:
                     print(line.strip(), file=fout)
             return res
@@ -357,7 +293,7 @@ def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False,
     print(f'final stats: {c} have genders in {t}')
     with open('pronoun_run_res.jsonl', 'w') as fout:
         for res in stats:
-            print(json.dumps(res), file=fout)
+            print(json.dumps(res, ensure_ascii=ENSURE_ASCII), file=fout)
     entity_output_path = os.path.join(output_path, "entity_db/entity_mappings")
     print(f"Dumping entities to {entity_output_path}...")
     entity_dump.save(entity_output_path)

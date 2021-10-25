@@ -18,6 +18,7 @@ import ujson as json
 
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
+from bootleg_data_prep import language
 
 
 def parse_args():
@@ -27,7 +28,6 @@ def parse_args():
     parser.add_argument('--processes', type=int, default=int(0.8*multiprocessing.cpu_count()))
     parser.add_argument('--file_id_start', type=int, default=0, help="start file index to read of files for each folder; start idx 4 will start reading 4th file from dev and 4th from test")
     parser.add_argument('--file_id_end', type=int, default=-1, help="end file index to read (-1 for all) (exclusive)")
-    parser.add_argument('--multilingual', action = 'store_true', help = 'If set, will not do english-based language processing (e.g. stemming).')
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
 
     args = parser.parse_args()
@@ -70,7 +70,7 @@ def subprocess_gen_vocab_ints(all_args):
     vocab_words = set()
     with jsonlines.open(in_filepath, 'r') as in_file:
         for sent_idx, sent_obj in enumerate(in_file):
-            tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos = prep_utils.clean_sentence_to_tokens(sent_obj["sentence"], args.multilingual)
+            tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos = language.clean_sentence_to_tokens(sent_obj["sentence"])
             for t in tokens:
                 if t not in vocab_words:
                     vocab_words.add(t)

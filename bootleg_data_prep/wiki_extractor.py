@@ -61,6 +61,8 @@ import bz2
 import cgi
 import codecs
 import fileinput
+from threading import Thread
+
 import ujson as json
 import html
 import logging
@@ -73,10 +75,10 @@ from bs4 import BeautifulSoup
 from multiprocessing import Queue, Process, Value, cpu_count
 from timeit import default_timer
 
-from nltk.tokenize import sent_tokenize
-from nltk.tokenize import word_tokenize
+from bootleg_data_prep.language import *
 import jsonlines
 
+short_debug_items = 1000
 
 PY2 = sys.version_info[0] == 2
 # Python 2.7 compatibiity
@@ -749,7 +751,7 @@ class Extractor(object):
                 #     print("BADERROR")
                 #     print("TEXT", text)
                 #     print("SENT", sent)
-            except ValueError as e:
+            except BaseException as e:
                 end_idx += 1
                 continue
             sent = " ".join(word_tokenize(sent)) + " ."
@@ -806,7 +808,10 @@ class Extractor(object):
             # add the raw text back in
             # print("MID CURW", cur_w)
             # will sometimes have a # marking the section at the end of the title
-            title = undo_remove_punc_title_laurel(html.unescape(unquote(t.get("href")).split("#")[0].strip()))
+            try:
+                title = undo_remove_punc_title_laurel(html.unescape(unquote(t.get("href")).split("#")[0].strip()))
+            except BaseException as e:
+                continue
             # this requires that the templates are used and loaded
             if title in options.redirects:
                 title = options.redirects[title]
@@ -2983,7 +2988,7 @@ tagRE = re.compile(r'(.*?)<(/?\w+)[^>]*?>(?:([^<]*)(<.*?>)?)?')
 keyRE = re.compile(r'key="(\d*)"')
 catRE = re.compile(r'\[\[Category:([^\|]+).*\]\].*')  # capture the category name [[Category:Category name|Sortkey]]"
 
-def load_templates(file, output_file=None):
+def load_templates(file, output_file, short_debug):
     """
     Load templates from :param file:.
     :param output_file: file where to save templates and modules.
@@ -2993,7 +2998,7 @@ def load_templates(file, output_file=None):
 
     if output_file:
         output = codecs.open(output_file, 'wb', 'utf-8')
-    for page_count, page_data in enumerate(pages_from(file)):
+    for page_count, page_data in enumerate(pages_from(file, short_debug)):
         id, revid, title, ns,catSet, page = page_data
         if not output_file and (not options.templateNamespace or
                                 not options.moduleNamespace):  # do not know it yet
@@ -3021,6 +3026,8 @@ def load_templates(file, output_file=None):
                     output.write(line)
                 output.write('   </text>\n')
                 output.write('</page>\n')
+        if short_debug and page_count >= short_debug_items:
+            break
         if page_count and page_count % 100000 == 0:
             logging.info("Preprocessed %d pages", page_count)
     if output_file:
@@ -3028,7 +3035,7 @@ def load_templates(file, output_file=None):
         logging.info("Saved %d templates to '%s'", len(options.templates), output_file)
 
 
-def pages_from(input):
+def pages_from(input, short_debug):
     """
     Scans input extracting pages.
     :return: (id, revid, title, namespace key, page), page is a list of lines.
@@ -3043,7 +3050,9 @@ def pages_from(input):
     inText = False
     redirect = False
     title = None
-    for line in input:
+    for i, line in enumerate(input):
+        if short_debug and i > short_debug_items:
+            break
         if not isinstance(line, text_type): line = line.decode('utf-8')
         if '<' not in line:  # faster than doing re.search()
             if inText:
@@ -3099,7 +3108,7 @@ def pages_from(input):
 
 
 def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file_size, file_compress,
-                 process_count):
+                 process_count, short_debug):
     """
     :param input_file: name of the wikipedia dump file; '-' to read from stdin
     :param template_file: optional file with template definitions.
@@ -3152,14 +3161,14 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
                 # can't use with here:
                 file = fileinput.FileInput(template_file,
                                            openhook=fileinput.hook_compressed)
-                load_templates(file)
+                load_templates(file, None, short_debug)
                 file.close()
             else:
                 if input_file == '-':
                     # can't scan then reset stdin; must error w/ suggestion to specify template_file
                     raise ValueError("to use templates with stdin dump, must supply explicit template-file")
                 logging.info("Preprocessing '%s' to collect template definitions: this may take some time.", input_file)
-                load_templates(input, template_file)
+                load_templates(input, template_file, short_debug)
                 input.close()
                 input = fileinput.FileInput(input_file, openhook=fileinput.hook_compressed)
         template_load_elapsed = default_timer() - template_load_start
@@ -3173,7 +3182,7 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     # - pages to be processed are dispatched to workers
     # - a reduce process collects the results, sort them and print them.
 
-    process_count = max(1, process_count)
+    process_count = 1 if short_debug else max(1, process_count)
     maxsize = 10 * process_count
     # output queue
     output_queue = Queue(maxsize=maxsize)
@@ -3197,9 +3206,11 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     spool_length = Value('i', 0, lock=False)
 
     # reduce job that sorts and prints output
-    reduce = Process(target=reduce_process,
-                     args=(options, output_queue, spool_length,
-                           out_file, out_file2, file_size, file_compress))
+    if short_debug:
+        reduce = Thread(target=reduce_process, args=(options, output_queue, spool_length, out_file, out_file2, file_size, file_compress))
+    else:
+        reduce = Process(target=reduce_process, args=(options, output_queue, spool_length, out_file, out_file2, file_size, file_compress))
+    reduce.daemon = True  # only live while parent process lives
     reduce.start()
 
     # initialize jobs queue
@@ -3209,17 +3220,18 @@ def process_dump(input_file, id_ranges, template_file, out_file, out_file2, file
     logging.info("Using %d extract processes.", worker_count)
     workers = []
     for i in range(worker_count):
-        extractor = Process(target=extract_process,
-                            args=(options, i, jobs_queue, output_queue))
+        if short_debug:
+            extractor = Thread(target=extract_process, args=(options, i, jobs_queue, output_queue))
+        else:
+            extractor = Process(target=extract_process, args=(options, i, jobs_queue, output_queue))
         extractor.daemon = True  # only live while parent process lives
         extractor.start()
         workers.append(extractor)
 
     # Mapper process
     page_num = 0
-    for page_data in pages_from(input):
+    for page_data in pages_from(input, short_debug):
         id, revid, title, ns, catSet, page = page_data
-
         keep_page = True
         if start_id != -1:
             if start_id <= int(id) <= end_id:
@@ -3360,8 +3372,7 @@ def reduce_process(opts, output_queue, spool_length,
             # progress report
             if next_page % report_period == 0:
                 interval_rate = report_period / (default_timer() - interval_start)
-                logging.info("Extracted %d articles (%.1f art/s)",
-                             next_page, interval_rate)
+                logging.info("Extracted %d articles (%.1f articles/second)", next_page, interval_rate)
                 interval_start = default_timer()
         else:
             # mapper puts None to signal finish
@@ -3449,6 +3460,8 @@ def main():
                         help="suppress reporting progress info")
     groupS.add_argument("--debug", action="store_true",
                         help="print debug info")
+    groupS.add_argument("--short_debug", action="store_true",
+                        help=f"debug only {short_debug_items} pages")
     groupS.add_argument("-a", "--article", action="store_true",
                         help="analyze a file containing a single article (debug option)")
     groupS.add_argument("--log_file",
@@ -3528,10 +3541,10 @@ def main():
         if args.templates:
             if os.path.exists(args.templates):
                 with open(args.templates) as file:
-                    load_templates(file)
+                    load_templates(file, None, args.short_debug)
 
         file = fileinput.FileInput(input_file, openhook=fileinput.hook_compressed)
-        for page_data in pages_from(file):
+        for page_data in pages_from(file, args.short_debug):
             id, revid, title, ns,catSet, page = page_data
             Extractor(id, revid, title, page).extract(sys.stdout, sys.stdout)
         file.close()
@@ -3576,7 +3589,7 @@ def main():
             logging.info(str(len(options.filter_category_include)))
     st = time.time()
     process_dump(input_file, args.id_ranges, args.templates, output_path, output_path2, file_size,
-                 args.compress, args.processes)
+                 args.compress, args.processes, args.short_debug)
     print(f"Final end time {time.time() - st}s")
 
 def createLogger(quiet, debug, log_file):

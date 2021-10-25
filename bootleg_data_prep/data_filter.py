@@ -17,6 +17,8 @@ python3.6 -m contextual_embeddings.bootleg_data_prep.data_filter --max_candidate
 '''
 import argparse
 import collections
+from pathlib import Path
+
 import ujson as json
 import multiprocessing
 import os
@@ -28,11 +30,13 @@ from tqdm import tqdm
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 # DO NOT REMOVE THIS IMPORT STATEMENT
-import bootleg_data_prep.utils.my_filter_funcs as my_filter_funcs
 # DO NOT REMOVE THIS NEXT LINE
+from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
-FILTER_FILE = "my_filter_funcs"
+FILTER_FILE = "my_filter_funcs.py"
+FILTER_FILE_ABS_PATH = str(Path.joinpath(Path(__file__).resolve().parent, 'utils', FILTER_FILE))
+exec(open(FILTER_FILE_ABS_PATH).read())  # AKA include/import the file
 
 def parse_args():
     parser = argparse.ArgumentParser()
@@ -71,7 +75,7 @@ def init_process(args):
 def launch_subprocess_step1(args, out_dir, in_files):
     extras = {}
     if args.prep_func != "":
-        extras = eval("{:s}.{:s}(args)".format(FILTER_FILE, args.prep_func))
+        extras = eval(f'{args.prep_func}(args)')
     extras_f = os.path.join(out_dir, "extras.pkl")
     utils.dump_pickle_file(extras_f, extras)
 
@@ -120,13 +124,13 @@ def subprocess_step1(all_args):
                     # Filter out sentences with invalid spans
                     if int(spans[-1][0]) >= len(text.split()):
                         continue 
-                if eval("{:s}.{:s}(args, aliases, qids, parent_qid, text, extras_global)".format(FILTER_FILE, args.sentence_filter_func)):
+                if eval(f'{args.sentence_filter_func}(args, aliases, qids, parent_qid, text, extras_global)'):
                     stats["filtered_func"] += 1
                     continue
                 all_qids.update(set(qids))
                 sentence["parent_qid"] = parent_qid
                 sentence["parent_title"] = title
-                out_file.write(json.dumps(sentence, ensure_ascii=False) + '\n')
+                out_file.write(json.dumps(sentence, ensure_ascii=ENSURE_ASCII) + '\n')
     out_file.close()
     print(f"Finished {i}/{total}. {len(all_qids)} number qids. Written to {out_fname}. {time.time() - start} seconds.")
     return all_qids
@@ -211,7 +215,7 @@ def launch_subprocess_step2(args, out_dir, out_dir_stats, entity_symbols, files)
                                qid2title_f,
                                alias2qids_f
                                ]) for i in range(len(files))]
-    pool = multiprocessing.Pool(processes=args.processes)
+    pool = multiprocessing.Pool(processes=args.processes // 4)  # this can be optimized better ... but the memory consumption at this stage is very high
     list_of_stats = pool.map(subprocess_step2, all_process_args, chunksize=1)
     stats = prep_utils.aggregate_list_of_dictionaries(list_of_stats)
     pool.close()
@@ -252,12 +256,13 @@ def subprocess_step2(all_args):
             sent_obj['unswap_aliases'] = sent_obj.get('unswap_aliases', sent_obj['aliases'])
             sent_obj['sources'] = sent_obj.get('sources', ['gold' for _ in range(len(sent_obj['aliases']))])
             items = list(filter(lambda x: (not args.train_in_candidates) or (x[2] in [y[0] for y in alias2qids[x[0]]]),
-                                zip(sent_obj['aliases'], sent_obj['unswap_aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'], sent_obj["sources"])))
+                                zip(sent_obj['aliases'], sent_obj.get("unswap_aliases", sent_obj["aliases"]), sent_obj['qids'],
+                                    sent_obj['spans'], sent_obj['gold'], sent_obj.get("souces", ["gold" for i in range(len(sent_obj["aliases"]))]))))
             temp_len = len(items)
             for x in items:
                 if x[2] not in qid2title:
                     print("BAD", x)
-                    print(json.dumps(sent_obj, indent=4, ensure_ascii=False))
+                    print(json.dumps(sent_obj, indent=4, ensure_ascii=ENSURE_ASCII))
             items = list(filter(lambda x: x[2] in qid2title, items))
             # there should be no difference between these
             assert temp_len - len(items) == 0
@@ -275,7 +280,7 @@ def subprocess_step2(all_args):
                 new_sent_obj['spans'] = spans
                 new_sent_obj['gold'] = golds
                 new_sent_obj['sources'] = sources
-                out_file.write(json.dumps(new_sent_obj) + '\n')
+                out_file.write(json.dumps(new_sent_obj, ensure_ascii=ENSURE_ASCII) + '\n')
                 statistics['total_preserved'] += len(qids)
                 # Update stats
                 for alias, qid, gold in zip(aliases, qids, golds):

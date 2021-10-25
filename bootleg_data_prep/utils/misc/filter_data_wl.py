@@ -25,6 +25,7 @@ import glob
 
 from tqdm import tqdm
 
+from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils import utils
 
 
@@ -114,14 +115,18 @@ def filter_data_hlp(args):
             line["spans"] = new_spans
             line["gold"] = new_golds
             line["slices"] = new_slices
+<<<<<<< HEAD
             f_out.write(ujson.dumps(line, ensure_ascii=False) + "\n")
+=======
+            f_out.write(ujson.dumps(line, ensure_ascii=ENSURE_ASCII) + "\n")
+>>>>>>> 056990ba2eea64dcd3fe1760a19f4636bf65fd4f
 
 
 def main():
     gl_start = time.time()
     multiprocessing.set_start_method("spawn")
     args = get_arg_parser().parse_args()
-    print(json.dumps(vars(args), indent=4))
+    print(json.dumps(vars(args), ensure_ascii=ENSURE_ASCII, indent=4))
     utils.ensure_dir(args.data_dir)
 
     out_dir = os.path.join(args.data_dir, args.out_subdir)

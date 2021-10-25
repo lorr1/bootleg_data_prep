@@ -28,6 +28,7 @@ from tqdm import tqdm
 
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
+from bootleg_data_prep import language
 from bootleg_data_prep.utils.constants import TYPEWORDS, RELATIONWORDS, VOCABFILE, VOCAB
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 import bootleg_data_prep.utils.entity_symbols_for_signals as esfs
@@ -49,15 +50,14 @@ def parse_args():
     parser.add_argument('--max_types', type=int, default=3)
     parser.add_argument('--max_types_rel', type=int, default=50)
     parser.add_argument('--max_relations', type=int, default=150) # 90th percentile was 138
-    parser.add_argument('--kg_adj', type=str, default='kg_adj_092921.txt')
-    parser.add_argument('--kg_triples', type=str, default='kg_triples_092921.json')
+    parser.add_argument('--kg_adj', type=str, default='kg_adj_1229.txt')
+    parser.add_argument('--kg_triples', type=str, default='kg_triples_1229.json')
     parser.add_argument('--hy_vocab', type=str, default='hyena_vocab.json')
-    parser.add_argument('--hy_types', type=str, default='hyena_types_092921.json')
-    parser.add_argument('--wd_vocab', type=str, default='wikidatatitle_to_typeid_092921.json')
-    parser.add_argument('--wd_types', type=str, default='wikidata_types_092921.json')
-    parser.add_argument('--rel_vocab', type=str, default='relation_to_typeid_092921.json')
-    parser.add_argument('--rel_types', type=str, default='kg_relation_types_092921.json')
-    parser.add_argument('--multilingual', action = 'store_true', help = 'If set, will not do english-based language processing (e.g. stemming).')
+    parser.add_argument('--hy_types', type=str, default='hyena_types_1229.json')
+    parser.add_argument('--wd_vocab', type=str, default='wikidatatitle_to_typeid_1229.json')
+    parser.add_argument('--wd_types', type=str, default='wikidata_types_1229.json')
+    parser.add_argument('--rel_vocab', type=str, default='relation_to_typeid_1229.json')
+    parser.add_argument('--rel_types', type=str, default='kg_relation_types_1229.json')
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
 
     args = parser.parse_args()
@@ -147,7 +147,7 @@ def subprocess_translate_to_ints(all_args):
     print(f"Starting {idx}/{total}. Reading in {in_filepath}. Ouputting to {out_filepath}")
     with jsonlines.open(in_filepath, 'r') as in_file, jsonlines.open(out_filepath, "w") as out_file:
         for sent_idx, sent_obj in enumerate(in_file):
-            tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos = prep_utils.clean_sentence_to_tokens(sent_obj["sentence"], args.multilingual, skip_verbs=True)
+            tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos = language.clean_sentence_to_tokens(sent_obj["sentence"], skip_verbs=True)
             allowed_comma_pos = prep_utils.extract_allowed_comma_positions(sent_obj["sentence"])
             # print(sent_obj["sentence"])
             # print(tokens)

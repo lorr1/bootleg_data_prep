@@ -8,14 +8,16 @@ from collections import defaultdict
 
 from tqdm import tqdm
 
+from bootleg_data_prep.language import ENSURE_ASCII
+
 
 def get_arg_parser():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--pid_file', type = str, default = 'utils/param_files/pid_names.json', help = 'path to pid file')
-    parser.add_argument('--kg_triples', type = str, default = '', help = 'path to kg_triples.json')
-    parser.add_argument('--type_file', type = str, default = '', help = 'path to types.json')
-    parser.add_argument('--output_file', type = str, default = '', help = 'path to output file')
-    parser.add_argument('--output_vocab_file', type = str, default = '', help = 'path to output vocab file')
+    parser.add_argument('--pid_file', type=str, default='utils/param_files/pid_names_en.json', help='path to pid file')
+    parser.add_argument('--kg_triples', type=str, default='', help='path to kg_triples.json')
+    parser.add_argument('--type_file', type=str, default='', help='path to types.json')
+    parser.add_argument('--output_file', type=str, default='', help='path to output file')
+    parser.add_argument('--output_vocab_file', type=str, default='', help='path to output vocab file')
     return parser
 
 def main():
@@ -67,11 +69,11 @@ def main():
         final_qid2type[qid] = types
 
 
-    json.dump(final_qid2type, out_file)
+    json.dump(final_qid2type, out_file, ensure_ascii=ENSURE_ASCII)
 
     out_file.close()
     with open(args.output_vocab_file, "w") as out_f:
-        json.dump(rel_ids, out_f)
+        json.dump(rel_ids, out_f, ensure_ascii=ENSURE_ASCII)
 
     print("Max number of relation types per qid", max_len)
 

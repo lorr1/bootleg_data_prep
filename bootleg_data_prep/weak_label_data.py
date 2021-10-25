@@ -12,8 +12,9 @@ import ujson
 from tqdm import tqdm
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
+from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
-from bootleg_data_prep.utils import utils, weak_label_funcs
+from bootleg_data_prep.utils import utils
 from bootleg_data_prep.utils.classes.record_trie_collection import RecordTrieCollection
 from bootleg_data_prep.utils.weak_label_funcs import wl_func
 
@@ -131,7 +132,7 @@ class WLMetadata:
         self.tri_collection_aliases.dump(save_dir=self.get_alias_tri_dir(dump_dir))
         self.tri_collection_aliases_wd.dump(save_dir=self.get_alias_tri_wd_dir(dump_dir))
         with open(self.get_qid2title_file(dump_dir), "w") as out_f:
-            ujson.dump(self.qid2title, out_f, ensure_ascii=False)
+            ujson.dump(self.qid2title, out_f, ensure_ascii=ENSURE_ASCII)
 
     @classmethod
     def load(cls, dump_dir):
@@ -348,12 +349,12 @@ def subprocess(all_args):
                         filtered_qid_counts[source][qid] += 1
                         filtered_aliases_to_qid_count[source][alias][qid] += 1
             doc['sentences'] = new_sentences
-            out_file.write(ujson.dumps(doc, ensure_ascii=False) + '\n')
+            out_file.write(ujson.dumps(doc, ensure_ascii=ENSURE_ASCII) + '\n')
     out_file.close()
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_alias_to_qid_count_{idx}.json"), filtered_aliases_to_qid_count)
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_qid_counts_{idx}.json"), filtered_qid_counts)
     print(f"Finished {idx}/{total}. Written to {out_fname}. {time.time() - start_time} seconds.")
-    print(ujson.dumps(added_alias, indent=4))
+    print(ujson.dumps(added_alias, indent=4, ensure_ascii=ENSURE_ASCII))
     return no_qid
 
 
@@ -510,7 +511,7 @@ def main():
     utils.dump_json_file(os.path.join(outdir, "filtered_qid_count.json"), filtered_qid_count)
     utils.dump_json_file(os.path.join(outdir, "filtered_aliases_to_qid_count.json"), filtered_aliases_to_qid)
     with open(os.path.join(outdir, "docs_not_qids.json"), "w") as out_f:
-        ujson.dump(docs_not_qid, out_f, ensure_ascii=False)
+        ujson.dump(docs_not_qid, out_f, ensure_ascii=ENSURE_ASCII)
 
     if entity_dump is None:
         print(f"Reading in entity dump...")

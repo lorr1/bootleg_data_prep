@@ -18,6 +18,7 @@ import glob
 import os
 import shutil
 import sys
+import threading
 import time
 from html import escape, unescape
 from collections import defaultdict
@@ -30,8 +31,10 @@ from tqdm import tqdm
 
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
+from bootleg_data_prep.language import get_lnrm, ENSURE_ASCII
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
+debug_mode = False
 
 # RAIDERS 8: python3 -m contextual_embeddings.bootleg_data_prep.remove_bad_aliases --sentence_dir /lfs/raiders10/0/lorr1/sentences_copy --title_to_qid /lfs/raiders8/0/lorr1/title_to_all_ids.jsonl
 def parse_args():
@@ -64,35 +67,47 @@ def launch_subprocess(args, outdir, temp_outdir, alias_qid_from_curate, title_to
     print(f"Memory of title_to_qid {sys.getsizeof(title_to_qid)/1024**3}")
 
     process_count = max(1, args.processes)
-    maxsize = 10 * process_count
+    maxsize = 10 * process_count if not debug_mode else 10
 
     # initialize jobs queue
     jobs_queue = Queue(maxsize=maxsize)
     print("After job_queue")
-    # start worker processes
-    workers = []
-    for i in range(process_count):
-        extractor = Process(target=extract_process,
-                            args=(i, jobs_queue, len(files), args, outdir,
-                                  temp_outdir, alias_qid_from_curate, title_to_qid,
-                                  disambig_qids))
-        extractor.daemon = True  # only live while parent process lives
-        extractor.start()
-        workers.append(extractor)
-    print("Mapper processes")
-    # Mapper process
-    for file_num, file in enumerate(files):
-        job = (file_num, file)
-        print(f"Mapper processes putting {file_num}")
-        jobs_queue.put(job)  # goes to any available extract_process
 
-    # signal termination
-    for _ in workers:
+    if debug_mode:
+        thread = threading.Thread(target=extract_process, args=(0, jobs_queue, len(files), args, outdir,
+                                                    temp_outdir, alias_qid_from_curate, title_to_qid,
+                                                    disambig_qids))
+        thread.start()
+        for file_num, file in enumerate(files):
+            job = (file_num, file)
+            print(f"Mapper processes putting {file_num}")
+            jobs_queue.put(job)  # goes to any available extract_process
         jobs_queue.put(None)
-    # wait for workers to terminate
-    for w in workers:
-        w.join()
-    return
+        thread.join()
+    else:
+        # start worker processes
+        workers = []
+        for i in range(process_count):
+            extractor = Process(target=extract_process,
+                                args=(i, jobs_queue, len(files), args, outdir,
+                                      temp_outdir, alias_qid_from_curate, title_to_qid,
+                                      disambig_qids))
+            extractor.daemon = True  # only live while parent process lives
+            extractor.start()
+            workers.append(extractor)
+        print("Mapper processes")
+        # Mapper process
+        for file_num, file in enumerate(files):
+            job = (file_num, file)
+            print(f"Mapper processes putting {file_num}")
+            jobs_queue.put(job)  # goes to any available extract_process
+
+        # signal termination
+        for _ in workers:
+            jobs_queue.put(None)
+        # wait for workers to terminate
+        for w in workers:
+            w.join()
 
 def extract_process(j, jobs_queue, len_files, args, outdir, temp_outdir, alias_qid_from_curate, title_to_qid, disambig_qids):
     print(f"Starting worker extractor {j}")
@@ -181,7 +196,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                         discarded_counts['no_qid'] += 1
                         discarded_values['no_qid'][alias][title] += 1
                         continue
-                    alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                    alias = get_lnrm(alias, args.strip, args.lower)
                     if len(alias) <= 0:
                         discarded_counts['len_zero_alias'] += 1
                         discarded_values['len_zero_alias'][alias][title] += 1
@@ -216,18 +231,18 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                     filtered_aliases_to_qid_count[alias][qid] += 1
                     filtered_qid_count[qid] += 1
                 new_doc['sentences'].append(new_sent)
-            out_file.write(json.dumps(new_doc, ensure_ascii=False) + '\n')
+            out_file.write(json.dumps(new_doc, ensure_ascii=ENSURE_ASCII) + '\n')
     out_file.close()
     sum_discarded_counts = sum(discarded_counts.values())
     print(f"Finished {i}/{len_files}. Written to {out_fname}. {time.time() - start} seconds.\n"
           f"Entities kept: {len(entities_kept)}.\n"
           f"Page Ids Seen: {len(wiki_page_qids)}.\n"
-          f"Aliases kept: {total_kept} ({total_kept / (total_kept + sum_discarded_counts)}%)\n"
+          f"Aliases kept: {total_kept} ({(total_kept / (total_kept + sum_discarded_counts)) if total_kept + sum_discarded_counts else 0}%)\n"
           f"Discarded: {json.dumps(discarded_counts, indent=4)}."
     )
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_aliases_to_qid_count_{i}.json"), filtered_aliases_to_qid_count)
     utils.dump_json_file(os.path.join(temp_outdir, f"filtered_qid_count_{i}.json"), filtered_qid_count)
-    utils.dump_json_file(os.path.join(temp_outdir, f"wiki_page_qids_{i}.json"), wiki_page_qids)
+    utils.dump_json_file(os.path.join(temp_outdir, f"wiki_page_qids_{i}.json"), list(wiki_page_qids))
     utils.dump_json_file(os.path.join(temp_outdir, f"discarded_counts_{i}.json"), discarded_counts)
     utils.dump_json_file(os.path.join(temp_outdir, f"discarded_values_{i}.json"), discarded_values)
     return
@@ -353,7 +368,7 @@ def main():
     utils.dump_json_file(os.path.join(outdir, "discarded_bad_aliases.json"), discarded_values_stats)
     utils.dump_json_file(os.path.join(outdir, "alias_to_qid_count.json"), alias_to_qid_count)
     utils.dump_json_file(os.path.join(outdir, "qid_counts.json"), qid_counts)
-    utils.dump_json_file(os.path.join(outdir, "wiki_page_qids.json"), wiki_page_qids)
+    utils.dump_json_file(os.path.join(outdir, "wiki_page_qids.json"), list(wiki_page_qids))
     prep_utils.save_config(args, "remove_bad_aliases_config.json")
     print(f"Finished remove_bad_aliases in {time.time() - gl_start} seconds.")
 

@@ -1,26 +1,8 @@
 import collections
-import itertools
-
-import marisa_trie
-import numpy as np
-import torch
-from nltk.corpus import stopwords
-from nltk.stem import PorterStemmer
-from itertools import combinations
 from collections import defaultdict
-import string
 
-import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.utils.constants import TAILONLY, TORSOONLY, \
     HEADONLY, TOESONLY
-
-PUNC = string.punctuation
-STOPWORDS = set(stopwords.words('english'))
-STOPWORDS.add("also")
-# Often left dangling in the sentence due to word splitting
-STOPWORDS.add("s")
-
-ps = PorterStemmer()
 
 def format_relation_pair(head, tail):
     return f"{head}_{tail}"

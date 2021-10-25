@@ -1,17 +1,15 @@
 '''
 Useful functions
 '''
-import copy
-from importlib import import_module
 from itertools import islice, chain
 
 import ujson
 import json # we need this for dumping nans
-import logging
 import os
 import pickle
 import sys
-import torch
+
+from bootleg_data_prep.language import ENSURE_ASCII
 
 
 def ensure_dir(d):
@@ -24,11 +22,11 @@ def exists_dir(d):
 def dump_json_file(filename, contents):
     with open(filename, 'w') as f:
         try:
-            ujson.dump(contents, f, ensure_ascii=False)
+            ujson.dump(contents, f, ensure_ascii=ENSURE_ASCII)
         except OverflowError:
-            json.dump(contents, f, ensure_ascii=False)
+            json.dump(contents, f, ensure_ascii=ENSURE_ASCII)
         except TypeError:
-            json.dump(contents, f, ensure_ascii=False)
+            json.dump(contents, f, ensure_ascii=ENSURE_ASCII)
 
 def load_json_file(filename):
     with open(filename, 'r') as f:

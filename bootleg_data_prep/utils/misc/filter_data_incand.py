@@ -25,6 +25,7 @@ import glob
 
 from tqdm import tqdm
 
+from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils import utils
 
 
@@ -125,7 +126,11 @@ def filter_data_hlp(args):
             line["spans"] = new_spans
             line["gold"] = new_golds
             line["slices"] = new_slices
+<<<<<<< HEAD
             f_out.write(ujson.dumps(line, ensure_ascii=False) + "\n")
+=======
+            f_out.write(ujson.dumps(line, ensure_ascii=ENSURE_ASCII) + "\n")
+>>>>>>> 056990ba2eea64dcd3fe1760a19f4636bf65fd4f
 
 
 def main():

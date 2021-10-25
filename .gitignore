@@ -118,3 +118,8 @@ venv.bak/
 *.tsv
 *.7z
 .DS_Store
+/hebrew_tokenizer/__init__.py
+/hebrew_tokenizer/api.py
+/hebrew_tokenizer/groups.py
+/hebrew_tokenizer/lexicon.py
+/hebrew_tokenizer/tokenizer.py

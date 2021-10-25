@@ -11,23 +11,10 @@ import ujson as json
 from collections import defaultdict
 from datetime import datetime
 import os
-from nltk.corpus import stopwords
-import nltk
-from nltk import PorterStemmer
-import string
-import unicodedata
 
+from bootleg_data_prep.language import stem, pos_tag, bigrams, PUNC_TRANSLATION_TABLE, VERBS, EXTENDED_STOPWORDS, NOUNS, WORDS_TO_AVOID, get_lnrm
 from bootleg_data_prep.utils import utils
 
-PUNC = string.punctuation
-STOPWORDS = set(stopwords.words('english'))
-STOPWORDS.add("also")
-# Often left dangling in the sentence due to word splitting
-STOPWORDS.add("s")
-VERBS = set(['VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'])
-TABLE = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
-
-ps = PorterStemmer()
 
 def print_memory():
     process = psutil.Process(os.getpid())
@@ -145,33 +132,6 @@ def get_outdir(save_dir, subfolder, remove_old=False):
     os.makedirs(out_dir, exist_ok=True)
     return out_dir
 
-def ngrams(words, n):
-    return [ words[i:i+n] for i in range(len(words)-n+1) ]
-
-def get_lnrm(s, strip, lower):
-    """Convert a string to its lnrm form
-    We form the lower-cased normalized version l(s) of a string s by canonicalizing
-    its UTF-8 characters, eliminating diacritics, lower-casing the UTF-8 and
-    throwing out all ASCII-range characters that are not alpha-numeric.
-    from http://nlp.stanford.edu/pubs/subctackbp.pdf Section 2.3
-    Args:
-        input string
-    Returns:
-        the lnrm form of the string
-    """
-    if not strip and not lower:
-        return s
-    lnrm = str(s)
-    if lower:
-        lnrm = lnrm.lower()
-    if strip:
-        lnrm = unicodedata.normalize('NFD', lnrm)
-        lnrm = ''.join([x for x in lnrm if (not unicodedata.combining(x)
-                                            and x.isalnum() or x == ' ')]).strip()
-    # will remove if there are any duplicate white spaces e.g. "the  alias    is here"
-    lnrm = " ".join(lnrm.split())
-    return lnrm
-
 
 # If we find any alias in aliases that is a strict supset of an alias in superset_aliases, we remove it
 # Ex:
@@ -212,64 +172,6 @@ def filter_superset_aliases(aliases, spans, superset_aliases, superset_spans):
         aliases_to_keep.append(aliases[idx])
         spans_to_keep.append([spans_l[idx], spans_r[idx]])
     return aliases_to_keep, spans_to_keep
-
-def clean_sentence_to_tokens_multilingual(sentence):
-    sentence_split = sentence.strip().split(' ')
-    # Remove PUNC from string
-    tokens = []
-    tokens_pos = []
-    for i, word in enumerate(sentence_split):
-        word = word.translate(TABLE)
-        if len(word.strip()) > 0:
-            tokens.append(word)
-            tokens_pos.append(i)
-    verb_unigrams = []
-    verb_unigrams_pos = []
-    verb_bigrams = []
-    verb_bigrams_pos = []
-    return tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos
-
-def clean_sentence_to_tokens_en(sentence, skip_verbs=True):
-    sentence_split = sentence.strip().split(' ')
-    # Remove PUNC from string
-    tokens = []
-    tokens_pos = []
-    for i, word in enumerate(sentence_split):
-        word = word.translate(TABLE)
-        if len(word.strip()) > 0:
-            tokens.append(word)
-            tokens_pos.append(i)
-    # Unigrams for verb_tokens
-    verb_unigrams = []
-    verb_unigrams_pos = []
-    # Collect bigrams containing verb
-    verb_bigrams = []
-    verb_bigrams_pos = []
-    if not skip_verbs:
-        for i, t in zip(tokens_pos, nltk.pos_tag(tokens)):
-            if (t[0].lower() not in STOPWORDS) and t[1] in VERBS:
-                verb_unigrams.append(ps.stem(t[0].lower()))
-                verb_unigrams_pos.append(i)
-        for i, t_pair in zip(tokens_pos, nltk.bigrams(nltk.pos_tag(tokens))):
-            pair_l, pair_r = t_pair
-            if (pair_l[1] in VERBS or pair_r[1] in VERBS) and (pair_l[0].lower() not in STOPWORDS) and (pair_r[0].lower() not in STOPWORDS):
-                verb_bigrams.append(" ".join([ps.stem(pair_l[0].lower()), ps.stem(pair_r[0].lower())]))
-                verb_bigrams_pos.append(i)
-    final_tokens = []
-    final_tokens_pos = []
-    for i, t in zip(tokens_pos, tokens):
-        if (t.lower() not in STOPWORDS):
-            final_tokens.append(ps.stem(t.lower()))
-            final_tokens_pos.append(i)
-    # tokens = [ps.stem(t.lower()) for t in sentence.split(' ') if len(t.strip()) > 0 and (t.lower() not in STOPWORDS)]
-    return final_tokens, final_tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos
-
-def clean_sentence_to_tokens(sentence, is_multilingual, skip_verbs=True):
-    if not is_multilingual:
-        return clean_sentence_to_tokens_en(sentence, skip_verbs)
-    else:
-        return clean_sentence_to_tokens_multilingual(sentence)
-
 
 # Given a sequence of [a, b, c, ...] with positions in sentence [0, 2, 4, ...]. Filter the sequence so that only items with postition pos
 # such that if L = spans[0]-threshold, R = spans[1]+threshold, then L <= pos and pos < R
@@ -342,18 +244,20 @@ def create_trie(vocab, out_file = ""):
         trie.save(out_file)
     return trie
 
+def ngrams(words, n):
+    return [ words[i:i+n] for i in range(len(words)-n+1) ]
+
 def find_aliases_in_sentence_tag(sentence, all_aliases, max_alias_len, special_tag = "|||"):
     if len(all_aliases) == 0:
         return [], []
-    words_to_avoid = ["the", "a", "in", "of", "for", "at", "to", "with", "on", "from", special_tag]
-    table = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
     used_aliases = []
+    words_to_avoid = WORDS_TO_AVOID
+    words_to_avoid.append(special_tag)
     sentence_split_raw = sentence.split()
-    tags = nltk.pos_tag(sentence_split_raw)
-    NOUNS = ["NN", "NNS", "NNP", "NNPS", "PRP"]
+    tags = pos_tag(sentence_split_raw)
     # find largest aliases first
     for n in range(max_alias_len+1, 0, -1):
-        grams = nltk.ngrams(tags, n)
+        grams = ngrams(tags, n)
         j_st = -1
         j_end = n-1
         for gram in grams:
@@ -369,8 +273,8 @@ def find_aliases_in_sentence_tag(sentence, all_aliases, max_alias_len, special_t
                 continue
             # If gram starts with stop word, move on because we'd rather try the one without
             # We also don't want punctuation words to be used at the beginning/end
-            if gram_words[0] in words_to_avoid or gram_words[-1] in words_to_avoid or len(gram_words[0].translate(table).strip()) == 0\
-                    or len(gram_words[-1].translate(table).strip()) == 0:
+            if gram_words[0] in words_to_avoid or gram_words[-1] in words_to_avoid or len(gram_words[0].translate(PUNC_TRANSLATION_TABLE).strip()) == 0\
+                    or len(gram_words[-1].translate(PUNC_TRANSLATION_TABLE).strip()) == 0:
                 continue
             gram_attempt = get_lnrm(" ".join(gram_words), strip=True, lower=True)
             # print("NOLRNSM", " ".join(gram_words), "-- GA", gram_attempt, j_st, "to", j_end, "-- in aliases --", gram_attempt in all_aliases)

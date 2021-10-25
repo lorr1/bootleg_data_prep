@@ -5,6 +5,7 @@ import marisa_trie
 import ujson, os
 
 from bootleg_data_prep.data_filter import filter_entity_symbols
+from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
 
 
@@ -33,7 +34,7 @@ class EntitySymbolsSubclass(EntitySymbols):
 def write_data_to_file(filename, data):
     with open(filename, "w") as out_f:
         for json_data in data:
-            out_f.write(ujson.dump(data) + "\n")
+            out_f.write(ujson.dump(data, ensure_ascii=ENSURE_ASCII) + "\n")
     return
 
 

@@ -26,6 +26,7 @@ import glob
 
 from tqdm import tqdm
 
+from bootleg_data_prep.language import get_lnrm
 from bootleg_data_prep.utils import utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 
@@ -37,8 +38,7 @@ def get_arg_parser():
     parser.add_argument('--data_dir', type=str, default='data/wiki_dump', help='Where files saved')
     parser.add_argument('--out_subdir', type=str, default='curate_aliases', help='Where files saved')
     parser.add_argument('--title_to_qid', type=str, default='/lfs/raiders10/0/lorr1/title_to_all_ids.jsonl')
-    parser.add_argument('--wd_aliases', type=str, default='/lfs/raiders10/0/lorr1/augmented_alias_map_large_uncased_1216.jsonl',
-                        help='Path to directory with JSONL mapping alias to QID')
+    parser.add_argument('--wd_aliases', type=str, default=None, help='Path to directory with JSONL mapping alias to QID')
     parser.add_argument('--min_frequency', type=int, default=4, help='Minimum number of times a QID must appear with an alias')
     parser.add_argument('--strip', action='store_true', help='If set, will strip punctuation of aliases.')
     parser.add_argument('--lower', action='store_true', help='If set, will lower case all aliases.')
@@ -79,11 +79,11 @@ def subprocess(all_args):
     with jsonlines.open(in_filepath, 'r') as in_file:
         for page_obj in in_file:
             for alias in page_obj.get("bold_aliases", []):
-                alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                alias = get_lnrm(alias, args.strip, args.lower)
                 if len(alias) > 0:
                     boldaliases_to_title[alias][page_obj["page_title"]] += 1
             for alias in page_obj.get("acronym_aliases", []):
-                alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                alias = get_lnrm(alias, args.strip, args.lower)
                 if len(alias) > 0:
                     acronymaliases_to_title[alias][page_obj["page_title"]] += 1
             # aliases is a list of sentences with aliases, their gold wikipedia page title, the text, and spans
@@ -91,7 +91,7 @@ def subprocess(all_args):
                 pairs = zip(sentence["aliases"], sentence["titles"])
                 for alias, title in pairs:
                     # normalize alias
-                    alias = prep_utils.get_lnrm(alias, args.strip, args.lower)
+                    alias = get_lnrm(alias, args.strip, args.lower)
                     if len(alias) > 0:
                         aliases_to_title[alias][title] += 1
     utils.dump_json_file(outfilename, aliases_to_title)
@@ -159,7 +159,7 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
     # we increment the count here to represent that each page links to itself; as we compute counts later, this is just for sorting
     for qid in qid_to_all_titles:
         for title in qid_to_all_titles[qid]:
-            alias = prep_utils.get_lnrm(title, args.strip, args.lower)
+            alias = get_lnrm(title, args.strip, args.lower)
             if len(alias) > 0:
                 filtered_aliasqid[alias][qid] += 1
                 filtered_qids[qid] += 1
@@ -185,7 +185,8 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
     total_aliases_discarded = sum([len(al_keys) for al_keys in temp_alias_dict])
     vars(args)["total_unpopular_aliase_title_pairs_discarded"] = total_aliases_discarded
     print(f"{total_aliases_discarded} total alias-title discarded from freq.")
-    total_titles_discarded = len(set.union(*temp_alias_dict)) if len(temp_alias_dict) > 0 else 0
+    keys = [set(alias_dict.keys()) for alias_dict in unpopular_removed.values()]
+    total_titles_discarded = len(set.union(*keys)) if keys else 0
     vars(args)["total_unpopular_titles_discarded"] = total_titles_discarded
     print(f"{total_aliases_discarded} total titles discarded from freq.")
     return filtered_aliasqid, filtered_qids, qid_unavailable, unpopular_removed
@@ -200,7 +201,7 @@ def merge_wikidata_aliases(args, aliases_to_qid, all_qids, wikidata_alias_to_qid
     stats = defaultdict(int)
     new_qids_from_wikidata = set()
     for wd_alias, qids in tqdm(wikidata_alias_to_qid.items()):
-        wd_alias = prep_utils.get_lnrm(wd_alias, args.strip, args.lower)
+        wd_alias = get_lnrm(wd_alias, args.strip, args.lower)
         if len(wd_alias) <= 0:
             continue
         if wd_alias in aliases_to_qid:
@@ -221,7 +222,7 @@ def merge_wikidata_aliases(args, aliases_to_qid, all_qids, wikidata_alias_to_qid
     vars(args)["number_added_qids_wikidata"] = stats['number_added_qids']
     vars(args)["number_added_aliases_wikidata"] = stats['number_added_aliases']
     vars(args)["number_added_qids_wikidata"] = len(new_qids_from_wikidata)
-    return aliases_to_qid, new_qids_from_wikidata
+    return aliases_to_qid, list(new_qids_from_wikidata)
 
 
 def main():
@@ -273,7 +274,7 @@ def main():
 
     # load wikidata aliases; each line is json if alias: qid value
     wikidata_alias_to_qid = {}
-    if args.wd_aliases != "":
+    if args.wd_aliases:
         with jsonlines.open(args.wd_aliases) as in_f:
             for line in in_f:
                 for k in line:

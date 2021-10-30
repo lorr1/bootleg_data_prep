@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.language import ENSURE_ASCII
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
 from bootleg_data_prep.utils import utils
 from bootleg_data_prep.utils.classes.record_trie_collection import RecordTrieCollection
 from bootleg_data_prep.utils.weak_label_funcs import wl_func

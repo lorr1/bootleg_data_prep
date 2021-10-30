@@ -24,7 +24,7 @@ import argparse
 import time
 from collections import defaultdict
 
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
 from bootleg_data_prep.benchmarks.candidate_generators import Standard, Contextual, AIDACand
 from bootleg_data_prep.utils import utils
 

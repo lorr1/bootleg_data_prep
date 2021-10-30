@@ -32,7 +32,7 @@ import bootleg_data_prep.utils.data_prep_utils as prep_utils
 # DO NOT REMOVE THIS IMPORT STATEMENT
 # DO NOT REMOVE THIS NEXT LINE
 from bootleg_data_prep.language import ENSURE_ASCII
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
 
 FILTER_FILE = "my_filter_funcs.py"
 FILTER_FILE_ABS_PATH = str(Path.joinpath(Path(__file__).resolve().parent, 'utils', FILTER_FILE))

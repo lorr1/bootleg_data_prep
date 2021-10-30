@@ -40,7 +40,7 @@ import argparse
 from nltk.tokenize import word_tokenize
 from tqdm import tqdm
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
 from bootleg_data_prep.utils import utils
 
 TITLE_KEY = "t"

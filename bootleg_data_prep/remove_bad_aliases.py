@@ -32,7 +32,7 @@ from tqdm import tqdm
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.language import get_lnrm, ENSURE_ASCII
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
 
 debug_mode = False
 
@@ -48,8 +48,8 @@ def parse_args():
     parser.add_argument('--benchmark_qids', default = "", type =str, help = "File of list of QIDS that should be kept in entity dump. This is to ensure the trained model has entity embeddings for these.")
     parser.add_argument('--disambig_qids', type=str, default='data/utils/disambig_qids.json', help="These qids are removed as they refer to disambiguation pages in Wikipedia.")
     parser.add_argument('--processes', type=int, default=int(50))
-    parser.add_argument('--strip', action='store_true', help='If set, will strip punctuation of aliases.')
-    parser.add_argument('--lower', action='store_true', help='If set, will lower case aliases.')
+    parser.add_argument('--not_strip', action='store_true', help='If set, will strip punctuation of aliases.')
+    parser.add_argument('--not_lower', action='store_true', help='If set, will lower case aliases.')
     parser.add_argument('--test', action = 'store_true', help = 'If set, will only generate for one file.')
     args = parser.parse_args()
     return args
@@ -196,7 +196,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                         discarded_counts['no_qid'] += 1
                         discarded_values['no_qid'][alias][title] += 1
                         continue
-                    alias = get_lnrm(alias, args.strip, args.lower)
+                    alias = get_lnrm(alias, not args.not_strip, not args.not_lower)
                     if len(alias) <= 0:
                         discarded_counts['len_zero_alias'] += 1
                         discarded_values['len_zero_alias'][alias][title] += 1

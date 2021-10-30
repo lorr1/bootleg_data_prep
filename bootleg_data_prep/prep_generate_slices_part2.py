@@ -30,7 +30,7 @@ import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep import language
 from bootleg_data_prep.utils.constants import TYPEWORDS, RELATIONWORDS, VOCABFILE, VOCAB
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
 import bootleg_data_prep.utils.entity_symbols_for_signals as esfs
 
 QIDEXISTS = "qidexist"

@@ -31,7 +31,8 @@ from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg_data_prep.utils.constants import PAIR_IDX_MATTER, \
     POSSIBLE_SLICE_FOLDERS, TAILONLY, NOHEADCAND, NOSINGLE, TORSOONLY, HEADONLY, TOESONLY
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg.symbols.type_symbols import TypeSymbols
 import bootleg_data_prep.utils.slice_definitions as slice_utils
 import bootleg_data_prep.utils.entity_symbols_for_signals as es_for_signals
 
@@ -367,18 +368,20 @@ def write_out_entity_profile(args, folder, all_qids):
     utils.ensure_dir(kg_folder)
     kg_list = []
     print("Writing out KG information")
+    kg_vocab = ujson.load(open(args.kg_vocab))
     all_relations = json.load(open(os.path.join(args.emb_dir, args.kg_triples)))
     qid2relations = {k:v for k,v in all_relations.items() if k in all_qids}
     for head_qid in track(qid2relations, total=len(qid2relations), description="Filt qid2rels"):
         for rel in qid2relations[head_qid]:
-            qid2relations[head_qid][rel] = qid2relations[head_qid][rel][:args.max_relations]
+            rel_name = kg_vocab.get(rel, rel)
+            qid2relations[head_qid][rel_name] = qid2relations[head_qid][rel_name][:args.max_relations]
     with open(os.path.join(kg_folder, "qid2relations.json"), "w") as out_f:
         json.dump(qid2relations, out_f, ensure_ascii=ENSURE_ASCII)
-    with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:
-        for item in kg_list:
-            out_f.write(f"{item[0]}\t{item[1]}\n")
+    # with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:
+    #     for item in kg_list:
+    #         out_f.write(f"{item[0]}\t{item[1]}\n")
     with open(os.path.join(kg_folder, "relation_vocab.json"), "w") as out_f:
-        json.dump(args.kg_vocab, out_f, ensure_ascii=ENSURE_ASCII)
+        json.dump(kg_vocab, out_f, ensure_ascii=ENSURE_ASCII)
     json.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"), ensure_ascii=ENSURE_ASCII)
     print("Writing out wiki types")
     dump_types(folder, "wiki", args.emb_dir, args.wd_vocab, args.wd_types, args.max_types, all_qids)
@@ -394,8 +397,6 @@ def dump_types(folder, subfolder, emb_dir, vocab, type_map, max_types, all_qids)
     type_folder = os.path.join(folder, "type_mappings", subfolder)
     utils.ensure_dir(type_folder)
     qid2types = {q: [] for q in all_qids}
-    vocab_map = {}
-    type_mappings = {}
     try:
         filename = os.path.join(emb_dir, vocab)
         print(f'Trying to open 1: {filename}')
@@ -410,18 +411,11 @@ def dump_types(folder, subfolder, emb_dir, vocab, type_map, max_types, all_qids)
             for qid in track(type_mappings, total=len(type_mappings)):
                 # Already has all qids inside
                 if qid in qid2types:
-                    qid2types[qid] = [vocab_inv[i] for i in type_mappings[qid]]
-            for qid in qid2types:
-                qid2types[qid] = qid2types[qid][:max_types]
-                if qid not in type_mappings:
-                    type_mappings[qid] = []
-                type_mappings[qid] = type_mappings[qid][:max_types]
+                    qid2types[qid] = [vocab_inv[i] for i in type_mappings[qid]][:max_types]
     except Exception as e:
         print("ERROR WRITING QID2TYPES", type_map, "---", e)
-    json.dump(qid2types, open(os.path.join(type_folder, "qid2typenames.json"), "w"), ensure_ascii=ENSURE_ASCII)
-    json.dump(type_mappings, open(os.path.join(type_folder, "qid2typeids.json"), "w"), ensure_ascii=ENSURE_ASCII)
-    json.dump(vocab_map, open(os.path.join(type_folder, "type_vocab.json"), "w"), ensure_ascii=ENSURE_ASCII)
-    json.dump({"max_types": max_types}, open(os.path.join(type_folder, "config.json"), "w"), ensure_ascii=ENSURE_ASCII)
+    ts = TypeSymbols(qid2typenames=qid2types, max_types=max_types)
+    ts.save(type_folder)
 
 def main():
     multiprocessing.set_start_method("forkserver", force=True)

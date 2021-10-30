@@ -15,7 +15,7 @@ from bootleg_data_prep.utils.constants import QIDCOUNT, TYPEWORDS, VOCAB, VOCABF
     QID2TYPEID_WD, RELMAPPING, CTXRELS, QID2TYPEID_REL, RELATIONWORDS
 from bootleg_data_prep.utils.classes.record_trie_collection import RecordTrieCollection
 from bootleg_data_prep.utils.classes.type_symbols import TypeSymbols
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
 from bootleg_data_prep.utils import utils as utils
 
 """

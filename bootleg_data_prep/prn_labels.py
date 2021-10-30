@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 # data prep
 from bootleg_data_prep.language import ENSURE_ASCII, gender_qid_map, pronoun_map, pronoun_possessive_map, UNKNOWN
-from bootleg_data_prep.utils.classes.entity_symbols import EntitySymbols
+from bootleg.symbols.entity_symbols import EntitySymbols
 
 person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
 print('person data loaded')

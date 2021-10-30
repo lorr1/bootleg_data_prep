@@ -30,7 +30,7 @@ def get_arg_parser():
     parser.add_argument('--processes', type=int, default=10, help="Number of concurrent processes to spin off. ")
     parser.add_argument('--qids', type=str, default=None)  # Taken from Wikipedia part of Wikidata dump
     parser.add_argument('--batch_size', type=int, default=100000)
-    parser.add_argument('--stripandlower', action='store_true', help='If set, will stripandlower and strip punctuation of aliases.')
+    parser.add_argument('--not_stripandlower', action='store_true', help='If set, will stripandlower and strip punctuation of aliases.')
     return parser 
 
 def get_aliases_from_table(alias_files, args):
@@ -171,7 +171,7 @@ def main():
                 human_qid[qid] = 1
     print(f"Found {len(human_qid)} entities of type individual.")
     print("Step 6 of 9: merging aliases")
-    qid2alias = merge_aliases(list_of_qid2alias, args.stripandlower)
+    qid2alias = merge_aliases(list_of_qid2alias, not args.not_stripandlower)
     qid2alias = generate_short_long_names(qid2alias, human_qid)
     print("Step 8 of 9: Inverting qid2alias...")
     alias2qid = {}

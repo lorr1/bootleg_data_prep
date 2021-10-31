@@ -3,16 +3,13 @@ This file
 Extract and format sentences from Kore50 data. Also dumps out list of QIDs reference in Kore50 data. 
 '''
 
-import ujson as json
-import sys
 import os
+import sys
+
+import ujson as json
+
 sys.path.append(os.path.join(sys.path[0], "../"))
-import re
-import numpy as np
 import argparse
-import gzip
-import shutil
-import unicodedata
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 

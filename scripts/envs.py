@@ -24,6 +24,7 @@ envs = {
     'BOOTLEG_WIKIPEDIA_DUMP_URL': f'https://dumps.wikimedia.org/{BOOTLEG_LANG_CODE}wiki/latest/{BOOTLEG_LANG_CODE}wiki-latest-pages-articles-multistream.xml.bz2',
     'BOOTLEG_WIKIPEDIA_DUMP_BZ2_FILENAME': f'{BOOTLEG_LANG_CODE}wiki-latest-pages-articles-multistream.xml.bz2',
     'BOOTLEG_WIKIPEDIA_DUMP_FILENAME': f'{BOOTLEG_LANG_CODE}wiki-latest-pages-articles-multistream.xml',
+    'BOOTLEG_OUTPUT_DIR': f'{BOOTLEG_BASE_DIR}/output',
 }
 
 for key, value in envs.items():

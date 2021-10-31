@@ -62,7 +62,8 @@ def parse_args():
     
     # Multiprocessing utilities 
     parser.add_argument('--processes', type=int, default=20)
-    
+    parser.add_argument('--processes_in_memory_load', type=int, default=10)
+
     args = parser.parse_args()
     return args
 
@@ -215,7 +216,7 @@ def launch_subprocess_step2(args, out_dir, out_dir_stats, entity_symbols, files)
                                qid2title_f,
                                alias2qids_f
                                ]) for i in range(len(files))]
-    pool = multiprocessing.Pool(processes=args.processes // 4)  # this can be optimized better ... but the memory consumption at this stage is very high
+    pool = multiprocessing.Pool(processes=args.processes_in_memory_load)  # this can be optimized better ... but the memory consumption at this stage is very high
     list_of_stats = pool.map(subprocess_step2, all_process_args, chunksize=1)
     stats = prep_utils.aggregate_list_of_dictionaries(list_of_stats)
     pool.close()

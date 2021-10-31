@@ -1,4 +1,4 @@
-BOOTLEG_PROCESS_COUNT = 35
-BOOTLEG_BASE_DIR = '/lfs/raiders8/0/lorr1' # '/nvme2/chatterbox/bootleg'
-BOOTLEG_LANG_CODE = 'en'
+BOOTLEG_PROCESS_COUNT = 16
+BOOTLEG_BASE_DIR = '/nvme2/chatterbox/bootleg'
+BOOTLEG_LANG_CODE = 'he'
 BOOTLEG_LANG_MODULE_USE_GPU = False

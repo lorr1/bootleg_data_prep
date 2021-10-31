@@ -368,13 +368,14 @@ def write_out_entity_profile(args, folder, all_qids):
     utils.ensure_dir(kg_folder)
     kg_list = []
     print("Writing out KG information")
-    kg_vocab = ujson.load(open(args.kg_vocab))
+    kg_vocab = json.load(open(args.kg_vocab))
     all_relations = json.load(open(os.path.join(args.emb_dir, args.kg_triples)))
-    qid2relations = {k:v for k,v in all_relations.items() if k in all_qids}
-    for head_qid in track(qid2relations, total=len(qid2relations), description="Filt qid2rels"):
-        for rel in qid2relations[head_qid]:
+    qid2relations = {}
+    for head_qid in track(all_qids, total=len(all_qids), description="Filt qid2rels"):
+        qid2relations[head_qid] = {}
+        for rel in all_relations.get(head_qid, {}):
             rel_name = kg_vocab.get(rel, rel)
-            qid2relations[head_qid][rel_name] = qid2relations[head_qid][rel_name][:args.max_relations]
+            qid2relations[head_qid][rel_name] = all_relations[head_qid][rel][:args.max_relations]
     with open(os.path.join(kg_folder, "qid2relations.json"), "w") as out_f:
         json.dump(qid2relations, out_f, ensure_ascii=ENSURE_ASCII)
     # with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:

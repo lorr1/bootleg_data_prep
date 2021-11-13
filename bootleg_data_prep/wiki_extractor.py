@@ -76,7 +76,8 @@ from multiprocessing import Queue, Process, Value, cpu_count
 from timeit import default_timer
 
 from bootleg_data_prep.language import *
-import jsonlines
+
+acceptedNamespaces = ACCEPTED_NAMESPACE
 
 short_debug_items = 1000
 
@@ -131,19 +132,6 @@ options = SimpleNamespace(
     # The namespace used for module definitions
     # It is the name associated with namespace key=828 in the siteinfo header.
     moduleNamespace = '',
-
-    ##
-    # Recognize only these namespaces in links
-    # w: Internal links to the Wikipedia
-    # wiktionary: Wiki dictionary
-    # wikt: shortcut for Wiktionary
-    #
-    acceptedNamespaces = ['w', 'wiktionary', 'wikt'],
-
-    # stardard namespaces to remove
-    standardNamespaces = ["category", "user", "help", "portal", "draft", "module", "file", "wikipedia", "wiktionary",
-                          "wikt", "wp", "wt", "w", "cat", "image", "special", "template", "talk", "centralwikia",
-                          "s", "creativecommons", "wikisource"],
 
     # This is obtained from <siteinfo>
     urlbase = '',
@@ -1232,7 +1220,7 @@ class Extractor(object):
             # logging.debug('%*sEXPAND> %s', self.frame.depth, '', body)
             return ''
 
-        logging.debug('%*sEXPAND %s', self.frame.depth, '', body)
+        # logging.debug('%*sEXPAND %s', self.frame.depth, '', body)
         parts = splitParts(body)
         # title is the portion before the first |
         title = parts[0].strip()
@@ -1248,7 +1236,7 @@ class Extractor(object):
             subst = True
         if title in self.magicWords.values:
             ret = self.magicWords[title]
-            logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', title, ret)
+            # logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', title, ret)
             return ret
 
         # Parser functions.
@@ -1270,7 +1258,7 @@ class Extractor(object):
             parts[0] = title[colon + 1:].strip()  # side-effect (parts[0] not used later)
             # arguments after first are not evaluated
             ret = callParserFunction(funct, parts, self)
-            logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', funct, ret)
+            # logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', funct, ret)
             return ret
 
         title = fullyQualifiedTemplateTitle(title)
@@ -1292,7 +1280,7 @@ class Extractor(object):
             del options.templates[title]
         else:
             # The page being included could not be identified
-            logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', title, '')
+            # logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', title, '')
             return ''
 
         logging.debug('%*sTEMPLATE %s: %s', self.frame.depth, '', title, template)
@@ -1348,7 +1336,7 @@ class Extractor(object):
         self.frame = self.frame.pop()
         # if len(value.strip()) == 0:
         #     print("EMPTY", body, params, title, str(template)[:1000])
-        logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', title, value)
+        # logging.debug('%*s<EXPAND %s %s', self.frame.depth, '', title, value)
         return value
 
 
@@ -2656,12 +2644,14 @@ def replaceInternalLinks(text):
 
 def makeInternalLink(title, label):
     colon = title.find(':')
-    if colon > 0 and (title[:colon].lower() not in options.acceptedNamespaces and title[:colon].lower() in options.standardNamespaces):
+    ns = title[:colon].lower()
+    if colon > 0 and ns not in acceptedNamespaces and ns in STANDARD_NAMESPACE:
         return ''
     if colon == 0:
         # drop also :File:
         colon2 = title.find(':', colon + 1)
-        if colon2 > 1 and title[colon + 1:colon2] not in options.acceptedNamespaces:
+        ns = title[colon + 1:colon2].lower()
+        if colon2 > 1 and ns not in acceptedNamespaces:
             return ''
     if options.keepLinks:
         # LAUREL: remove periods from the label to ensure sentence splitting works later
@@ -3500,7 +3490,8 @@ def main():
         return
 
     if args.namespaces:
-        options.acceptedNamespaces = set(args.namespaces.split(','))
+        global acceptedNamespaces
+        acceptedNamespaces = set(args.namespaces.split(','))
 
     # ignoredTags and discardElemets have default values already supplied, if passed in the defaults are overwritten
     if args.ignored_tags:
@@ -3574,7 +3565,7 @@ def main():
                 try:
                     line = str(line.strip())
                     if line.startswith('#') or len(line) == 0:
-                        continue;
+                        continue
                     elif line.startswith('^'):
                         options.filter_category_exclude.add(line.lstrip('^'))
                     else:

@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step7b-prep-generate-slices-part2"
+echo "=============================================================================="
+echo
 source ./envs.bash
 python3 -m bootleg_data_prep.prep_generate_slices_part2 \
   --data_dir $BOOTLEG_WIKIPEDIA_DIR/data/wiki_dump \

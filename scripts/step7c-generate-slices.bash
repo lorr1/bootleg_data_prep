@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step7c-generate-slices"
+echo "=============================================================================="
+echo
 source ./envs.bash
 python3 -m bootleg_data_prep.generate_slices \
   --subfolder_name full_wiki \

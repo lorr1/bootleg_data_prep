@@ -4,11 +4,13 @@ source ./envs.bash
 echo === Install Packages ===
 sudo apt install aria2 lbzip2 pv pigz
 
-echo === Creating base folder ===
+echo === Creating base folders ===
 mkdir $BOOTLEG_BASE_DIR
 mkdir $BOOTLEG_WIKIPEDIA_DIR
 mkdir $BOOTLEG_WIKIDATA_DIR
 mkdir $BOOTLEG_WIKIDATA_DIR/processed_batches
+mkdir $BOOTLEG_OUTPUT_DIR
+mkdir $BOOTLEG_OUTPUT_LOGS_DIR
 
 # The following are just some helper resources for setup - might want to put this in some readme?
 #echo === Installing Github CLI ===

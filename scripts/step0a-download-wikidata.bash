@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step0a-download-wikidata"
+echo "=============================================================================="
+echo
 source ./envs.bash
 set +e
 mkdir $BOOTLEG_BASE_DIR/wikidata/

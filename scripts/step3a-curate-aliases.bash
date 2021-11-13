@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step3a-curate-aliases"
+echo "=============================================================================="
+echo
 source ./envs.bash
 python3 -m bootleg_data_prep.curate_aliases \
     --min_frequency 2 \

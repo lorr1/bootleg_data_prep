@@ -19,6 +19,17 @@ NOUNS = ['NN', 'NNS', 'NNP', 'NNPS', 'PRP']
 ENSURE_ASCII = False
 CATEGORY_LINE_START = '[[Category:'
 CATEGORY_LINE_CAPTURE = r'\[\[Category:([^\|]+).*\]\].*'
+# https://en.wikipedia.org/wiki/Wikipedia:Namespace
+STANDARD_NAMESPACE = {"category", "user", "help", "portal", "draft", "module", "file", "wikipedia", "wiktionary",
+                      "wikt", "wp", "wt", "w", "cat", "image", "special", "template", "talk", "centralwikia",
+                      "s", "creativecommons", "wikisource"}
+##
+# Recognize only these namespaces in links
+# w: Internal links to the Wikipedia
+# wiktionary: Wiki dictionary
+# wikt: shortcut for Wiktionary
+#
+ACCEPTED_NAMESPACE = {'w', 'wiktionary', 'wikt'}
 
 def sent_tokenize(sents):
     return tokenize.sent_tokenize(sents)

@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step2b-create-aliases"
+echo "=============================================================================="
+echo
 source ./envs.bash
 python3 -m bootleg_data_prep.wikidata.create_aliases \
     --data $BOOTLEG_WIKIDATA_DIR \

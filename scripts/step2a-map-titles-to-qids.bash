@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step2a-map-titles-to-qids"
+echo "=============================================================================="
+echo
 source ./envs.bash
 python3 -m bootleg_data_prep.wikidata.get_title_to_ids \
     --data $BOOTLEG_WIKIDATA_DIR \

@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step4b-create-kg-adj"
+echo "=============================================================================="
+echo
 source ./envs.bash
 python3 -m bootleg_data_prep.wikidata.create_kg_adj \
     --data $BOOTLEG_WIKIDATA_DIR \

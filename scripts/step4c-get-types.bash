@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step4c-get-types"
+echo "=============================================================================="
+echo
 source ./envs.bash
 python3 -m bootleg_data_prep.wikidata.get_types \
     --data $BOOTLEG_WIKIDATA_DIR \

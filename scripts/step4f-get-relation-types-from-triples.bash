@@ -1,3 +1,8 @@
+echo
+echo "=============================================================================="
+echo "Step step4e-get-relation-types-from-triples"
+echo "=============================================================================="
+echo
 source ./envs.bash
 python3 -m bootleg_data_prep.wikidata.get_relation_types_from_triples \
     --pid_file $BOOTLEG_CODE_DIR/bootleg_data_prep/utils/param_files/pid_names_$BOOTLEG_LANG_CODE.json \

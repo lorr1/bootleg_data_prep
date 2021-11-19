@@ -1,3 +1,4 @@
+source ../../venv/bin/activate
 source ./benchmarks_envs.bash
 
 KORE50_BENCHMARK_OUTPUT=$BOOTLEG_BENCHMARK_OUTPUT/kore50
@@ -14,7 +15,8 @@ python3 ./bootleg_data_prep/benchmarks/kore50/build_kore50_datasets.py \
     --output_format jsonl \
     --scope sentence \
     --title_to_qid $BOOTLEG_WIKIPEDIA_DIR/title_mappings/title_to_all_ids.jsonl \
-    --dataset ./bootleg_data_prep/benchmarks/kore50/raw_data/kore50.txt
+    --dataset ./bootleg_data_prep/benchmarks/kore50/raw_data/kore50_$BOOTLEG_LANG_CODE.txt \
+    --langid $BOOTLEG_LANG_CODE
 
 
 python3 -m bootleg_data_prep.data_filter \

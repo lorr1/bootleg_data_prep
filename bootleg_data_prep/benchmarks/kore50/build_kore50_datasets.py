@@ -8,7 +8,7 @@ import sys
 
 import ujson as json
 
-sys.path.append(os.path.join(sys.path[0], "../"))
+sys.path.append(os.path.join(sys.path[0], "../../../"))
 import argparse
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
@@ -30,23 +30,25 @@ def parse_args():
 
     # Paths to supplementary files -- do not adjust 
     parser.add_argument('--title_to_qid', type=str, default='/dfs/scratch0/lorr1/bootleg/data/wikidata_mappings/title_to_all_ids.jsonl')
-    parser.add_argument('--dataset', type=str, default='/dfs/scratch0/lorr1/bootleg/bootleg-internal/bootleg_data_prep/benchmarks/kore50/raw_data/kore50.txt', help='Path to Kore50 file')
+    parser.add_argument('--dataset', type=str, default='/dfs/scratch0/lorr1/bootleg/bootleg-internal/bootleg_data_prep/benchmarks/kore50/raw_data/kore50_en.txt', help='Path to Kore50 file')
+    parser.add_argument('--langid', type=str, default='en', help='Language id. "en" for english, ...')
 
     args = parser.parse_args()
     return args
 
-def get_title_from_url(url):
-    return url.replace("http://en.wikipedia.org/wiki/", "").replace("_", " ")
+def get_title_from_url(url, langid):
+    return url.replace(f'http://{langid}.wikipedia.org/wiki/', "").replace("_", " ")
 
 def get_aida_title_to_wpid(args): 
     title2wpid = {}
+    langid = args.langid
     with open(args.annotated_file) as in_file:
         # line with WPID and title looks like this: 
         # 2	Germany	http://en.wikipedia.org/wiki/Germany	11867	/m/0345h
         for line in in_file: 
             items = line.strip().split("\t")
             if len(items) > 3:
-                title = get_title_from_url(items[2])
+                title = get_title_from_url(items[2], langid)
                 wpid = items[3]
                 title2wpid[title] = wpid 
     print(f"Loaded {len(title2wpid)} title-WPID pairs from {args.annotated_file}")
@@ -60,8 +62,8 @@ class QIDMapper:
         
         self.title2qid = title2qid # maps wikipedia page title to QID 
 
-    def get_qid_from_url(self, url): 
-        title = get_title_from_url(url)
+    def get_qid_from_url(self, url, langid):
+        title = get_title_from_url(url, langid)
 
         # Get QID based on title 
         if title in self.title2qid:
@@ -70,7 +72,7 @@ class QIDMapper:
         print(f"No QID for {title}.")
         return "None"
 
-def convert_lines_to_json(lines, mapper): 
+def convert_lines_to_json(lines, mapper, langid):
     sentence_dict = {"aliases": [], "qids": [], "spans": [], "sentence": "", "gold": []}
 
     i = 0 
@@ -115,7 +117,7 @@ def convert_lines_to_json(lines, mapper):
             if len(line_items) == 5:
                 sentence_dict['qids'].append(line_items[4])
             else:
-                sentence_dict['qids'].append(mapper.get_qid_from_url(wiki))
+                sentence_dict['qids'].append(mapper.get_qid_from_url(wiki, langid))
             # end_span is +1 from actually token index
             cur_span = span_end
         else:
@@ -161,8 +163,8 @@ def write_output_file(sentences, args):
     return all_qids, none_count
 
 def load_and_dump_sentences(args, qm):
-    ''' Load sentences from fp ''' 
-
+    ''' Load sentences from fp '''
+    langid = args.langid
     sentences = []
     current_lines = []
     with open(args.dataset, 'r') as in_file:
@@ -171,11 +173,11 @@ def load_and_dump_sentences(args, qm):
             if i == 0:
                 continue 
             elif NEW_DOC_DELIM in line:
-                sentences.append(convert_lines_to_json(current_lines, qm))
+                sentences.append(convert_lines_to_json(current_lines, qm, langid))
                 current_lines = []
             else:
                 current_lines.append(line.strip())
-        sentences.append(convert_lines_to_json(current_lines, qm))
+        sentences.append(convert_lines_to_json(current_lines, qm, langid))
     
     # The following assertions are taken from Ganea + Hoffman, Table 2 
     print("# of sentences: {}".format(len(sentences)))

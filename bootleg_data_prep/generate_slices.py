@@ -56,6 +56,7 @@ def parse_args():
     parser.add_argument('--max_types', type=int, default=3)
     parser.add_argument('--max_types_rel', type=int, default=50)
     parser.add_argument('--max_relations', type=int, default=150) # 90th percentile was 138
+    parser.add_argument('--ent_desc', type=str, default="qid2desc_1129.json")
     parser.add_argument('--kg_adj', type=str, default='kg_adj_1229.txt')
     parser.add_argument('--kg_triples', type=str, default='kg_triples_1229.json')
     parser.add_argument('--kg_vocab', type=str, default='utils/param_files/pid_names_en.json')
@@ -363,6 +364,14 @@ def combine_data(out_file, folder, clean_up=True):
     return
 
 def write_out_entity_profile(args, folder, all_qids):
+    # QID2DESC
+    print("Writing out descriptions")
+    qid2desc_path = os.path.join(args.emb_dir, args.ent_desc)
+    qid2desc_outpath = os.path.join(folder, "entity_mappings", "qid2desc.json")
+    if os.path.exists(qid2desc_path):
+        qid2desc = json.load(open(qid2desc_path))
+        json.dump(qid2desc, open(v, "w"))
+
     # KG relations
     kg_folder = os.path.join(folder, "kg_mappings")
     utils.ensure_dir(kg_folder)
@@ -384,6 +393,7 @@ def write_out_entity_profile(args, folder, all_qids):
     with open(os.path.join(kg_folder, "relation_vocab.json"), "w") as out_f:
         json.dump(kg_vocab, out_f, ensure_ascii=ENSURE_ASCII)
     json.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"), ensure_ascii=ENSURE_ASCII)
+    # Types
     print("Writing out wiki types")
     dump_types(folder, "wiki", args.emb_dir, args.wd_vocab, args.wd_types, args.max_types, all_qids)
     if args.hy_vocab:

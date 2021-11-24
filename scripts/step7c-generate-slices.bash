@@ -4,6 +4,7 @@ python3 -m bootleg_data_prep.generate_slices \
   --data_dir $BOOTLEG_WIKIPEDIA_DIR/data/wiki_dump \
   --processes $BOOTLEG_PROCESS_COUNT \
   --emb_dir $BOOTLEG_WIKIPEDIA_DIR/embs \
+  --ent_desc qid2desc_1129.json \
   --kg_adj kg_adj_1129.txt \
   --kg_triples kg_triples_1129.json \
   --hy_vocab ''\

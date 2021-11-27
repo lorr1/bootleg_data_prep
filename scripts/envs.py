@@ -30,5 +30,8 @@ envs = {
     'BOOTLEG_OUTPUT_LOGS_DIR': f'{BOOTLEG_BASE_DIR}/output/logs',
 }
 
+if USE_WEAK_LABELING:
+    envs['USE_WEAK_LABELING'] = '1'
+
 for key, value in envs.items():
     print(f'export {key}={value}')

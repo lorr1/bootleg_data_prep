@@ -15,6 +15,9 @@ mkdir -p $BOOTLEG_OUTPUT_LOGS_DIR
 ./step4c-get-types.bash 2>&1 | tee $BOOTLEG_OUTPUT_LOGS_DIR/step4c-get-types.log
 ./step4d-copy-to-embs.bash 2>&1 | tee $BOOTLEG_OUTPUT_LOGS_DIR/step4d-copy-to-embs.log
 ./step4e-get-relation-types-from-triples.bash 2>&1 | tee $BOOTLEG_OUTPUT_LOGS_DIR/step4e-get-relation-types-from-triples.log
+if test ! -z "$USE_WEAK_LABELING"; then
+  ./step4f-weak-labeling.bash 2>&1 | tee $BOOTLEG_OUTPUT_LOGS_DIR/step4f-weak-labeling.log
+fi
 ./step5-data-filter.bash 2>&1 | tee $BOOTLEG_OUTPUT_LOGS_DIR/step5-data-filter.log
 ./step6-merge-stuff-split.bash 2>&1 | tee $BOOTLEG_OUTPUT_LOGS_DIR/step6-merge-stuff-split.log
 ./step7a-prep-generate-slices-part1.bash 2>&1 | tee $BOOTLEG_OUTPUT_LOGS_DIR/step7a-prep-generate-slices-part1.log

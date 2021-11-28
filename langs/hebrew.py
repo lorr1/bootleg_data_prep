@@ -71,7 +71,7 @@ def stem(text):
 fullpath = os.path.expanduser((os.path.join('~/stanza_resources', 'he')))
 if not os.path.isdir(fullpath):
     stanza.download('he')
-stanza_pos = stanza.Pipeline(lang='he', processors='tokenize,pos', use_gpu=os.getenv('BOOTLEG_LANG_MODULE_USE_GPU'))
+stanza_pos = stanza.Pipeline(lang='he', processors='tokenize,pos', use_gpu=os.getenv('BOOTLEG_PREP_USE_GPU').lower() == 'true')
 def pos_tag(tokens):
     res = []
     tokens = ' '.join(tokens)  # this is a very very shallow implementation...

@@ -18,3 +18,5 @@ SPARQLWrapper==1.8.5
 xmltodict==0.12.0
 pycountry>=20.0.0, <20.9.0
 bootleg
+bs4
+hebrew_tokenizer

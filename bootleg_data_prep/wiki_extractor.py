@@ -75,7 +75,7 @@ from bs4 import BeautifulSoup
 from multiprocessing import Queue, Process, Value, cpu_count
 from timeit import default_timer
 
-from bootleg_data_prep.language import *
+from language import *
 
 acceptedNamespaces = ACCEPTED_NAMESPACE
 

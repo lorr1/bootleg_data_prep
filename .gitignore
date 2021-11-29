@@ -123,3 +123,5 @@ venv.bak/
 /hebrew_tokenizer/groups.py
 /hebrew_tokenizer/lexicon.py
 /hebrew_tokenizer/tokenizer.py
+/scripts/temp_redicts.json
+/temp_redicts.json

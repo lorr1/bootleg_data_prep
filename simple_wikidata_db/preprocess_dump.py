@@ -20,7 +20,7 @@ import ujson
 from math import ceil
 from tqdm import tqdm
 
-from utils import *
+from .utils import *
 
 # names of tables
 TABLE_NAMES = ['labels', 'descriptions', 'aliases', 'external_ids', 'entity_values', 'qualifiers', 'wikipedia_links', 'entity_rels']

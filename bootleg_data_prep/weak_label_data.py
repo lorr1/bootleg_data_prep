@@ -32,7 +32,7 @@ class WLMetadata:
             qid2alias = {}
             qid2alias_wd = {}
 
-            self.qid2title = entity_dump.get_qid2title()
+            self.qid2title = entity_dump.get_qid2title_dict()
             all_alias_len = []
             all_qid_len = []
             for alias in tqdm(entity_dump.get_all_aliases(), desc="Iterating over aliases"):
@@ -77,7 +77,7 @@ class WLMetadata:
             input_dicts = {ALIAS2QID: alias2qids}
 
             print(f"Max Values {max_values}")
-            self.tri_collection_qids = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=entity_dump.get_qid2eid(),
+            self.tri_collection_qids = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=entity_dump.get_qid2eid_dict(),
                                                             fmt_types=fmt_types, max_values=max_values)
 
             # This maps our keys that we use in the helper functions below to the right tri in tri collection.
@@ -429,13 +429,12 @@ def prune_aliases_to_qids_in_doc(doc_entity, aliases_to_qids_in_doc):
 # Here, we just copy the entity dump over to the new directory but delete erroneous -1 qids
 # that crop up if we don't have the page title in our mapping.
 def modify_counts_and_dump(args, entity_dump):
-    alias2qids = entity_dump.get_alias2qids()
-    qid2title = entity_dump.get_qid2title()
+    alias2qids = entity_dump.get_alias2qids_dict()
+    qid2title = entity_dump.get_qid2title_dict()
     if "-1" in qid2title:
         del qid2title["-1"]
 
     max_candidates = entity_dump.max_candidates
-    max_alias_len = entity_dump.max_alias_len
 
     for al in alias2qids:
         all_pairs = alias2qids[al]
@@ -457,7 +456,7 @@ def modify_counts_and_dump(args, entity_dump):
 
 def main():
     gl_start = time.time()
-    multiprocessing.set_start_method("fork", force=True)
+    multiprocessing.set_start_method("spawn", force=True)
     args = parse_args()
     print(ujson.dumps(vars(args), indent=4))
     outdir = prep_utils.get_outdir(args.data_dir, args.out_subdir, remove_old=True)

@@ -25,6 +25,24 @@ ENSURE_ASCII = False
 CATEGORY_LINE_START = '[[קטגוריה:'
 CATEGORY_LINE_CAPTURE = r'\[\[קטגוריה:([^\|]+).*\]\].*'
 
+# https://he.wikipedia.org/wiki/%D7%A2%D7%96%D7%A8%D7%94:%D7%9E%D7%A8%D7%97%D7%91_%D7%A9%D7%9D
+STANDARD_NAMESPACE = {"category", "user", "help", "portal", "draft", "module", "file", "wikipedia", "wiktionary",
+                      "wikt", "wp", "wt", "w", "cat", "image", "special", "template", "talk", "centralwikia",
+                      "s", "creativecommons", "wikisource",
+                      "מדיה", "מיוחד", "שיחה", "משתמש", "שיחת משתמש", "ויקיפדיה", "שיחת ויקיפדיה", "קובץ", "שיחת קובץ",
+                      "מדיה ויקי", "שיחת מדיה ויקי", "תבנית", "שיחת תבנית", "עזרה", "שיחת עזרה", "קטגוריה", "שיחת קטגוריה",
+                      "פורטל", "שיחת פורטל", "ספר", "שיחת ספר", "טיוטה", "שיחת טיוטה", "יחידה", "שיחת יחידה", "גאדג'ט",
+                      "שיחת גאדג'ט", "הגדרת גאדג'ט", "שיחת הגדרת גאדג'ט", "נושא", "מי", "ש", "מש", "שמש", "וק", "שוק", "קו",
+                      "שקו", "מו", "שמו", "תב", "שתב", "עז", "שעז", "קט", "שקט", "פ", "שפ", "טי", "שטי", "י", "שי"}
+
+##
+# Recognize only these namespaces in links
+# w: Internal links to the Wikipedia
+# wiktionary: Wiki dictionary
+# wikt: shortcut for Wiktionary
+#
+ACCEPTED_NAMESPACE = {'w', 'wiktionary', 'wikt', 'ויקימילון', 'וק'}
+
 strong_separators = {'.', ',', ':', '!', ';'}
 re_space_match = re.compile(r'\s+')
 
@@ -53,7 +71,7 @@ def stem(text):
 fullpath = os.path.expanduser((os.path.join('~/stanza_resources', 'he')))
 if not os.path.isdir(fullpath):
     stanza.download('he')
-stanza_pos = stanza.Pipeline(lang='he', processors='tokenize,pos', use_gpu=os.getenv('BOOTLEG_LANG_MODULE_USE_GPU'))
+stanza_pos = stanza.Pipeline(lang='he', processors='tokenize,pos', use_gpu=os.getenv('BOOTLEG_PREP_USE_GPU').lower() == 'true')
 def pos_tag(tokens):
     res = []
     tokens = ' '.join(tokens)  # this is a very very shallow implementation...

@@ -67,7 +67,7 @@ def launch_subprocess(args, outdir, temp_outdir, alias_qid_from_curate, title_to
     print(f"Memory of title_to_qid {sys.getsizeof(title_to_qid)/1024**3}")
 
     process_count = max(1, args.processes)
-    maxsize = 10 * process_count if not debug_mode else 10
+    maxsize = 10 * process_count if not debug_mode else 1
 
     # initialize jobs queue
     jobs_queue = Queue(maxsize=maxsize)

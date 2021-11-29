@@ -4,11 +4,13 @@ source ./envs.bash
 echo === Install Packages ===
 sudo apt install aria2 lbzip2 pv pigz
 
-echo === Creating base folder ===
-mkdir $BOOTLEG_BASE_DIR
-mkdir $BOOTLEG_WIKIPEDIA_DIR
-mkdir $BOOTLEG_WIKIDATA_DIR
-mkdir $BOOTLEG_WIKIDATA_DIR/processed_batches
+echo === Creating base folders ===
+mkdir $BOOTLEG_PREP_DATA_DIR
+mkdir $BOOTLEG_PREP_WIKIPEDIA_DIR
+mkdir $BOOTLEG_PREP_WIKIDATA_DIR
+mkdir $BOOTLEG_PREP_WIKIDATA_DIR/processed_batches
+mkdir $BOOTLEG_PREP_OUTPUT_DIR
+mkdir $BOOTLEG_PREP_OUTPUT_LOGS_DIR
 
 # The following are just some helper resources for setup - might want to put this in some readme?
 #echo === Installing Github CLI ===
@@ -19,7 +21,7 @@ mkdir $BOOTLEG_WIKIDATA_DIR/processed_batches
 #
 #echo === Cloning Projects ===
 #gh auth login
-#cd $BOOTLEG_BASE_DIR
+#cd $BOOTLEG_PREP_DATA_DIR
 #gh repo clone https://github.com/lorr1/bootleg_data_prep.git
 #gh repo clone git@github.com:neelguha/simple_wikidata_db.git
 #

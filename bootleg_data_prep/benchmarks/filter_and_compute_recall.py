@@ -22,7 +22,7 @@ sys.path.append(os.path.join(sys.path[0], "../"))
 from tqdm import tqdm
 import argparse
 import time
-from collections import defaultdict
+from language import ENSURE_ASCII
 
 from bootleg.symbols.entity_symbols import EntitySymbols
 from bootleg_data_prep.benchmarks.candidate_generators import Standard, Contextual, AIDACand
@@ -75,7 +75,7 @@ def write_output_file(sentences, fpath, args):
 def write_errors(errors, out_fpath):
     with open(out_fpath, 'w') as out_file:
         for error in errors:
-            out_file.write(json.dumps(error) + '\n')
+            out_file.write(json.dumps(error, ensure_ascii=ENSURE_ASCII) + '\n')
 
 def filter_and_clean(file, candidate_generator, args):
     sentences = load_sentences(file, args)
@@ -186,7 +186,7 @@ def main(args):
     print(f"Saved new entity dump to {entity_dump_dir}")
 
     result_fpath = os.path.join(errors_dir, 'recall_results.json')
-    json.dump(recall_results, open(result_fpath, 'w'))
+    json.dump(recall_results, open(result_fpath, 'w'), ensure_ascii=ENSURE_ASCII, indent=4)
     print(f"Saved results to {recall_results}")
     return recall_results
 

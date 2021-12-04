@@ -58,7 +58,7 @@ def main():
     out_dir = os.path.join(args.data, args.out_dir)
     if not os.path.exists(out_dir):
         os.makedirs(out_dir)
-    json.dump(qid2desc, open(os.path.join(out_dir, "qid2desc.json"), "w"))
+    json.dump(qid2desc, open(os.path.join(out_dir, "qid2desc.json"), "w"), ensure_ascii=ENSURE_ASCII, indent=4)
     print(f"Saved to {out_dir}. Finihsed in {time.time() - start}s.")
 
 if __name__ == "__main__":

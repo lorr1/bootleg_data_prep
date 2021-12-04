@@ -11,7 +11,7 @@ import sys
 import os
 sys.path.append(os.path.join(sys.path[0], "../"))
 import argparse
-
+from language import ENSURE_ASCII
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 
 
@@ -114,7 +114,7 @@ def main():
     cands = process_files(qm, args)
     out_dir = prep_utils.get_outdir(args.data_dir, args.out_dir)
     with open(os.path.join(out_dir, 'cands.json'), 'w') as out_file:
-        json.dump(cands, out_file)
+        json.dump(cands, out_file, ensure_ascii=ENSURE_ASCII)
 
 if __name__ == '__main__':
     main()

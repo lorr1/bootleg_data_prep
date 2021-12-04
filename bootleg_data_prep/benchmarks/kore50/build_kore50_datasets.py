@@ -12,7 +12,7 @@ sys.path.append(os.path.join(sys.path[0], "../../../"))
 import argparse
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-
+from language import ENSURE_ASCII
 
 SUB_DELIM = "~*~"
 SUPER_DELIM = "|"
@@ -144,7 +144,7 @@ def write_output_file(sentences, args):
     none_count = 0    
     for i, sentence in enumerate(sentences):
         if args.output_format == 'jsonl':
-            out_file.write(json.dumps(sentence) + "\n")
+            out_file.write(json.dumps(sentence, ensure_ascii=ENSURE_ASCII) + "\n")
         else: 
             #print(sentence)
             aliases_to_predict = '~*~'.join([str(i) for i in range(len(sentence['qids']))])
@@ -187,7 +187,7 @@ def load_and_dump_sentences(args, qm):
 
     # dump all QIDS
     with open(os.path.join(args.out_dir, 'kore50_qids.json'), 'w') as out_file: 
-        json.dump(list(all_qids), out_file)
+        json.dump(list(all_qids), out_file, ensure_ascii=ENSURE_ASCII)
         
 
 

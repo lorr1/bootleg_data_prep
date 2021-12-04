@@ -51,7 +51,7 @@ def get_candidates(args):
              
 def main():
     args = get_arg_parser().parse_args()
-    print(json.dumps(vars(args), indent=4))
+    print(json.dumps(vars(args), ensure_ascii=ENSURE_ASCII, indent=4))
     utils.ensure_dir(args.data_dir)
     
     all_qids = set()

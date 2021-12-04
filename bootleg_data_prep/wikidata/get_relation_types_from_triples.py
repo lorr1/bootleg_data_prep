@@ -67,13 +67,10 @@ def main():
             type_ids = [rel_ids_internal[i] for i in type_ids]
             types = [i for i in type_ids if i != rel_ids["instance of"]]
         final_qid2type[qid] = types
-
-
-    json.dump(final_qid2type, out_file, ensure_ascii=ENSURE_ASCII)
-
+    json.dump(final_qid2type, out_file, ensure_ascii=ENSURE_ASCII, indent=4)
     out_file.close()
     with open(args.output_vocab_file, "w") as out_f:
-        json.dump(rel_ids, out_f, ensure_ascii=ENSURE_ASCII)
+        json.dump(rel_ids, out_f, ensure_ascii=ENSURE_ASCII, indent=4)
 
     print("Max number of relation types per qid", max_len)
 

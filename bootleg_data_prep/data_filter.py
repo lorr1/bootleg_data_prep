@@ -33,6 +33,7 @@ import bootleg_data_prep.utils.data_prep_utils as prep_utils
 # DO NOT REMOVE THIS NEXT LINE
 from bootleg_data_prep.language import ENSURE_ASCII
 from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols_prep import EntitySymbolsPrep
 
 FILTER_FILE = "my_filter_funcs.py"
 FILTER_FILE_ABS_PATH = str(Path.joinpath(Path(__file__).resolve().parent, 'utils', FILTER_FILE))
@@ -345,7 +346,7 @@ def main():
     print("="*10)
     print("Loading entity symbols...")
     start = time.time()
-    entity_symbols = EntitySymbols.load_from_cache(load_dir=os.path.join(load_dir, "entity_db/entity_mappings"))
+    entity_symbols = EntitySymbolsPrep.load_from_cache(load_dir=os.path.join(load_dir, "entity_db/entity_mappings"))
     print(f"Loaded entity symbols with {entity_symbols.num_entities} entities and {len(entity_symbols.get_all_aliases())} aliases. {time.time() - start} seconds.")
 
     print(f"Loading data from {load_dir}...")

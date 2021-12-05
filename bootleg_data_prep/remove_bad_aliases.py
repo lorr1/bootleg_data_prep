@@ -32,7 +32,7 @@ from tqdm import tqdm
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.language import get_lnrm, ENSURE_ASCII
-from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols_prep import EntitySymbolsPrep
 
 debug_mode = False
 
@@ -279,7 +279,7 @@ def make_entity_symbol(alias2qid_from_curate, qid_counts, qid_to_title, benchmar
 
     print(f"There are {len(alias2qids_out)} aliases and {len(qid2title_filt)} QIDs going into the entity dump")
     # Make entity dump object
-    entity_dump = EntitySymbols(
+    entity_dump = EntitySymbolsPrep(
         max_candidates=max_candidates,
         alias2qids=alias2qids_out,
         qid2title=qid2title_filt

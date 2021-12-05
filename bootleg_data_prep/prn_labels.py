@@ -26,7 +26,7 @@ from tqdm import tqdm
 
 # data prep
 from bootleg_data_prep.language import ENSURE_ASCII, gender_qid_map, pronoun_map, pronoun_possessive_map, UNKNOWN
-from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols_prep import EntitySymbolsPrep
 
 person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
 print('person data loaded')
@@ -267,7 +267,7 @@ def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False,
 
     # load entity symbols
     print(f"Swap titles is {swap_titles} and Only first is {only_first_prn}")
-    entity_dump = EntitySymbols.load_from_cache(load_dir=entity_dir)
+    entity_dump = EntitySymbolsPrep.load_from_cache(load_dir=entity_dir)
     print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
     qid2alias = get_qid2alias(entity_dump)
     # output is hardcoded. see process_file

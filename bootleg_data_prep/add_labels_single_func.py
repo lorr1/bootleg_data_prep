@@ -41,7 +41,7 @@ from tqdm import tqdm
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.language import ENSURE_ASCII
-from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols_prep import EntitySymbolsPrep
 from bootleg_data_prep.utils import utils
 from bootleg_data_prep.utils.acronym_utils import find_acronyms_from_parentheses, find_manufactured_acronyms, augment_first_sentence
 
@@ -542,7 +542,7 @@ def modify_counts_and_dump(args, filtered_aliases_to_qid, entity_dump):
             alias2qids[al] = all_pairs
 
     # Make entity dump object
-    entity_dump = EntitySymbols(
+    entity_dump = EntitySymbolsPrep(
         max_candidates=max_candidates,
         alias2qids=alias2qids,
         qid2title=qid2title
@@ -566,7 +566,7 @@ def main():
         in_files = in_files[:1]
 
     # this loads all entity information (aliases, titles, etc)
-    entity_dump = EntitySymbols.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
+    entity_dump = EntitySymbolsPrep.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
     print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
     # Load wikidata alias2qid

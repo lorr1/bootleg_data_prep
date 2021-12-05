@@ -20,10 +20,7 @@ import ujson
 from math import ceil
 from tqdm import tqdm
 
-try:
-    from utils import *
-except:
-    from simple_wikidata_db.utils import *
+from simple_wikidata_db.utils import *
 
 
 # names of tables

@@ -13,7 +13,7 @@ from tqdm import tqdm
 
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
 from bootleg_data_prep.language import ENSURE_ASCII
-from bootleg.symbols.entity_symbols import EntitySymbols
+from bootleg_data_prep.utils.classes.entity_symbols_prep import EntitySymbolsPrep
 from bootleg_data_prep.utils import utils
 from bootleg_data_prep.utils.classes.record_trie_collection import RecordTrieCollection
 from bootleg_data_prep.utils.weak_label_funcs import wl_func
@@ -445,7 +445,7 @@ def modify_counts_and_dump(args, entity_dump):
             alias2qids[al] = all_pairs
 
     # Make entity dump object
-    entity_dump = EntitySymbols(
+    entity_dump = EntitySymbolsPrep(
         max_candidates=max_candidates,
         alias2qids=alias2qids,
         qid2title=qid2title
@@ -476,7 +476,7 @@ def main():
     if not os.path.exists(wl_metadata_dump) or args.overwrite:
         # this loads all entity information (aliases, titles, etc)
         print(f"Reading in entity dump...")
-        entity_dump = EntitySymbols.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
+        entity_dump = EntitySymbolsPrep.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
         print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
         print(f"Reading WD aliases")
@@ -514,7 +514,7 @@ def main():
 
     if entity_dump is None:
         print(f"Reading in entity dump...")
-        entity_dump = EntitySymbols.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
+        entity_dump = EntitySymbolsPrep.load_from_cache(load_dir=os.path.join(args.data_dir, args.filtered_alias_subdir, 'entity_db/entity_mappings'))
         print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
     modify_counts_and_dump(args, entity_dump)

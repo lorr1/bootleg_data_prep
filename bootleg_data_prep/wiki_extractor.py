@@ -630,7 +630,7 @@ class Extractor(object):
             'acronym_aliases': acronym_aliases,
             'aliases': all_aliases
         }
-        out_str = json.dumps(json_data, ensure_ascii=False)
+        out_str = json.dumps(json_data, ensure_ascii=ENSURE_ASCII)
         if out == sys.stdout:   # option -a or -o -
             out_str = out_str.encode('utf-8')
         out.write(out_str)
@@ -646,7 +646,7 @@ class Extractor(object):
             'id': self.id,
             'title': self.title
         }
-        out_str = json.dumps(json_data, ensure_ascii=False)
+        out_str = json.dumps(json_data, ensure_ascii=ENSURE_ASCII)
         if out == sys.stdout:   # option -a or -o -
             out_str = out_str.encode('utf-8')
         out.write(out_str)

@@ -1,11 +1,12 @@
 
-import os, ujson, json, argparse, time, shutil
-from tqdm import tqdm 
-from multiprocessing import set_start_method, Pool
-
-from collections import defaultdict
+import argparse
+import os
+import time
+import ujson
+from multiprocessing import Pool
 
 import simple_wikidata_db.utils as utils
+from language import ENSURE_ASCII
 
 INSTANCE_OF_PROP = "P31"
 HUMAN = {"Q5", "Q159979"}
@@ -63,15 +64,13 @@ def main():
 
     out_fpath = os.path.join(out_dir, 'person_qids.json')
     with open(out_fpath, 'w') as out_file:
-        ujson.dump(list(final_ids), out_file)
+        ujson.dump(list(final_ids), out_file, ensure_ascii=ENSURE_ASCII, indent=4)
 
     out_fpath2 = os.path.join(out_dir, 'person_gender.json')
     with open(out_fpath2, 'w') as out_file:
-        ujson.dump(final_id2gender, out_file)
+        ujson.dump(final_id2gender, out_file, ensure_ascii=ENSURE_ASCII, indent=4)
     print(f"Written {len(final_ids)} to {out_fpath} and person2gender to {out_fpath2} in {time.time()-start}")
     
     
-
-
 if __name__ == "__main__":
     main()

@@ -369,8 +369,12 @@ def write_out_entity_profile(args, folder, all_qids):
     qid2desc_path = os.path.join(args.emb_dir, args.ent_desc)
     qid2desc_outpath = os.path.join(folder, "entity_mappings", "qid2desc.json")
     if os.path.exists(qid2desc_path):
+        logging.info("Found qid2desc.json")
         qid2desc = json.load(open(qid2desc_path))
-        json.dump(qid2desc, open(v, "w"))
+        json.dump(qid2desc, open(qid2desc_outpath, "w"), ensure_ascii=ENSURE_ASCII)
+    else:
+        logging.warning("Could not find qid2desc.json...")
+
 
     # KG relations
     kg_folder = os.path.join(folder, "kg_mappings")
@@ -386,13 +390,13 @@ def write_out_entity_profile(args, folder, all_qids):
             rel_name = kg_vocab.get(rel, rel)
             qid2relations[head_qid][rel_name] = all_relations[head_qid][rel][:args.max_relations]
     with open(os.path.join(kg_folder, "qid2relations.json"), "w") as out_f:
-        json.dump(qid2relations, out_f, ensure_ascii=ENSURE_ASCII)
+        json.dump(qid2relations, out_f, ensure_ascii=ENSURE_ASCII, indent=4)
     # with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:
     #     for item in kg_list:
     #         out_f.write(f"{item[0]}\t{item[1]}\n")
     with open(os.path.join(kg_folder, "relation_vocab.json"), "w") as out_f:
-        json.dump(kg_vocab, out_f, ensure_ascii=ENSURE_ASCII)
-    json.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"), ensure_ascii=ENSURE_ASCII)
+        json.dump(kg_vocab, out_f, ensure_ascii=ENSURE_ASCII, indent=4)
+    json.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"), ensure_ascii=ENSURE_ASCII, indent=4)
     # Types
     print("Writing out wiki types")
     dump_types(folder, "wiki", args.emb_dir, args.wd_vocab, args.wd_types, args.max_types, all_qids)

@@ -29,7 +29,7 @@ from tqdm import tqdm
 from bootleg_data_prep.language import get_lnrm
 from bootleg_data_prep.utils import utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-
+from language import *
 
 def get_arg_parser():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -229,7 +229,7 @@ def main():
     gl_start = time.time()
     multiprocessing.set_start_method("spawn")
     args = get_arg_parser().parse_args()
-    print(json.dumps(vars(args), indent=4))
+    print(json.dumps(vars(args), ensure_ascii=ENSURE_ASCII, indent=4))
     utils.ensure_dir(args.data_dir)
 
     print(f"Loading data from {args.sentence_dir}...")

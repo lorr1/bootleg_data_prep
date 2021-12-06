@@ -8,12 +8,17 @@ python3.6 fetch_with_rel_and_value.py --data $DATA --out_dir $OUT
 """ 
 
     
-import os, json, argparse, time, shutil
-from tqdm import tqdm 
+import argparse
+import time
+from functools import partial
 from multiprocessing import Pool
-from functools import partial 
 
-from utils import *
+from tqdm import tqdm
+
+try:
+    from utils import *
+except:
+    from simple_wikidata_db.utils import *
 
 def get_arg_parser():
     parser = argparse.ArgumentParser()

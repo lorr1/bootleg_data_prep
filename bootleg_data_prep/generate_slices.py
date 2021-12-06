@@ -130,7 +130,7 @@ def subprocess(all_args):
 
     remaining_tot = defaultdict(int)
     all_slices = set()
-    with open(in_filepath, "r") as in_f:
+    with open(in_filepath, "r", encoding="utf-8") as in_f:
         for line in track(in_f.readlines(), total=sum([1 for _ in open(in_filepath)]), description=f"{i} - {mem}GB"):
             sent_obj = json.loads(line)
             if len(sent_obj["aliases"]) <= 0:
@@ -352,7 +352,7 @@ def combine_data(out_file, folder, clean_up=True):
         logging.info(f"Opening data file for writing {out_file}")
         for f in track(files, total=len(files), description=f"{out_file}"):
             # logging.info(f"Reading in file {f}")
-            with open(f, 'r') as fd:
+            with open(f, 'r', encoding="utf-8") as fd:
                 # for line in fd:
                 #     sent_obj = json.loads(line)
                 #     if len(sent_obj['aliases']) > 0:

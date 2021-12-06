@@ -7,7 +7,7 @@ import multiprocessing as mp
 
 def jsonl_generator(fname):
     """ Returns generator for jsonl file """
-    for line in open(fname, 'r'):
+    for line in open(fname, 'r', encoding="utf-8"):
         line = line.strip()
         if len(line) < 3:
             d = {}
@@ -21,7 +21,7 @@ def batch_line_generator(fname, batch_size):
     """ Returns generator for jsonl file with batched lines """
     res = []
     batch_id = 0
-    for line in open(fname, 'r'):
+    for line in open(fname, 'r', encoding="utf-8"):
         line = line.strip()
         if len(line) < 3:
             d = ''

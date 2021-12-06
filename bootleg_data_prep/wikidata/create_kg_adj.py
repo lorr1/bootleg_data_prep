@@ -30,7 +30,7 @@ def get_arg_parser():
 
 def init_process(args):
     temp_f = args[0]
-    vals = list(json.load(open(temp_f, "r")))
+    vals = list(json.load(open(temp_f, "r", encoding="utf-8")))
     global filter_qids_global
     filter_qids_global = marisa_trie.Trie(vals)
 
@@ -72,7 +72,7 @@ def merge_and_save(out_dir):
     in_files = glob(os.path.join(out_dir, f"_out_*.json"))
     out_f = os.path.join(out_dir, "kg_adj.txt")
     for f in tqdm(in_files):
-        d = json.load(open(f, 'r'))
+        d = json.load(open(f, 'r', encoding="utf-8"))
         for a, list_of_b in d.items():
             if not a in rel_dict:
                 rel_dict[a] = {}

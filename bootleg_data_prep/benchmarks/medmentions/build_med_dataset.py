@@ -215,7 +215,7 @@ def load_data_splits(args):
     print(f"Reading in {files} for data splits")
     splits = {}
     for file in files:
-        in_f = open(file, "r")
+        in_f = open(file, "r", encoding="utf-8")
         split_name = os.path.splitext(file)[0].split(args.split_file_suffix)[1]
         if split_name == "all":
             continue

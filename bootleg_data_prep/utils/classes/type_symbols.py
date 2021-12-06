@@ -25,7 +25,7 @@ class TypeSymbols:
 
     def load_type_file(self, type_file, entity_symbols, max_types, qid2typeid, qid2typenames, typeid2typename):
         """Loads type file and generates QID to type id mappings"""
-        with open(type_file, "r") as f:
+        with open(type_file, "r", encoding="utf-8") as f:
             total = 0.
             count = 0.
             qid2typeid_raw = json.load(f)

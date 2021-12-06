@@ -36,7 +36,7 @@ def load_sentences(args):
     ''' Load sentences from fp ''' 
 
     original_urls = set()
-    with open(args.annotated_file, 'r') as in_file:
+    with open(args.annotated_file, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             line = line.strip()         
             if len(line.split("\t")) > 4:

@@ -25,10 +25,10 @@ def main():
     args = parser.parse_args()
     print(json.dumps(vars(args), indent=4))
     print("Reading in PID names")
-    pid_names = json.load(open(args.pid_file, "r"))
+    pid_names = json.load(open(args.pid_file, "r", encoding="utf-8"))
 
     print(f"Reading in triples")
-    triples = json.load(open(args.kg_triples, "r"))
+    triples = json.load(open(args.kg_triples, "r", encoding="utf-8"))
     head_trips_dict = defaultdict(set)
     pred_count = defaultdict(int)
     for head in triples:
@@ -49,7 +49,7 @@ def main():
     # Current list of types...wanted to make sure the keys matched. This is optional
     print("Loading QIDs")
     all_type_qids = {}
-    with open(args.type_file, "r") as in_f:
+    with open(args.type_file, "r", encoding="utf-8") as in_f:
         all_type_qids = json.load(in_f)
 
 

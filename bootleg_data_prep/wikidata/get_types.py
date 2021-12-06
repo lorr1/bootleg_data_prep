@@ -43,7 +43,7 @@ def get_arg_parser():
 
 def init_process(args):
     temp_f = args[0]
-    vals = list(json.load(open(temp_f, "r")))
+    vals = list(json.load(open(temp_f, "r", encoding="utf-8")))
     global filter_qids_global
     filter_qids_global = marisa_trie.Trie(vals)
 
@@ -81,7 +81,7 @@ def merge_and_save(out_dir, qid_to_title):
     type_freq = defaultdict(int)
     in_files = glob(os.path.join(out_dir, f"_out_*.json"))
     for f in tqdm(in_files):
-        d = json.load(open(f, 'r'))
+        d = json.load(open(f, 'r', encoding="utf-8"))
         for qid, types in d.items():
             for qtype in types:
                 type_dict[qid].add(qtype)
@@ -142,7 +142,7 @@ def read_in_wikidata_title(args):
     wikidata_files = utils.get_batch_files(fdir)
     id_to_title = {}
     for file in tqdm(wikidata_files, desc="Reading in wikidata files"):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line = json.loads(line)
                 id_to_title[line["qid"]] = line["label"]

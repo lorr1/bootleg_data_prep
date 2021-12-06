@@ -275,7 +275,7 @@ def subprocess(all_args):
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     no_qid = []
     added_alias = defaultdict(int)
-    with open(in_filepath, 'r') as in_file, open(out_fname, "w", encoding='utf8') as out_file:
+    with open(in_filepath, 'r', encoding="utf-8") as in_file, open(out_fname, "w", encoding='utf8') as out_file:
         for doc_idx, doc in tqdm(enumerate(in_file), total=num_lines, desc=f"Processing"):
             doc = ujson.loads(doc)
 

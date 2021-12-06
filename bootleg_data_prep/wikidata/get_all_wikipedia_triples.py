@@ -30,7 +30,7 @@ def get_arg_parser():
 
 def init_process(args):
     temp_f = args[0]
-    vals = list(json.load(open(temp_f, "r")))
+    vals = list(json.load(open(temp_f, "r", encoding="utf-8")))
     global filter_qids_global
     filter_qids_global = marisa_trie.Trie(vals)
 
@@ -49,7 +49,7 @@ def merge_and_save(out_dir):
     out_f = os.path.join(out_dir, "kg_triples.json")
     final_triples = {}
     for f in in_files:
-        triples = json.load(open(f, 'r'))
+        triples = json.load(open(f, 'r', encoding="utf-8"))
         for qid in triples:
             if qid not in final_triples:
                 final_triples[qid] = {}

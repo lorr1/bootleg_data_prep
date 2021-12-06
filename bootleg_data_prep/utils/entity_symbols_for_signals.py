@@ -318,7 +318,7 @@ def load_relations(args, rel_file, all_qids):
     # load relations and build quick hash table look ups
     rel_mapping = {}
     num_lines = sum(1 for line in open(rel_file))
-    with open(rel_file, 'r') as f:
+    with open(rel_file, 'r', encoding="utf-8") as f:
         for line in track(f, total=num_lines):
             head, tail = line.strip().split()
             if head not in all_qids or tail not in all_qids:
@@ -339,7 +339,7 @@ def load_relations(args, rel_file, all_qids):
     return rel_mapping
 
 def load_contextual_relations(args, rel_file, entity_dump_dir, all_qids):
-    all_relations = json.load(open(rel_file, "r"))
+    all_relations = json.load(open(rel_file, "r", encoding="utf-8"))
     keys = []
     values = []
     all_rels = sorted(list(set([k for rel_dict in track(all_relations.values(), total=len(all_relations)) for k in rel_dict.keys()])))

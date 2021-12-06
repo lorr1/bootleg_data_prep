@@ -66,7 +66,7 @@ def load_wikidata_alias_to_qid(wd_alias_fdir):
     print(f"Collected {len(files)} files.")
     alias_to_qid = defaultdict(set)
     for file in tqdm(files):
-        with open(file, 'r') as in_file:
+        with open(file, 'r', encoding="utf-8") as in_file:
             for line in in_file:
                 data = json.loads(line.strip())
                 qid = data['qid']

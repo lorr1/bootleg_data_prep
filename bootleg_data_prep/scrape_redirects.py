@@ -23,7 +23,7 @@ with jsonlines.open(title_file, 'r') as in_file:
 wikititle2item_save = copy.deepcopy(wikititle2item)
 in_filename = "enwiki-latest-pages-articles-multistream.xml"
 title_map = defaultdict(set)
-with open(in_filename, "r") as in_f:
+with open(in_filename, "r", encoding="utf-8") as in_f:
     cur_title = ""
     redirect_title = ""
     for line in tqdm(in_f, total=1132098881):
@@ -67,7 +67,7 @@ for good_title in title_map:
 
 
 title_file2 = "/lfs/raiders8/0/lorr1/title_to_all_ids_temp.jsonl"
-with jsonlines.open(title_file2, 'w', encoding='utf8') as out_file:
+with jsonlines.open(title_file2, 'w') as out_file:
     for good_title in wikititle2item:
         for item in wikititle2item[good_title]:
             out_file.write(ujson.dumps(item, ensure_ascii=ENSURE_ASCII))

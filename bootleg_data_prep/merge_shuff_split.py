@@ -120,7 +120,7 @@ def main():
     start = time.time()
     lines = []
     for file in tqdm(sorted(files)):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line_strip = json.loads(line.strip())
                 hash_keys_for_item = []

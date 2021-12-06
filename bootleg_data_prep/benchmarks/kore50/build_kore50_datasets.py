@@ -167,7 +167,7 @@ def load_and_dump_sentences(args, qm):
     langid = args.langid
     sentences = []
     current_lines = []
-    with open(args.dataset, 'r') as in_file:
+    with open(args.dataset, 'r', encoding="utf-8") as in_file:
         for i, line in enumerate(in_file):
             line = line.strip()         
             if i == 0:

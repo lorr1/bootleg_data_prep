@@ -40,7 +40,7 @@ def get_arg_parser():
 
 def initializer(alias2cand_f):
     global alias2qid_global
-    with open(alias2cand_f, "r") as in_f:
+    with open(alias2cand_f, "r", encoding="utf-8") as in_f:
         alias2qid_global = ujson.load(in_f)
 
 def filter_data(num_processes, alias2qid_f, data_file, output_file):

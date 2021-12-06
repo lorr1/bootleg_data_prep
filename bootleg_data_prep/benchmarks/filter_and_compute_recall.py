@@ -68,7 +68,7 @@ def load_sentences(file, args):
 
 def write_output_file(sentences, fpath, args):
     print(f"Output to {fpath}")
-    with jsonlines.open(fpath, 'w', encoding='utf8') as f:
+    with jsonlines.open(fpath, 'w') as f:
         for sentence in sentences:
             f.write(sentence)
 

@@ -91,7 +91,7 @@ def subprocess(all_args):
     print(f"Starting {i}/{total}. Reading in {in_filepath}. Ouputting to {outfilename}")
     aliases_to_title = defaultdict(lambda: defaultdict(int))
     boldaliases_to_title = defaultdict(lambda: defaultdict(int))
-    with open(in_filepath, 'r') as in_file:
+    with open(in_filepath, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             line_idx, page_obj = line.split("\t")
             page_obj = json.loads(page_obj)

@@ -299,7 +299,7 @@ def load_and_dump_sentences(args, qm):
     split = 'train'
     current_doc_lines = []
     current_doc_id = None
-    with open(args.dataset, 'r') as in_file:
+    with open(args.dataset, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             line = line.strip()
             if NEW_DOC_DELIM in line:

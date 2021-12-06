@@ -76,7 +76,7 @@ def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, 
 
 def read_in_redirects(in_filename, total_lines):
     title_map = defaultdict(set)
-    with open(in_filename, "r") as in_f:
+    with open(in_filename, "r", encoding="utf-8") as in_f:
         cur_title = ""
         redirect_title = ""
         cur_timestamp = None
@@ -124,7 +124,7 @@ def read_in_wikipedia_pageids(args):
     wikipedia_files = glob(os.path.join(args.wikipedia_pageids, "*"))
     title_to_id = {}
     for file in tqdm(wikipedia_files, desc="Reading in wikipedia files"):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line = json.loads(line)
                 if line["title"] in title_to_id:
@@ -138,7 +138,7 @@ def read_in_wikipedia_title(args):
     wikipedia_files = utils.get_batch_files(fdir)
     title_to_id = defaultdict(set)
     for file in tqdm(wikipedia_files, desc="Reading in wikipedia files"):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line = json.loads(line)
                 title_to_id[line["wiki_title"]].add(line["qid"])
@@ -149,7 +149,7 @@ def read_in_wikidata_title(args):
     wikidata_files = utils.get_batch_files(fdir)
     id_to_title = defaultdict(set)
     for file in tqdm(wikidata_files, desc="Reading in wikidata files"):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line = json.loads(line)
                 id_to_title[line["qid"]].add(line["label"])
@@ -186,7 +186,7 @@ def main():
     wikititle2item, wikititle2item_original = add_redirects(redirect_title_map, wikititle2item)
     print('Writing down title_to_all_ids.jsonl which may take a couple of minutes ...')
     output_file = os.path.join(out_dir, "title_to_all_ids.jsonl")
-    with jsonlines.open(output_file, 'w', encoding='utf8') as out_file:
+    with jsonlines.open(output_file, 'w') as out_file:
         for good_title in wikititle2item:
             for item in wikititle2item[good_title]:
                 out_file.write(json.loads(item))

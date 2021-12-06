@@ -145,7 +145,7 @@ def subprocess_translate_to_ints(all_args):
     in_filepath, out_folder = file_tup
     out_filepath = os.path.join(out_folder, os.path.basename(in_filepath))
     print(f"Starting {idx}/{total}. Reading in {in_filepath}. Ouputting to {out_filepath}")
-    with jsonlines.open(in_filepath, 'r') as in_file, jsonlines.open(out_filepath, "w", encoding='utf8') as out_file:
+    with jsonlines.open(in_filepath, 'r') as in_file, jsonlines.open(out_filepath, "w") as out_file:
         for sent_idx, sent_obj in enumerate(in_file):
             tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos = language.clean_sentence_to_tokens(sent_obj["sentence"], skip_verbs=True)
             allowed_comma_pos = prep_utils.extract_allowed_comma_positions(sent_obj["sentence"])

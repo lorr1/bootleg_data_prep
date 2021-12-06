@@ -36,7 +36,7 @@ def main():
     os.makedirs(out_dir, exist_ok=True)
 
     for file in glob.glob(os.path.join(data_dir, '*')):
-        with jsonlines.open(file) as in_f, jsonlines.open(os.path.join(out_dir, os.path.basename(file)), 'w', encoding='utf8') as out_f:
+        with jsonlines.open(file) as in_f, jsonlines.open(os.path.join(out_dir, os.path.basename(file)), 'w') as out_f:
             for line in in_f:
                 # rename aliases
                 aliases = line['aliases']

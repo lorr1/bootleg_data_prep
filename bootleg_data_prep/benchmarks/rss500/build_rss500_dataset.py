@@ -244,13 +244,13 @@ def load_and_dump_sentences(args, title2qid, wpid2qid, sparql, g):
     parsed_dict = utils.load_json_file(os.path.join(args.out_dir, '../pre-sentenceing.json'))
     sentences = convert_dump_to_jsonl(args, parsed_dict, True)
     print(f"Saving sentences to {os.path.join(args.out_dir, 'test.jsonl')}")
-    with jsonlines.open(os.path.join(args.out_dir, "test.jsonl"), "w", encoding='utf8') as out_f:
+    with jsonlines.open(os.path.join(args.out_dir, "test.jsonl"), "w") as out_f:
         for sent in sentences:
             out_f.write(sent)
 
     sentences = convert_dump_to_jsonl(args, parsed_dict, False)
     print(f"Saving sentences to {os.path.join(args.out_dir, '../test_all.jsonl')}")
-    with jsonlines.open(os.path.join(args.out_dir, "../test_all.jsonl"), "w", encoding='utf8') as out_f:
+    with jsonlines.open(os.path.join(args.out_dir, "../test_all.jsonl"), "w") as out_f:
         for sent in sentences:
             out_f.write(sent)
 

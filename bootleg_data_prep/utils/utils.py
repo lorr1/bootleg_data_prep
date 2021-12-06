@@ -29,7 +29,7 @@ def dump_json_file(filename, contents):
             json.dump(contents, f, ensure_ascii=ENSURE_ASCII)
 
 def load_json_file(filename):
-    with open(filename, 'r') as f:
+    with open(filename, 'r', encoding="utf-8") as f:
         contents = ujson.load(f)
     return contents
 

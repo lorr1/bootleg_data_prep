@@ -131,7 +131,7 @@ class WLMetadata:
         self.tri_collection_qids.dump(save_dir=self.get_qid_tri_dir(dump_dir))
         self.tri_collection_aliases.dump(save_dir=self.get_alias_tri_dir(dump_dir))
         self.tri_collection_aliases_wd.dump(save_dir=self.get_alias_tri_wd_dir(dump_dir))
-        with open(self.get_qid2title_file(dump_dir), "w") as out_f:
+        with open(self.get_qid2title_file(dump_dir), "w", encoding='utf8') as out_f:
             ujson.dump(self.qid2title, out_f, ensure_ascii=ENSURE_ASCII)
 
     @classmethod
@@ -275,7 +275,7 @@ def subprocess(all_args):
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(lambda: defaultdict(int)))
     no_qid = []
     added_alias = defaultdict(int)
-    with open(in_filepath, 'r') as in_file, open(out_fname, "w") as out_file:
+    with open(in_filepath, 'r') as in_file, open(out_fname, "w", encoding='utf8') as out_file:
         for doc_idx, doc in tqdm(enumerate(in_file), total=num_lines, desc=f"Processing"):
             doc = ujson.loads(doc)
 
@@ -509,7 +509,7 @@ def main():
     # Save counts
     utils.dump_json_file(os.path.join(outdir, "filtered_qid_count.json"), filtered_qid_count)
     utils.dump_json_file(os.path.join(outdir, "filtered_aliases_to_qid_count.json"), filtered_aliases_to_qid)
-    with open(os.path.join(outdir, "docs_not_qids.json"), "w") as out_f:
+    with open(os.path.join(outdir, "docs_not_qids.json"), "w", encoding='utf8') as out_f:
         ujson.dump(docs_not_qid, out_f, ensure_ascii=ENSURE_ASCII)
 
     if entity_dump is None:

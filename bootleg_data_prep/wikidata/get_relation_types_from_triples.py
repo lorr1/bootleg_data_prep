@@ -54,7 +54,7 @@ def main():
 
 
     print("Dumping")
-    out_file = open(args.output_file, "w")
+    out_file = open(args.output_file, "w", encoding='utf8')
     max_len = 0
     final_qid2type = {}
     for qid in tqdm(all_type_qids):
@@ -69,7 +69,7 @@ def main():
         final_qid2type[qid] = types
     json.dump(final_qid2type, out_file, ensure_ascii=ENSURE_ASCII, indent=4)
     out_file.close()
-    with open(args.output_vocab_file, "w") as out_f:
+    with open(args.output_vocab_file, "w", encoding='utf8') as out_f:
         json.dump(rel_ids, out_f, ensure_ascii=ENSURE_ASCII, indent=4)
 
     print("Max number of relation types per qid", max_len)

@@ -42,7 +42,7 @@ for k in tqdm(title_map):
 
 
 out_file = "temp_redicts.json"
-with open(out_file, "w") as out_f:
+with open(out_file, "w", encoding='utf8') as out_f:
     ujson.dump(new_dict, out_f, ensure_ascii=ENSURE_ASCII)
 
 
@@ -67,8 +67,8 @@ for good_title in title_map:
 
 
 title_file2 = "/lfs/raiders8/0/lorr1/title_to_all_ids_temp.jsonl"
-with jsonlines.open(title_file2, 'w') as out_file:
+with jsonlines.open(title_file2, 'w', encoding='utf8') as out_file:
     for good_title in wikititle2item:
         for item in wikititle2item[good_title]:
-            out_file.write(ujson.loads(item))
+            out_file.write(ujson.dumps(item, ensure_ascii=ENSURE_ASCII))
 

@@ -20,7 +20,7 @@ def exists_dir(d):
     return os.path.exists(d)
 
 def dump_json_file(filename, contents):
-    with open(filename, 'w') as f:
+    with open(filename, 'w', encoding='utf8') as f:
         try:
             ujson.dump(contents, f, ensure_ascii=ENSURE_ASCII)
         except OverflowError:
@@ -92,7 +92,7 @@ def chunk_file(in_file, out_dir, num_lines, prefix="out_"):
             file_split = os.path.join(out_dir, f"{prefix}{i}{ending}")
             total_file_lines = 0
             i += 1
-            with open(file_split, 'w') as f:
+            with open(file_split, 'w', encoding='utf8') as f:
                 while True:
                     try:
                         line = next(lines)

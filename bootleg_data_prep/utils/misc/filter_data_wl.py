@@ -87,7 +87,7 @@ def filter_data(num_processes, data_file, output_file):
 
 def filter_data_hlp(args):
     input_file, input_lines, output_file = args
-    with open(input_file) as f_in, open(output_file, 'w') as f_out:
+    with open(input_file) as f_in, open(output_file, 'w', encoding='utf8') as f_out:
         for line in tqdm(f_in, total=input_lines, desc="Processing data"):
             line = ujson.loads(line)
             aliases = line['aliases']

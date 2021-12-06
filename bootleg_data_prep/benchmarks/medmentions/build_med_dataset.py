@@ -334,9 +334,9 @@ def generate_jsonl(doc, sent_id, cid2qid):
 
 def write_data(args, all_docs, splits, cid2qid):
     out_files = {
-        "dev": open(os.path.join(args.out_dir, "dev.jsonl"), "w"),
-        "test": open(os.path.join(args.out_dir, "test.jsonl"), "w"),
-        "train": open(os.path.join(args.out_dir, "train.jsonl"), "w"),
+        "dev": open(os.path.join(args.out_dir, "dev.jsonl"), "w", encoding='utf8'),
+        "test": open(os.path.join(args.out_dir, "test.jsonl"), "w", encoding='utf8'),
+        "train": open(os.path.join(args.out_dir, "train.jsonl"), "w", encoding='utf8'),
     }
     num_lines = 0
     total_aliases = 0
@@ -398,7 +398,7 @@ def main():
     utils.dump_json_file(os.path.join(args.out_dir, "med_mentions_alias_qid.json"), aliasqid_count)
 
     qid2typeids, typename2typeid = gen_type_dump(all_docs, cid2qid, concept_dict)
-    out_f = open(os.path.join(out_dir, "med_mentions_qid2typeid.txt"), "w")
+    out_f = open(os.path.join(out_dir, "med_mentions_qid2typeid.txt"), "w", encoding='utf8')
     for qid, typeids in qid2typeids.items():
         out_f.write(f"{qid},{'|'.join(map(str, typeids))}\n")
     out_f.close()

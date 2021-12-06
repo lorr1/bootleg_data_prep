@@ -124,7 +124,7 @@ def build_map(args):
 
     # save to file 
     out_fpath = os.path.join(args.save_dir, 'aida_title_map.txt')
-    with open(out_fpath, 'w') as out_file:
+    with open(out_fpath, 'w', encoding='utf8') as out_file:
         for aida_title, new_title in updated_title_map.items():
             out_file.write(f"{aida_title}\t{new_title}\n")
 

@@ -49,7 +49,7 @@ def init_process(args):
 
 def launch_entity_table(entity_files, qid_to_title, filter_qids, out_dir, args):
     temp_f = os.path.join(out_dir, "_temp_filter.json")
-    json.dump(list(filter_qids), open(temp_f, "w"), ensure_ascii=ENSURE_ASCII)
+    json.dump(list(filter_qids), open(temp_f, "w", encoding='utf8'), ensure_ascii=ENSURE_ASCII)
     print(f"Starting with {args.processes} processes")
     pool = Pool(processes = args.processes, initializer=init_process, initargs=(tuple([temp_f]),))
     messages = [(i, len(entity_files), entity_files[i], out_dir) for i in range(len(entity_files))]
@@ -66,7 +66,7 @@ def load_entity_file(message):
         if property_id in TYPE_PIDS and value not in AVOID_TYPES and (len(filter_qids_global) == 0 or qid in filter_qids_global):
             type_dict[qid].add(value)
 
-    out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w")
+    out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w", encoding='utf8')
     print(f"Found {len(type_dict)}")
     type_dict = dict(type_dict)
     # convert to list type for json serialization
@@ -90,7 +90,7 @@ def merge_and_save(out_dir, qid_to_title):
     sorted_typs = sort_types(type_dict, type_freq)
     write_types(out_dir, sorted_typs, qid_to_title)
 
-    with open(os.path.join(out_dir, 'type_freqs.json'), 'w') as out_file:
+    with open(os.path.join(out_dir, 'type_freqs.json'), 'w', encoding='utf8') as out_file:
         json.dump(type_freq, out_file, ensure_ascii=ENSURE_ASCII)
     print(f"Removing the temporary files")
     for file in in_files:
@@ -111,7 +111,7 @@ def write_types(out_dir, type_list, qid_to_title):
     typetitle2index = {}
     title2typeqid = {}
     typeqid2index = {}
-    with open(os.path.join(out_dir, 'wikidata_types.json'), 'w') as out_file:
+    with open(os.path.join(out_dir, 'wikidata_types.json'), 'w', encoding='utf8') as out_file:
         new_type_list = {}
         for qid, types in type_list.items(): 
             type_indices = []
@@ -131,9 +131,9 @@ def write_types(out_dir, type_list, qid_to_title):
             new_type_list[qid] = type_indices
         json.dump(new_type_list, out_file, ensure_ascii=ENSURE_ASCII)
     
-    with open(os.path.join(out_dir, 'wikidatatitle_to_typeid.json'), 'w') as out_file:
+    with open(os.path.join(out_dir, 'wikidatatitle_to_typeid.json'), 'w', encoding='utf8') as out_file:
         json.dump(typetitle2index, out_file, ensure_ascii=ENSURE_ASCII)
-    with open(os.path.join(out_dir, 'wikidatatitle_to_typeqid.json'), 'w') as out_file:
+    with open(os.path.join(out_dir, 'wikidatatitle_to_typeqid.json'), 'w', encoding='utf8') as out_file:
         json.dump(title2typeqid, out_file, ensure_ascii=ENSURE_ASCII)
     print(f"Writtten to {out_dir}")
 

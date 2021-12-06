@@ -113,7 +113,7 @@ def main():
 
     cands = process_files(qm, args)
     out_dir = prep_utils.get_outdir(args.data_dir, args.out_dir)
-    with open(os.path.join(out_dir, 'cands.json'), 'w') as out_file:
+    with open(os.path.join(out_dir, 'cands.json'), 'w', encoding='utf8') as out_file:
         json.dump(cands, out_file, ensure_ascii=ENSURE_ASCII)
 
 if __name__ == '__main__':

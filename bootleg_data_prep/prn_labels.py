@@ -63,7 +63,7 @@ def process_file(args):
         just_file = os.path.basename(filename)
         output_file = os.path.join(output_path, just_file)
         print(f"Writing {filename} to {output_file}")
-        with open(output_file, 'w') as fout:
+        with open(output_file, 'w', encoding='utf8') as fout:
             res = []
             for line in f:
                 j = json.loads(line)
@@ -296,7 +296,7 @@ def main(input_path, output_path, entity_dir, num_workers=40, swap_titles=False,
                     # print out when wd gender and predicted gender disagree
                     stats.append({'wd_gender': g, 'pred_gender': p, 'title':title})
     print(f'final stats: {c} have genders in {t}')
-    with open('pronoun_run_res.jsonl', 'w') as fout:
+    with open('pronoun_run_res.jsonl', 'w', encoding='utf8') as fout:
         for res in stats:
             print(json.dumps(res, ensure_ascii=ENSURE_ASCII), file=fout)
     entity_output_path = os.path.join(output_path, "entity_db/entity_mappings")

@@ -122,7 +122,7 @@ def subprocess(all_args):
     random.seed(1234)
     # create output files:
     out_fname = os.path.join(outdir, prep_utils.get_outfname(in_filepath))
-    out_file = open(out_fname, 'w')
+    out_file = open(out_fname, 'w', encoding='utf8')
     print(f"Starting {idx}/{total}. Reading in {in_filepath}. Outputting to {out_fname}")
     filtered_qid_counts = defaultdict(int)
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(int))

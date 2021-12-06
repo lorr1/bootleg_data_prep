@@ -50,7 +50,7 @@ def read_in_saved_title_file(title_file, total_lines):
 
 def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, wikipedia_titles_to_wpid):
     total_lines = 0
-    with open(output_file, "w") as out_f:
+    with open(output_file, "w", encoding='utf8') as out_f:
         for wikipedia_title, qids in tqdm(wikipedia_titles_to_qid.items(), desc="Merging dicts"):
             if len(qids) > 1:
                 print(f"Wikipedia {wikipedia_title} has qid {qids}")
@@ -176,7 +176,7 @@ def main():
     assert len(redirect_title_map) > 0
     print('Writing down temp_redirects.json which may take a couple of minutes ...')
     out_file = "temp_redicts.json"
-    with open(out_file, "w") as out_f:
+    with open(out_file, "w", encoding='utf8') as out_f:
         json.dump(redirect_title_map, out_f, default=str, ensure_ascii=ENSURE_ASCII)
     # with open(out_file, "r") as in_f:
     #     redirect_title_map = ujson.load(in_f)
@@ -186,7 +186,7 @@ def main():
     wikititle2item, wikititle2item_original = add_redirects(redirect_title_map, wikititle2item)
     print('Writing down title_to_all_ids.jsonl which may take a couple of minutes ...')
     output_file = os.path.join(out_dir, "title_to_all_ids.jsonl")
-    with jsonlines.open(output_file, 'w') as out_file:
+    with jsonlines.open(output_file, 'w', encoding='utf8') as out_file:
         for good_title in wikititle2item:
             for item in wikititle2item[good_title]:
                 out_file.write(json.loads(item))

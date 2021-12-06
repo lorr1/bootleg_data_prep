@@ -137,7 +137,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
 
     # create output files:  
     out_fname = prep_utils.get_outfname(in_filepath)
-    out_file = open(os.path.join(outdir, out_fname), "w")
+    out_file = open(os.path.join(outdir, out_fname), "w", encoding='utf8')
 
     # track the local frequency of alias-to-qids
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(int))

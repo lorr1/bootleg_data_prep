@@ -36,7 +36,7 @@ def init_process(args):
 
 def launch_entity_table(entity_files, filter_qids, out_dir, args):
     temp_f = os.path.join(out_dir, "_temp_filter.json")
-    json.dump(list(filter_qids), open(temp_f, "w"), ensure_ascii=ENSURE_ASCII)
+    json.dump(list(filter_qids), open(temp_f, "w", encoding='utf8'), ensure_ascii=ENSURE_ASCII)
     print(f"Starting with {args.processes} processes")
     pool = Pool(processes = args.processes, initializer=init_process, initargs=(tuple([temp_f]),))
     messages = [(i, len(entity_files), entity_files[i], out_dir) for i in range(len(entity_files))]
@@ -58,7 +58,7 @@ def merge_and_save(out_dir):
                     final_triples[qid][rel] = []
                 for qid2 in triples[qid][rel]:
                     final_triples[qid][rel].append(qid2)
-    with open(out_f,'w') as wfd:
+    with open(out_f,'w', encoding='utf8') as wfd:
         json.dump(final_triples, wfd, ensure_ascii=ENSURE_ASCII)
     print(f"Removing the temporary files")
     for file in in_files:
@@ -78,7 +78,7 @@ def load_and_filter_triples(message):
             if property_id not in triples[qid]:
                 triples[qid][property_id] = []
             triples[qid][property_id].append(value)
-    out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w")
+    out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w", encoding='utf8')
     print(f"Found {len(triples)}")
     json.dump(triples, out_f, ensure_ascii=ENSURE_ASCII)
     print(f"Finished {job_index} / {num_jobs}...{filename}. {time.time() - start} seconds. Saved in {out_f}.")

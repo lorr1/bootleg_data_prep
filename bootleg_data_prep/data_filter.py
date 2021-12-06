@@ -98,7 +98,7 @@ def subprocess_step1(all_args):
     i, total, args, out_dir, in_filepath = all_args
     start = time.time()
     out_fname = prep_utils.get_outfname(in_filepath)
-    out_file = open(os.path.join(out_dir, out_fname), "w")
+    out_file = open(os.path.join(out_dir, out_fname), "w", encoding='utf8')
     print(f"Starting {i}/{total}. Reading in {in_filepath}. Outputting to {out_fname}. Outdir {out_dir}")
     # track the local frequency of alias-to-qids
     stats = {"filtered_func":0}
@@ -232,7 +232,7 @@ def subprocess_step2(all_args):
     qid2title = utils.load_json_file(qid2title_f)
     alias2qids = utils.load_json_file(alias2qids_f)
     out_fname = prep_utils.get_outfname(in_filepath)
-    out_file = open(os.path.join(out_dir, out_fname), "w")
+    out_file = open(os.path.join(out_dir, out_fname), "w", encoding='utf8')
     out_file_stats = os.path.join(out_dir_stats, out_fname)
     print(f"Starting {i}/{total}. Reading in {in_filepath}. Outputting to {out_fname}. Outdir {out_dir}")
 

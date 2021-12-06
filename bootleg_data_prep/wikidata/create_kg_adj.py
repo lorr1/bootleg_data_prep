@@ -36,7 +36,7 @@ def init_process(args):
 
 def launch_entity_table(entity_files, filter_qids, out_dir, args):
     temp_f = os.path.join(out_dir, "_temp_filter.json")
-    json.dump(list(filter_qids), open(temp_f, "w"), ensure_ascii=ENSURE_ASCII)
+    json.dump(list(filter_qids), open(temp_f, "w", encoding='utf8'), ensure_ascii=ENSURE_ASCII)
     print(f"Starting with {args.processes} processes")
     pool = Pool(processes = args.processes, initializer=init_process, initargs=(tuple([temp_f]),))
     messages = [(i, len(entity_files), entity_files[i], out_dir) for i in range(len(entity_files))]
@@ -61,7 +61,7 @@ def load_entity_file(message):
             else:
                 rel_dict[a][b] += 1
 
-    out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w")
+    out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w", encoding='utf8')
     print(f"Found {len(rel_dict)}")
     json.dump(rel_dict, out_f, ensure_ascii=ENSURE_ASCII)
     print(f"Finished {job_index} / {num_jobs}...{filename}. {time.time() - start} seconds. Saved in {out_f}.")
@@ -89,7 +89,7 @@ def merge_and_save(out_dir):
     return
 
 def write_rels(fpath, rel_dict):
-    with open(fpath, 'w') as out_file: 
+    with open(fpath, 'w', encoding='utf8') as out_file:
         for q1, rels in tqdm(rel_dict.items()):
             for q2 in rels: 
                 out_file.write(f"{q1}\t{q2}\n")

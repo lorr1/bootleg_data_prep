@@ -93,7 +93,7 @@ def filter_data(num_processes, alias2qid_f, data_file, output_file):
 def filter_data_hlp(args):
     input_file, input_lines, output_file = args
     cache_alias2qids = {}
-    with open(input_file) as f_in, open(output_file, 'w') as f_out:
+    with open(input_file) as f_in, open(output_file, 'w', encoding='utf8') as f_out:
         for line in tqdm(f_in, total=input_lines, desc="Processing data"):
             line = ujson.loads(line)
             aliases = line['aliases']
@@ -126,11 +126,7 @@ def filter_data_hlp(args):
             line["spans"] = new_spans
             line["gold"] = new_golds
             line["slices"] = new_slices
-<<<<<<< HEAD
-            f_out.write(ujson.dumps(line, ensure_ascii=False) + "\n")
-=======
             f_out.write(ujson.dumps(line, ensure_ascii=ENSURE_ASCII) + "\n")
->>>>>>> 056990ba2eea64dcd3fe1760a19f4636bf65fd4f
 
 
 def main():

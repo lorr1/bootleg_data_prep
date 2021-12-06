@@ -54,7 +54,7 @@ def load_sentences(args):
         else:
             print(f"{i}/{len(original_urls)}. {url} --> {title} CHANGED")
 
-    with open(os.path.join(args.out_dir, 'url_to_title.tsv'), 'w') as out_file:
+    with open(os.path.join(args.out_dir, 'url_to_title.tsv'), 'w', encoding='utf8') as out_file:
         for url, title in url_to_title.items():
             out_file.write(f"{url}\t{title}\n")
 

@@ -2,11 +2,9 @@ import json
 import os
 import shutil
 from argparse import Namespace
-from rich.progress import track
 from collections import defaultdict
 
 from rich.progress import track
-from tqdm import tqdm
 import marisa_trie
 import numpy as np
 
@@ -344,12 +342,13 @@ def load_contextual_relations(args, rel_file, entity_dump_dir, all_qids):
     values = []
     all_rels = sorted(list(set([k for rel_dict in track(all_relations.values(), total=len(all_relations)) for k in rel_dict.keys()])))
     rels_vocab = {r:i for i, r in enumerate(all_rels)}
-    for head_qid in all_relations:
-        if head_qid not in all_qids:
+    all_qids_set = set(all_qids)
+    for head_qid in track(all_relations, total=len(all_relations)):
+        if head_qid not in all_qids_set:
             continue
         for rel in all_relations[head_qid]:
             for tail_qid in all_relations[head_qid][rel]:
-                if tail_qid not in all_qids:
+                if tail_qid not in all_qids_set:
                     continue
                 key = f"{head_qid}_{tail_qid}"
                 value = rels_vocab[rel]

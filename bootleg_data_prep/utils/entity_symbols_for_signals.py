@@ -316,10 +316,11 @@ def load_relations(args, rel_file, all_qids):
     # load relations and build quick hash table look ups
     rel_mapping = {}
     num_lines = sum(1 for line in open(rel_file))
+    all_qids_set = set(all_qids)
     with open(rel_file, 'r', encoding="utf-8") as f:
         for line in track(f, total=num_lines):
             head, tail = line.strip().split()
-            if head not in all_qids or tail not in all_qids:
+            if head not in all_qids_set or tail not in all_qids_set:
                 continue
             # add heads and tails
             if head in rel_mapping:

@@ -19,6 +19,9 @@ mkdir -p $BOOTLEG_PREP_OUTPUT_LOGS_DIR
 if [ "$BOOTLEG_PREP_WEAK_LABELING" = true ] ; then
   ./step4g-weak-labeling.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step4g-weak-labeling.log
 fi
+if [ "$BOOTLEG_PREP_PRN_LABELING" = true ] ; then
+  ./step4h-prnoun-labeling.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step4h-prn-labeling.log
+fi
 ./step5-data-filter.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step5-data-filter.log
 ./step6-merge-stuff-split.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step6-merge-stuff-split.log
 ./step7a-prep-generate-slices-part1.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step7a-prep-generate-slices-part1.log

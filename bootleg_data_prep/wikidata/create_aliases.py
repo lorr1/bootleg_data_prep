@@ -122,7 +122,6 @@ def generate_short_long_names(qid2alias, human_qid):
                     new_aliases.add(name.first)
                 if len(name.last) > 0 and name.last not in BASE_STOPWORDS:
                     new_aliases.add(name.last)
-                print("ALIAS", alias, name.first, name.last)
         augmented_qid2alias[qid] = list(new_aliases)
     print(f"Finished augmentation. {len(qid2alias)} QIDS.")
     return augmented_qid2alias
@@ -146,7 +145,7 @@ def main():
         print(f"Loaded {len(qid_filter)} qids.")
     else:
         qid_filter = set()
-        print('no kids file')
+        print('no qids file')
 
     print('Step 2 of 9: loading aliases ...')
     fdir = os.path.join(args.data, "processed_batches", "aliases")

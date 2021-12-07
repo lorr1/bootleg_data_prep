@@ -259,12 +259,6 @@ def main():
     anchoraliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_anchoraliases_to_titles)
     boldaliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_boldaliases_to_titles)
     acronymaliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_acronymaliases_to_titles)
-    # TODO: REMOVE
-    al = "distributed algorithms"
-    print("AL", al)
-    print(boldaliases_to_title.get(al, []))
-    print(acronymaliases_to_title.get(al, []))
-    print(anchoraliases_to_title.get(al, []))
     # filter aliases and convert to QID
     aliases_to_qid, all_qids, qid_unavailable, unpopular_removed = filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_title,
                                                                                                      acronymaliases_to_title,

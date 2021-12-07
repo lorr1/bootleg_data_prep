@@ -526,8 +526,8 @@ def get_qid2aliases(alias2qids, entity_dump, out_dir):
 # Here, we just copy the entity dump over to the new directory but delete erroneous -1 qids
 # that crop up if we don't have the page title in our mapping.
 def modify_counts_and_dump(args, filtered_aliases_to_qid, entity_dump):
-    alias2qids = entity_dump.get_alias2qids()
-    qid2title = entity_dump.get_qid2title()
+    alias2qids = entity_dump.get_alias2qids_dict()
+    qid2title = entity_dump.get_qid2title_dict()
     if "-1" in qid2title:
         del qid2title["-1"]
 
@@ -570,7 +570,7 @@ def main():
     print(f"Loaded entity dump with {entity_dump.num_entities} entities.")
 
     # Load wikidata alias2qid
-    alias2qid = entity_dump.get_alias2qids()
+    alias2qid = entity_dump.get_alias2qids_dict()
     # generates mappings from qids to aliases and a memmaped trie (aka dict) from alias to length of that aliases candidate list (measure of how conflicting that alias is)
     qid2singlealias, aliasconflict_f, qid2alias = get_qid2aliases(alias2qid, entity_dump, temp_outdir)
     print(f"Created qid2alias map over {len(qid2alias)} QIDs.")

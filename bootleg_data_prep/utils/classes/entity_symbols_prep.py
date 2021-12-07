@@ -175,7 +175,7 @@ class EntitySymbolsPrep:
                 self._alias2qids[alias], key=lambda x: (x[1], x[0]), reverse=True
             )
 
-    def get_qid2eid(self):
+    def get_qid2eid_dict(self):
         """
         Gets the qid2eid mapping
         Returns: Dict qid2eid mapping
@@ -183,7 +183,7 @@ class EntitySymbolsPrep:
         """
         return self._qid2eid
 
-    def get_alias2qids(self):
+    def get_alias2qids_dict(self):
         """
         Gets the alias2qids mapping (key is alias, value is list of candidate tuple of length two of [QID, sort_value])
         Returns: Dict alias2qids mapping
@@ -191,7 +191,7 @@ class EntitySymbolsPrep:
         """
         return self._alias2qids
 
-    def get_qid2title(self):
+    def get_qid2title_dict(self):
         """
         Gets the qid2title mapping
         Returns: Dict qid2title mapping

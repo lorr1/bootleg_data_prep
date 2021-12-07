@@ -28,17 +28,22 @@ from tqdm import tqdm
 from bootleg_data_prep.language import ENSURE_ASCII, gender_qid_map, pronoun_map, pronoun_possessive_map, UNKNOWN
 from bootleg_data_prep.utils.classes.entity_symbols_prep import EntitySymbolsPrep
 
-person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
-print('person data loaded')
+# person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
+# print('person data loaded')
+
+person_path = os.environ.get("BOOTLEG_PREP_WIKIDATA_DIR", None)
+if person_path is None:
+    print("You must have $BOOTLEG_PREP_WIKIDATA_DIR environment variable set")
+    sys.exit()
 
 def prepare_person_numpy():
     """utility function for preparing person.npy"""
     person_set = set()
-    with open('wikidata_09_21/wikidata_output/person_qids.json') as f:
+    with open(f'{person_path}/wikidata_output/person_qids.json') as f:
         person_set = set(json.load(f))
     print('person list loaded')
     gender_map = {}
-    with open('wikidata_09_21/wikidata_output/person_gender.json') as f:
+    with open(f'{person_path}/wikidata_output/person_gender.json') as f:
         gender_map_old = json.load(f)
         gender_map = {}
         for qid, gender in gender_map_old.items():
@@ -47,7 +52,7 @@ def prepare_person_numpy():
     print('gender map loaded')
     return person_set, gender_map
 
-# person_set, gender_map = prepare_person_numpy()
+person_set, gender_map = prepare_person_numpy()
 # print(list(person_set)[:10])
 # print(list(gender_map.items())[:10])
     

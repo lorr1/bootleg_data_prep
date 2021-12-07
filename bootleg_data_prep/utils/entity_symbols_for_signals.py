@@ -132,7 +132,7 @@ class EntitySymbolsForSlice:
             # The values are specific strings as outlines in the record trie collection class
             fmt_types = {ALIAS2QID: "qid_cand_with_score", RELMAPPING: "kg_relations"}
             max_values = {ALIAS2QID: entity_symbols.max_candidates, RELMAPPING: max_relations}
-            input_dicts = {ALIAS2QID: entity_symbols.get_alias2qids(), RELMAPPING: rel_mapping}
+            input_dicts = {ALIAS2QID: entity_symbols.get_alias2qids_dict(), RELMAPPING: rel_mapping}
 
             if len(qid2typeid_hy) > 0:
                 qid2typeid_hy_filtered = {k: v for k, v in qid2typeid_hy.items() if len(v) > 0}
@@ -155,7 +155,7 @@ class EntitySymbolsForSlice:
                 max_values[QID2TYPEID_REL] = max_types_rel
                 input_dicts[QID2TYPEID_REL] = qid2typeid_rel_filtered
             print(f"Max Values {max_values}")
-            self.tri_collection = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=entity_symbols.get_qid2eid(),
+            self.tri_collection = RecordTrieCollection(load_dir=None, input_dicts=input_dicts, vocabulary=entity_symbols.get_qid2eid_dict(),
                                                        fmt_types=fmt_types, max_values=max_values)
 
         self.qid_count = qid_count

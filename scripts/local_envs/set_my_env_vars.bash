@@ -7,3 +7,4 @@ source ./setx.bash BOOTLEG_PREP_PROCESS_COUNT_AVG 10
 source ./setx.bash BOOTLEG_PREP_PROCESS_COUNT_MIN 6
 source ./setx.bash BOOTLEG_PREP_USE_GPU false
 source ./setx.bash BOOTLEG_PREP_WEAK_LABELING false
+source ./setx.bash BOOTLEG_PREP_PRN_LABELING false

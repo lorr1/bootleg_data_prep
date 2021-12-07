@@ -7,7 +7,7 @@ source ./envs.bash
 python3 $BOOTLEG_PREP_CODE_DIR/bootleg_data_prep/generate_slices.py \
   --subfolder_name full_wiki \
   --data_dir $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump \
-  --processes $BOOTLEG_PROCESS_COUNT_MAX \
+  --processes $BOOTLEG_PREP_PROCESS_COUNT_MAX \
   --emb_dir $BOOTLEG_PREP_WIKIPEDIA_DIR/embs \
   --ent_desc qid2desc_1129.json \
   --kg_adj kg_adj_1129.txt \

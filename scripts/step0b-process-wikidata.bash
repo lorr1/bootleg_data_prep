@@ -11,5 +11,5 @@ python3 $BOOTLEG_PREP_CODE_DIR/simple_wikidata_db/preprocess_dump.py \
     --out_dir $BOOTLEG_PREP_WIKIDATA_DIR/processed_batches \
     --total_lines 100000000 \
     --batch_size 1000 \
-    --num_processes $BOOTLEG_PROCESS_COUNT_MIN \
-    --language_id $BOOTLEG_LANG_CODE
+    --num_processes $BOOTLEG_PREP_PROCESS_COUNT_MIN \
+    --language_id $BOOTLEG_PREP_LANG_CODE

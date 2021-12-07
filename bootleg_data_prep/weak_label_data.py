@@ -217,7 +217,7 @@ def launch_subprocess(args, outdir, temp_outdir, wl_metadata_dump, in_files):
     for docs_not_qid_subset in tqdm(pool.imap(subprocess, all_process_args, chunksize=1), total=len(all_process_args)):
         docs_not_qid.update(set(docs_not_qid_subset))
     pool.close()
-    return docs_not_qid
+    return list(docs_not_qid)
 
 
 def choose_new_alias(max_cands, alias, qid, wl_metadata, doc_ent, sentence_idx):

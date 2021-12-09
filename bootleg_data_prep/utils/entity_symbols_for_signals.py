@@ -415,7 +415,7 @@ def load_tri_collection(args, entity_symbols):
         rel_mapping = {}
     else:
         print(f"Reading kg_adj from {os.path.join(args.emb_dir, args.kg_adj)}...")
-        rel_mapping = load_relations(args, os.path.join(args.emb_dir, args.kg_adj), entity_symbols.get_all_qids())
+        rel_mapping = load_relations(args, os.path.join(args.emb_dir, args.kg_adj), set(entity_symbols.get_all_qids()))
     print(f"Len {len(rel_mapping)} for rel_mapping")
 
     # Load contextual relation mappings
@@ -426,7 +426,7 @@ def load_tri_collection(args, entity_symbols):
         rel_vocab_inv = {}
     else:
         print(f"Reading contextual kg triples from {args.kg_triples}")
-        rel_tri, rel_vocab_inv = load_contextual_relations(args, os.path.join(args.emb_dir, args.kg_triples), entity_dump_dir, entity_symbols.get_all_qids())
+        rel_tri, rel_vocab_inv = load_contextual_relations(args, os.path.join(args.emb_dir, args.kg_triples), entity_dump_dir, set(entity_symbols.get_all_qids()))
     return tri_collection, qid2typeid_hy, qid2typeid_wd, qid2typeid_rel, rel_mapping, rel_tri, rel_vocab_inv
 
 

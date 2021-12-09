@@ -140,13 +140,13 @@ def subprocess_step1(all_args):
 # Filter entities by qids in data and by max candidates
 def filter_entity_symbols(args, list_of_all_qids, benchmark_qids, entity_symbols):
     stats = {"alias_not_in_all_qids": 0, "qids_not_in_all_qids": 0, "raw_qids": 0, "raw_aliases": 0}
-    print("STARTING LENS TITLE", len(entity_symbols.get_qid2title_dict()()), "ALIAS", len(entity_symbols.get_alias2qids_dict()))
+    print("STARTING LENS TITLE", len(entity_symbols.get_qid2title_dict()), "ALIAS", len(entity_symbols.get_alias2qids_dict()))
     if args.no_filter_entities_data:
         alias2qids = {}
         for alias in tqdm(entity_symbols.get_all_aliases(), total=len(entity_symbols.get_all_aliases()), desc="Building alias 2 cands lists"):
             qid_cand_list = list(sorted(entity_symbols.get_qid_count_cands(alias), key=lambda x: x[1], reverse=True))
             alias2qids[alias] = qid_cand_list[:args.max_candidates]
-        qid2title = entity_symbols.get_qid2title_dict()()
+        qid2title = entity_symbols.get_qid2title_dict()
         stats["raw_aliases"] = len(alias2qids)
         stats["raw_qids"] = len(qid2title)
     else:
@@ -205,7 +205,7 @@ def launch_subprocess_step2(args, out_dir, out_dir_stats, entity_symbols, files)
 
     qid2title_f = os.path.join(temp_folder, "qid2title.json")
     alias2qids_f = os.path.join(temp_folder, "alias2qids.json")
-    utils.dump_json_file(qid2title_f, entity_symbols.get_qid2title_dict()())
+    utils.dump_json_file(qid2title_f, entity_symbols.get_qid2title_dict())
     utils.dump_json_file(alias2qids_f, entity_symbols.get_alias2qids_dict())
 
     all_process_args = [tuple([i+1,
@@ -257,9 +257,10 @@ def subprocess_step2(all_args):
             # # LAUREL
             sent_obj['unswap_aliases'] = sent_obj.get('unswap_aliases', sent_obj['aliases'])
             sent_obj['sources'] = sent_obj.get('sources', ['gold' for _ in range(len(sent_obj['aliases']))])
+            print("HERE", "aka" in sent_obj["sources"])
             items = list(filter(lambda x: (not args.train_in_candidates) or (x[2] in [y[0] for y in alias2qids[x[0]]]),
                                 zip(sent_obj['aliases'], sent_obj.get("unswap_aliases", sent_obj["aliases"]), sent_obj['qids'],
-                                    sent_obj['spans'], sent_obj['gold'], sent_obj.get("souces", ["gold" for i in range(len(sent_obj["aliases"]))]))))
+                                    sent_obj['spans'], sent_obj['gold'], sent_obj["sources"])))
             temp_len = len(items)
             for x in items:
                 if x[2] not in qid2title:
@@ -274,6 +275,7 @@ def subprocess_step2(all_args):
             aliases, unswap_aliases, qids, spans, golds, sources = zip(*items)
             assert len(aliases) == len(unswap_aliases) == len(qids) == len(spans) == len(golds) == len(sources), f"Lengths of filtered items isn't the same {zip(*items)}"
             statistics['total_dropped'] += len(sent_obj['qids']) - len(qids)
+            print("HERE2", "aka" in sources)
             if len(aliases) > 0:
                 new_sent_obj = sent_obj
                 new_sent_obj['aliases'] = aliases

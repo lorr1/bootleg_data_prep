@@ -132,7 +132,7 @@ class QIDMapper:
 
 
     def dump(self): 
-        with open(os.path.join(self.args.dataset, self.args.redirect_map), 'w') as out_file: 
+        with open(os.path.join(self.args.dataset, self.args.redirect_map), 'w', encoding='utf8') as out_file:
             json.dump(self.title_redirect, out_file)
 
 
@@ -258,11 +258,11 @@ def load_and_dump_sentences(args, qm):
     if args.scope == 'document':
         out_dir = f"{out_dir}_document"
     fdir = prep_utils.get_outdir(out_dir, args.sub_dir)
-    with open(os.path.join(fdir, 'test.jsonl'), 'w') as out_file: 
+    with open(os.path.join(fdir, 'test.jsonl'), 'w', encoding='utf8') as out_file:
         for sentence in sentences:
             out_file.write(sentence.to_json() + '\n')
     
-    with open(os.path.join(out_dir, 'msnbc_qids.json'), 'w') as out_file: 
+    with open(os.path.join(out_dir, 'msnbc_qids.json'), 'w', encoding='utf8') as out_file:
         json.dump(list(all_qids), out_file)
 
 

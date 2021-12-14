@@ -98,13 +98,13 @@ def subprocess_step1(all_args):
     i, total, args, out_dir, in_filepath = all_args
     start = time.time()
     out_fname = prep_utils.get_outfname(in_filepath)
-    out_file = open(os.path.join(out_dir, out_fname), "w")
+    out_file = open(os.path.join(out_dir, out_fname), "w", encoding='utf8')
     print(f"Starting {i}/{total}. Reading in {in_filepath}. Outputting to {out_fname}. Outdir {out_dir}")
     # track the local frequency of alias-to-qids
     stats = {"filtered_func":0}
     all_qids = set()
     # load file -- should be JSONL with each document as a distinct line
-    with open(in_filepath, 'r') as in_file:
+    with open(in_filepath, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             doc = json.loads(line.strip())
             title = doc['title']
@@ -232,7 +232,7 @@ def subprocess_step2(all_args):
     qid2title = utils.load_json_file(qid2title_f)
     alias2qids = utils.load_json_file(alias2qids_f)
     out_fname = prep_utils.get_outfname(in_filepath)
-    out_file = open(os.path.join(out_dir, out_fname), "w")
+    out_file = open(os.path.join(out_dir, out_fname), "w", encoding='utf8')
     out_file_stats = os.path.join(out_dir_stats, out_fname)
     print(f"Starting {i}/{total}. Reading in {in_filepath}. Outputting to {out_fname}. Outdir {out_dir}")
 
@@ -243,7 +243,7 @@ def subprocess_step2(all_args):
     # False is for all golds (i.e. statistics over wikipedia golds and added candidates from our augmentation)
     alias_qid = {True: collections.defaultdict(lambda: collections.defaultdict(int)), False: collections.defaultdict(lambda: collections.defaultdict(int))}
     # load file -- should be JSONL with
-    with open(in_filepath, 'r') as in_file:
+    with open(in_filepath, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             sent_obj = json.loads(line.strip())
             statistics['total_mentions'] += len(sent_obj['qids'])
@@ -307,7 +307,7 @@ def aggregate_statistics_step2(args, out_dir_stats):
     alias_qid_without = collections.defaultdict(lambda: collections.defaultdict(int))
     for i, file in enumerate(in_files):
         print(f"Processing {file}")
-        counts = json.load(open(file, "r"))
+        counts = json.load(open(file, "r", encoding="utf-8"))
         for gold, a_qid in counts.items():
             for k, v in a_qid.items():
                 for kk, vv, in v.items():

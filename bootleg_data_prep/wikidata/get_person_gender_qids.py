@@ -63,11 +63,11 @@ def main():
             final_id2gender[id] = id2gen[id]
 
     out_fpath = os.path.join(out_dir, 'person_qids.json')
-    with open(out_fpath, 'w') as out_file:
+    with open(out_fpath, 'w', encoding='utf8') as out_file:
         ujson.dump(list(final_ids), out_file, ensure_ascii=ENSURE_ASCII, indent=4)
 
     out_fpath2 = os.path.join(out_dir, 'person_gender.json')
-    with open(out_fpath2, 'w') as out_file:
+    with open(out_fpath2, 'w', encoding='utf8') as out_file:
         ujson.dump(final_id2gender, out_file, ensure_ascii=ENSURE_ASCII, indent=4)
     print(f"Written {len(final_ids)} to {out_fpath} and person2gender to {out_fpath2} in {time.time()-start}")
     

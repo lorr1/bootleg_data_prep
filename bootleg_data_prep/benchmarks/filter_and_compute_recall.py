@@ -73,7 +73,7 @@ def write_output_file(sentences, fpath, args):
             f.write(sentence)
 
 def write_errors(errors, out_fpath):
-    with open(out_fpath, 'w') as out_file:
+    with open(out_fpath, 'w', encoding='utf8') as out_file:
         for error in errors:
             out_file.write(json.dumps(error, ensure_ascii=ENSURE_ASCII) + '\n')
 
@@ -186,7 +186,7 @@ def main(args):
     print(f"Saved new entity dump to {entity_dump_dir}")
 
     result_fpath = os.path.join(errors_dir, 'recall_results.json')
-    json.dump(recall_results, open(result_fpath, 'w'), ensure_ascii=ENSURE_ASCII, indent=4)
+    json.dump(recall_results, open(result_fpath, 'w', encoding='utf8'), ensure_ascii=ENSURE_ASCII, indent=4)
     print(f"Saved results to {recall_results}")
     return recall_results
 

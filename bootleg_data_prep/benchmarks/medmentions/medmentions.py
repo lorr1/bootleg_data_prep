@@ -66,7 +66,7 @@ def annotate(input_file, output_file, nlp_pipe):
     output_file: a jsonl file with annotations
     nlp_pipe: a spacy pipe object
     """
-    with gzip.open(input_file, 'rt') as f, open(output_file, 'w') as fout:
+    with gzip.open(input_file, 'rt') as f, open(output_file, 'w', encoding='utf8') as fout:
         doc = {"labels":[]}
         stats = Counter()
         for line in tqdm(f, desc=f"annotating {input_file}"):
@@ -105,7 +105,7 @@ def convert_annotation_to_bootleg(input_annotation_file, output_bootleg_text_fil
         if None, no filter.
     """
     stats = Counter()
-    with open(input_annotation_file) as f, open(output_bootleg_text_file, 'w') as fout:
+    with open(input_annotation_file) as f, open(output_bootleg_text_file, 'w', encoding='utf8') as fout:
         sent_idx_counter = 0
         for line in tqdm(f, desc=f'converting {input_annotation_file}'):
             doc = json.loads(line)
@@ -179,7 +179,7 @@ def split(input_bootleg_file, input_medmention_dir, output_dir):
     def subset(output_file, doc_ids):
         stats = Counter()
         stats['docs'] = len(doc_ids)
-        with open(output_file, 'w') as fout:
+        with open(output_file, 'w', encoding='utf8') as fout:
             for doc_id in doc_ids:
                 lst = all_docs[doc_id]
                 for l, j in lst:
@@ -224,7 +224,7 @@ def get_alias_map_from_umls(input_entity_file, output_alias_to_qid_file):
     """use title and alias of each concept in umls to generate the mapping"""
     alias_map_umls = defaultdict(lambda: defaultdict(int))
     # output_alias_to_qid_umls_file = f'{mm_dir}/entity_data/alias2qids_umls.json'
-    with open(input_entity_file) as f, open(output_alias_to_qid_file, 'w') as fout:
+    with open(input_entity_file) as f, open(output_alias_to_qid_file, 'w', encoding='utf8') as fout:
         for line in tqdm(f, desc=f'scanning {input_entity_file}'):
             j = json.loads(line)
             for x in j:
@@ -274,7 +274,7 @@ def get_alias_map_from_scispacy(input_file, output_alias_to_qid_scispacy_file, k
                     alias2qids_scispacy[alias] = sorted(
                         [(mc.concept_id, max(mc.similarities)) for mc in cand_list], key=lambda x: -x[1])
     logger.info(f'{len(alias2qids_scispacy)} aliases are produced')
-    with open(output_alias_to_qid_scispacy_file, 'w') as fout:
+    with open(output_alias_to_qid_scispacy_file, 'w', encoding='utf8') as fout:
         print(json.dumps(alias2qids_scispacy), file=fout)
     logger.info(f'{output_alias_to_qid_scispacy_file} is written')
 
@@ -311,7 +311,7 @@ def evaluate_candidate_recall(input_file, alias_map_file, output_filter_file=Non
     save_filter_file = output_filter_file is not None
     if save_filter_file:
         logger.info(f'saving a file filtering out spans without the gold entity in the candidates to {output_filter_file}')
-        filter_file = open(output_filter_file, 'w')
+        filter_file = open(output_filter_file, 'w', encoding='utf8')
     with open(input_file) as f:
         for line in tqdm(f, desc=f'generating cands for {input_file}'):
             j = json.loads(line)
@@ -372,11 +372,11 @@ def prep_umls_rel_data(input_relationship_file, output_conn_file, output_qid_to_
             rel_id = rel2id[rel]
             qid2rels[j["CUI1"]].append(rel_id)
 
-    with open(output_conn_file, 'w') as fout:
+    with open(output_conn_file, 'w', encoding='utf8') as fout:
         for a, b in relations:
             print(f'{a}\t{b}', file=fout)
     logger.info(f'{output_conn_file} generated: {len(relations)} relations')
-    with open(output_qid_to_relations_file, 'w') as fout:
+    with open(output_qid_to_relations_file, 'w', encoding='utf8') as fout:
         print(json.dumps(qid2rels), file=fout)
     logger.info(f'{output_qid_to_relations_file} generated: {len(qid2rels)} entities have relations')
     rel_signs = Counter()
@@ -394,7 +394,7 @@ def prep_umls_rel_data(input_relationship_file, output_conn_file, output_qid_to_
         sum_freq += rel_length[k]
         logger.info(f'relation coverage at {k} = {sum_freq / len(qid2rels)}')
     logger.info(f'most common relation types: {rel_freq.most_common(20)}')
-    with open(output_relation_vocab_file, 'w') as fout:
+    with open(output_relation_vocab_file, 'w', encoding='utf8') as fout:
         print(json.dumps(rel2id), file=fout)
     logger.info(f'{output_relation_vocab_file} generated: {len(rel2id)} unique relations')
 
@@ -428,7 +428,7 @@ def prep_entity_data(output_dir, dataset_name, input_entity_file, input_relation
         return type_to_id[t]
 
     stats = Counter()
-    with open(input_entity_file) as f, open(output_qid_to_entity_file, 'w') as fout:
+    with open(input_entity_file) as f, open(output_qid_to_entity_file, 'w', encoding='utf8') as fout:
         for line in tqdm(f, desc=f'reading {input_entity_file}'):
             j = json.loads(line)
             for x in j:
@@ -440,10 +440,10 @@ def prep_entity_data(output_dir, dataset_name, input_entity_file, input_relation
             # title
             print(json.dumps({x['concept_id']: x['canonical_name'][:title_len_limit] for x in j}), file=fout)
     logger.info(f"qid_to_entity generated to {output_qid_to_entity_file}")
-    with open(output_qid_to_type_file, 'w') as fout:
+    with open(output_qid_to_type_file, 'w', encoding='utf8') as fout:
         print(json.dumps({x: list(y) for x, y in eid_to_type.items()}), file=fout)
     logger.info(f'{len(eid_to_type)} entities have types, saved to {output_qid_to_type_file}. max len of types: {max(len(v) for v in eid_to_type.values())}')
-    with open(output_type_vocab_file, 'w') as fout:
+    with open(output_type_vocab_file, 'w', encoding='utf8') as fout:
         print(json.dumps(type_to_id), file=fout)
     logger.info(f'{len(type_to_id)} types are saved to {output_type_vocab_file}')
 

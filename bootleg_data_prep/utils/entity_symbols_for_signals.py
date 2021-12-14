@@ -2,11 +2,9 @@ import json
 import os
 import shutil
 from argparse import Namespace
-from rich.progress import track
 from collections import defaultdict
 
 from rich.progress import track
-from tqdm import tqdm
 import marisa_trie
 import numpy as np
 
@@ -318,10 +316,11 @@ def load_relations(args, rel_file, all_qids):
     # load relations and build quick hash table look ups
     rel_mapping = {}
     num_lines = sum(1 for line in open(rel_file))
-    with open(rel_file, 'r') as f:
+    all_qids_set = set(all_qids)
+    with open(rel_file, 'r', encoding="utf-8") as f:
         for line in track(f, total=num_lines):
             head, tail = line.strip().split()
-            if head not in all_qids or tail not in all_qids:
+            if head not in all_qids_set or tail not in all_qids_set:
                 continue
             # add heads and tails
             if head in rel_mapping:
@@ -339,17 +338,18 @@ def load_relations(args, rel_file, all_qids):
     return rel_mapping
 
 def load_contextual_relations(args, rel_file, entity_dump_dir, all_qids):
-    all_relations = json.load(open(rel_file, "r"))
+    all_relations = json.load(open(rel_file, "r", encoding="utf-8"))
     keys = []
     values = []
     all_rels = sorted(list(set([k for rel_dict in track(all_relations.values(), total=len(all_relations)) for k in rel_dict.keys()])))
     rels_vocab = {r:i for i, r in enumerate(all_rels)}
-    for head_qid in all_relations:
-        if head_qid not in all_qids:
+    all_qids_set = set(all_qids)
+    for head_qid in track(all_relations, total=len(all_relations)):
+        if head_qid not in all_qids_set:
             continue
         for rel in all_relations[head_qid]:
             for tail_qid in all_relations[head_qid][rel]:
-                if tail_qid not in all_qids:
+                if tail_qid not in all_qids_set:
                     continue
                 key = f"{head_qid}_{tail_qid}"
                 value = rels_vocab[rel]

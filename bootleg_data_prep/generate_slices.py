@@ -126,11 +126,11 @@ def subprocess(all_args):
     # print(f"Starting {i}/{total}. Reading in {in_filepath}.")
 
     out_fname = prep_utils.get_outfname(in_filepath)
-    out_file = open(os.path.join(test_folder, out_fname), "w")
+    out_file = open(os.path.join(test_folder, out_fname), "w", encoding='utf8')
 
     remaining_tot = defaultdict(int)
     all_slices = set()
-    with open(in_filepath, "r") as in_f:
+    with open(in_filepath, "r", encoding="utf-8") as in_f:
         for line in track(in_f.readlines(), total=sum([1 for _ in open(in_filepath)]), description=f"{i} - {mem}GB"):
             sent_obj = json.loads(line)
             if len(sent_obj["aliases"]) <= 0:
@@ -348,11 +348,11 @@ def combine_data(out_file, folder, clean_up=True):
     files = list(sorted(prep_utils.glob_files(f"{folder}/*")))
     if len(files) == 0:
         return
-    with open(out_file, "w") as out_f:
+    with open(out_file, "w", encoding='utf8') as out_f:
         logging.info(f"Opening data file for writing {out_file}")
         for f in track(files, total=len(files), description=f"{out_file}"):
             # logging.info(f"Reading in file {f}")
-            with open(f, 'r') as fd:
+            with open(f, 'r', encoding="utf-8") as fd:
                 # for line in fd:
                 #     sent_obj = json.loads(line)
                 #     if len(sent_obj['aliases']) > 0:
@@ -371,7 +371,7 @@ def write_out_entity_profile(args, folder, all_qids):
     if os.path.exists(qid2desc_path):
         logging.info("Found qid2desc.json")
         qid2desc = json.load(open(qid2desc_path))
-        json.dump(qid2desc, open(qid2desc_outpath, "w"), ensure_ascii=ENSURE_ASCII)
+        json.dump(qid2desc, open(qid2desc_outpath, "w", encoding='utf8'), ensure_ascii=ENSURE_ASCII)
     else:
         logging.warning("Could not find qid2desc.json...")
 
@@ -389,14 +389,14 @@ def write_out_entity_profile(args, folder, all_qids):
         for rel in all_relations.get(head_qid, {}):
             rel_name = kg_vocab.get(rel, rel)
             qid2relations[head_qid][rel_name] = all_relations[head_qid][rel][:args.max_relations]
-    with open(os.path.join(kg_folder, "qid2relations.json"), "w") as out_f:
+    with open(os.path.join(kg_folder, "qid2relations.json"), "w", encoding='utf8') as out_f:
         json.dump(qid2relations, out_f, ensure_ascii=ENSURE_ASCII, indent=4)
     # with open(os.path.join(kg_folder, "kg_adj.txt"), "w") as out_f:
     #     for item in kg_list:
     #         out_f.write(f"{item[0]}\t{item[1]}\n")
-    with open(os.path.join(kg_folder, "relation_vocab.json"), "w") as out_f:
+    with open(os.path.join(kg_folder, "relation_vocab.json"), "w", encoding='utf8') as out_f:
         json.dump(kg_vocab, out_f, ensure_ascii=ENSURE_ASCII, indent=4)
-    json.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w"), ensure_ascii=ENSURE_ASCII, indent=4)
+    json.dump({"max_connections": args.max_relations}, open(os.path.join(kg_folder, "config.json"), "w", encoding='utf8'), ensure_ascii=ENSURE_ASCII, indent=4)
     # Types
     print("Writing out wiki types")
     dump_types(folder, "wiki", args.emb_dir, args.wd_vocab, args.wd_types, args.max_types, all_qids)

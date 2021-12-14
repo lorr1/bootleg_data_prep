@@ -64,7 +64,7 @@ def main():
             print(f"Extracted {len(file_qids)} from {file}. {len(all_qids)} total QIDS collected.")
     all_qids = all_qids.union(get_candidates(args))
     print(f"{len(all_qids)} Qids collected from benchmarks.")
-    with open(os.path.join(args.data_dir, 'benchmark_qids.json'), 'w') as out_file: 
+    with open(os.path.join(args.data_dir, 'benchmark_qids.json'), 'w', encoding='utf8') as out_file:
         json.dump(list(all_qids), out_file, ensure_ascii=ENSURE_ASCII)
 
     prep_utils.save_config(args, "aggregate_benchmarks.json")

@@ -144,7 +144,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
 
     # create output files:  
     out_fname = prep_utils.get_outfname(in_filepath)
-    out_file = open(os.path.join(outdir, out_fname), "w")
+    out_file = open(os.path.join(outdir, out_fname), "w", encoding='utf8')
 
     # track the local frequency of alias-to-qids
     filtered_aliases_to_qid_count = defaultdict(lambda: defaultdict(int))
@@ -161,7 +161,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
     # We still want these to be augmented in the next step so must keep these in our entity dump
     wiki_page_qids = set()
     total_kept = 0
-    with open(in_filepath, 'r') as in_file:
+    with open(in_filepath, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             line_idx, doc = line.split("\t")
             doc = json.loads(doc)

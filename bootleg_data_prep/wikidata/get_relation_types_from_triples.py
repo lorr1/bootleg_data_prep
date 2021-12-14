@@ -25,10 +25,10 @@ def main():
     args = parser.parse_args()
     print(json.dumps(vars(args), indent=4))
     print("Reading in PID names")
-    pid_names = json.load(open(args.pid_file, "r"))
+    pid_names = json.load(open(args.pid_file, "r", encoding="utf-8"))
 
     print(f"Reading in triples")
-    triples = json.load(open(args.kg_triples, "r"))
+    triples = json.load(open(args.kg_triples, "r", encoding="utf-8"))
     head_trips_dict = defaultdict(set)
     pred_count = defaultdict(int)
     for head in triples:
@@ -49,12 +49,12 @@ def main():
     # Current list of types...wanted to make sure the keys matched. This is optional
     print("Loading QIDs")
     all_type_qids = {}
-    with open(args.type_file, "r") as in_f:
+    with open(args.type_file, "r", encoding="utf-8") as in_f:
         all_type_qids = json.load(in_f)
 
 
     print("Dumping")
-    out_file = open(args.output_file, "w")
+    out_file = open(args.output_file, "w", encoding='utf8')
     max_len = 0
     final_qid2type = {}
     for qid in tqdm(all_type_qids):
@@ -69,7 +69,7 @@ def main():
         final_qid2type[qid] = types
     json.dump(final_qid2type, out_file, ensure_ascii=ENSURE_ASCII, indent=4)
     out_file.close()
-    with open(args.output_vocab_file, "w") as out_f:
+    with open(args.output_vocab_file, "w", encoding='utf8') as out_f:
         json.dump(rel_ids, out_f, ensure_ascii=ENSURE_ASCII, indent=4)
 
     print("Max number of relation types per qid", max_len)

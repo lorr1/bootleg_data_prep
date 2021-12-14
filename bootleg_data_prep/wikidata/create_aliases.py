@@ -183,7 +183,7 @@ def main():
             alias2qid[alias].append(qid)
     print(f"{len(alias2qid)} aliases.")
     print(f"Step 9 of 9: Saving to file {args.out_file}...")
-    with open(args.out_file, "w") as out_file: 
+    with open(args.out_file, "w", encoding='utf8') as out_file:
         json.dump(alias2qid, out_file, ensure_ascii=ENSURE_ASCII)
 
 

@@ -53,7 +53,7 @@ def main():
         final_ids.update(id)
 
     out_fpath = os.path.join(out_dir, 'disambig_qids.json')
-    with open(out_fpath, 'w') as out_file:
+    with open(out_fpath, 'w', encoding='utf8') as out_file:
         out_file.write(json.dumps(final_ids, ensure_ascii=ENSURE_ASCII) + "\n")
     print(f"Written {len(final_ids)} to {out_file} in {time.time()-start}")
     

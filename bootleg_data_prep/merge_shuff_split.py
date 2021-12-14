@@ -103,7 +103,7 @@ def main():
         if os.path.exists(key):
             shutil.rmtree(key)
         utils.ensure_dir(key)
-        counters[key] = tuple([0, open(os.path.join(key, f"out_0.jsonl"), "w")])
+        counters[key] = tuple([0, open(os.path.join(key, f"out_0.jsonl"), "w", encoding='utf8')])
         if fold == "train":
             splits[key] = list(range(2*args.split, 100))
         elif fold == "dev":
@@ -120,7 +120,7 @@ def main():
     start = time.time()
     lines = []
     for file in tqdm(sorted(files)):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line_strip = json.loads(line.strip())
                 hash_keys_for_item = []
@@ -168,7 +168,7 @@ def main():
                 if out_f.tell() > file_size:
                     out_f.close()
                     idx += 1
-                    out_f = open(os.path.join(key, f"out_{idx}.jsonl"), "w")
+                    out_f = open(os.path.join(key, f"out_{idx}.jsonl"), "w", encoding='utf8')
                     counters[key] = tuple([idx, out_f])
                 line["sent_idx_unq"] = line_idx
                 line_idx += 1

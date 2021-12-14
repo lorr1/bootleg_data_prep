@@ -95,7 +95,7 @@ def main():
 
     new_f = os.path.splitext(args.title_to_qid)[0] + "_appended.jsonl"
     shutil.copy(args.title_to_qid, new_f)
-    in_f = open(new_f, "a")
+    in_f = open(new_f, "a", encoding='utf8')
     api_query = lambda x: json.loads(requests.get(r'https://en.wikipedia.org/w/api.php?action=query&titles={}&&redirects&format=json'.format("|".join(x))).text)
     no_wpid_list = set()
     final_still_unknown = set()

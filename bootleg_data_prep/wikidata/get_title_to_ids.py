@@ -50,7 +50,7 @@ def read_in_saved_title_file(title_file, total_lines):
 
 def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, wikipedia_titles_to_wpid):
     total_lines = 0
-    with open(output_file, "w") as out_f:
+    with open(output_file, "w", encoding='utf8') as out_f:
         for wikipedia_title, qids in tqdm(wikipedia_titles_to_qid.items(), desc="Merging dicts"):
             if len(qids) > 1:
                 print(f"Wikipedia {wikipedia_title} has qid {qids}")
@@ -76,7 +76,7 @@ def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, 
 
 def read_in_redirects(in_filename, total_lines):
     title_map = defaultdict(set)
-    with open(in_filename, "r") as in_f:
+    with open(in_filename, "r", encoding="utf-8") as in_f:
         cur_title = ""
         redirect_title = ""
         cur_timestamp = None
@@ -124,7 +124,7 @@ def read_in_wikipedia_pageids(args):
     wikipedia_files = glob(os.path.join(args.wikipedia_pageids, "*"))
     title_to_id = {}
     for file in tqdm(wikipedia_files, desc="Reading in wikipedia files"):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line = json.loads(line)
                 if line["title"] in title_to_id:
@@ -138,7 +138,7 @@ def read_in_wikipedia_title(args):
     wikipedia_files = utils.get_batch_files(fdir)
     title_to_id = defaultdict(set)
     for file in tqdm(wikipedia_files, desc="Reading in wikipedia files"):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line = json.loads(line)
                 title_to_id[line["wiki_title"]].add(line["qid"])
@@ -149,7 +149,7 @@ def read_in_wikidata_title(args):
     wikidata_files = utils.get_batch_files(fdir)
     id_to_title = defaultdict(set)
     for file in tqdm(wikidata_files, desc="Reading in wikidata files"):
-        with open(file, "r") as in_f:
+        with open(file, "r", encoding="utf-8") as in_f:
             for line in in_f:
                 line = json.loads(line)
                 id_to_title[line["qid"]].add(line["label"])
@@ -176,7 +176,7 @@ def main():
     assert len(redirect_title_map) > 0
     print('Writing down temp_redirects.json which may take a couple of minutes ...')
     out_file = "temp_redicts.json"
-    with open(out_file, "w") as out_f:
+    with open(out_file, "w", encoding='utf8') as out_f:
         json.dump(redirect_title_map, out_f, default=str, ensure_ascii=ENSURE_ASCII)
     # with open(out_file, "r") as in_f:
     #     redirect_title_map = ujson.load(in_f)

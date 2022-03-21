@@ -257,7 +257,6 @@ def subprocess_step2(all_args):
             # # LAUREL
             sent_obj['unswap_aliases'] = sent_obj.get('unswap_aliases', sent_obj['aliases'])
             sent_obj['sources'] = sent_obj.get('sources', ['gold' for _ in range(len(sent_obj['aliases']))])
-            print("HERE", "aka" in sent_obj["sources"])
             items = list(filter(lambda x: (not args.train_in_candidates) or (x[2] in [y[0] for y in alias2qids[x[0]]]),
                                 zip(sent_obj['aliases'], sent_obj.get("unswap_aliases", sent_obj["aliases"]), sent_obj['qids'],
                                     sent_obj['spans'], sent_obj['gold'], sent_obj["sources"])))
@@ -275,7 +274,6 @@ def subprocess_step2(all_args):
             aliases, unswap_aliases, qids, spans, golds, sources = zip(*items)
             assert len(aliases) == len(unswap_aliases) == len(qids) == len(spans) == len(golds) == len(sources), f"Lengths of filtered items isn't the same {zip(*items)}"
             statistics['total_dropped'] += len(sent_obj['qids']) - len(qids)
-            print("HERE2", "aka" in sources)
             if len(aliases) > 0:
                 new_sent_obj = sent_obj
                 new_sent_obj['aliases'] = aliases

@@ -1,6 +1,6 @@
 echo
 echo "=============================================================================="
-echo "Step step4h-prnoun-labeling"
+echo "Step step4g-prnoun-labeling"
 echo "=============================================================================="
 echo
 source ./envs.bash

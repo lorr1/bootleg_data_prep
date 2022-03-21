@@ -30,8 +30,9 @@ def get_arg_parser():
     parser.add_argument('--processes', type=int, default=10, help="Number of concurrent processes to spin off. ")
     parser.add_argument('--qids', type=str, default=None)  # Taken from Wikipedia part of Wikidata dump
     parser.add_argument('--batch_size', type=int, default=100000)
-    parser.add_argument('--not_stripandlower', action='store_true', help='If set, will stripandlower and strip punctuation of aliases.')
-    return parser 
+    parser.add_argument('--not_strip', action='store_true', help='If set, will strip punctuation of aliases.')
+    parser.add_argument('--not_lower', action='store_true', help='If set, will lower case all aliases.')
+    return parser
 
 def get_aliases_from_table(alias_files, args):
     pool = Pool(processes = args.processes)
@@ -97,13 +98,13 @@ def load_entity_file(message):
     print(f"Finished {job_index} / {num_jobs}...{filename}. Found {len(qid2alias)} entities.")
     return {'alias': qid2alias, 'type': qid2type}
 
-def merge_aliases(list_of_qid2alias, stripandlower):
+def merge_aliases(list_of_qid2alias, strip, lower):
     qid2alias = defaultdict(set)
     all_aliases = set()
     for d in tqdm(list_of_qid2alias):
         for q, aliases in d.items():
             for a in aliases:
-                a = get_lnrm(a, stripandlower, True)
+                a = get_lnrm(a, strip=strip, lower=lower)
                 qid2alias[q].add(a)
                 all_aliases.add(a)
     for q, a in qid2alias.items():
@@ -170,7 +171,7 @@ def main():
                 human_qid[qid] = 1
     print(f"Found {len(human_qid)} entities of type individual.")
     print("Step 6 of 9: merging aliases")
-    qid2alias = merge_aliases(list_of_qid2alias, not args.not_stripandlower)
+    qid2alias = merge_aliases(list_of_qid2alias, not args.not_strip, not args.not_lower)
     qid2alias = generate_short_long_names(qid2alias, human_qid)
     print("Step 8 of 9: Inverting qid2alias...")
     alias2qid = {}

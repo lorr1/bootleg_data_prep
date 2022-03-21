@@ -57,7 +57,7 @@ def merge_title_mappings(output_file, qid_to_wikidata, wikipedia_titles_to_qid, 
             wpid = wikipedia_titles_to_wpid.get(wikipedia_title, "-1")
             for qid in qids:
                 if qid not in qid_to_wikidata:
-                    print(f"QID {qid} not in wikidata qids")
+                    # print(f"QID {qid} not in wikidata qids")
                     wikidata_titles = {wikipedia_title.lower()}
                 else:
                     wikidata_titles = qid_to_wikidata[qid]
@@ -103,7 +103,7 @@ def add_redirects(title_map, wikititle2item):
     for good_title in tqdm(title_map, desc="Adding redirects"):
         good_title_converted = convert_title(good_title)
         if good_title not in wikititle2item_save and good_title_converted not in wikititle2item_save:
-            print(f"Good {good_title} (or {good_title_converted}) not in wikititle2item")
+            # print(f"Good {good_title} (or {good_title_converted}) not in wikititle2item")
             continue
         if good_title in wikititle2item_save:
             items = wikititle2item_save[good_title]

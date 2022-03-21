@@ -23,15 +23,11 @@ import simple_wikidata_db.utils as utils
 
 from bootleg_data_prep.language import ENSURE_ASCII
 
-HUMAN_QID = 'Q5'
-TWIN_QID = 'Q159979'
 OCCUPATION = 'P106'
 INSTANCE_OF = 'P31'
 SUBCLASS_OF = 'P279'
 # Get instance of, subclass of, and occupation (for people)
 TYPE_PIDS = {OCCUPATION, INSTANCE_OF, SUBCLASS_OF}
-# We use occupation types instead of generic human types
-AVOID_TYPES = {HUMAN_QID, TWIN_QID}
 
 def get_arg_parser():
     parser = argparse.ArgumentParser()
@@ -63,7 +59,7 @@ def load_entity_file(message):
     type_dict = defaultdict(set)
     for triple in utils.jsonl_generator(filename):
         qid, property_id, value = triple['qid'], triple['property_id'], triple['value']
-        if property_id in TYPE_PIDS and value not in AVOID_TYPES and (len(filter_qids_global) == 0 or qid in filter_qids_global):
+        if property_id in TYPE_PIDS and (len(filter_qids_global) == 0 or qid in filter_qids_global):
             type_dict[qid].add(value)
 
     out_f = open(os.path.join(out_dir, f"_out_{job_index}.json"), "w")

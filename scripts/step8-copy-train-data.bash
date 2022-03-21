@@ -4,7 +4,11 @@ echo "Step step8-copy-train-data"
 echo "=============================================================================="
 echo
 source ./envs.bash
-cp -r $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump/full_wiki_0_-1_final $BOOTLEG_PREP_OUTPUT_DIR
-cp $BOOTLEG_PREP_WIKIPEDIA_DIR/embs/kg_adj_1129.txt $BOOTLEG_PREP_OUTPUT_DIR/full_wiki_0_-1_final/entity_db/kg_adj_1129.txt
-echo "Copied!"
+mkdir -p $BOOTLEG_PREP_OUTPUT_DIR
+cp -r $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump/full_wiki/entity_db_final $BOOTLEG_PREP_OUTPUT_DIR/entity_db
+cp $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump/full_wiki/entity_db/entity_mappings/qid2cnt.json $BOOTLEG_PREP_OUTPUT_DIR/entity_db/entity_mappings
+cat $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump/full_wiki/train/out_*jsonl > $BOOTLEG_PREP_OUTPUT_DIR/train.jsonl
+cat $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump/full_wiki/test/out_*jsonl > $BOOTLEG_PREP_OUTPUT_DIR/test.jsonl
+cat $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump/full_wiki/dev/out_*jsonl > $BOOTLEG_PREP_OUTPUT_DIR/dev.jsonl
+echo "Copied! to $BOOTLEG_PREP_OUTPUT_DIR"
 rm -rf ./temp_redicts.json

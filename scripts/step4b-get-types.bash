@@ -1,11 +1,11 @@
 echo
 echo "=============================================================================="
-echo "Step step4d-get-descriptions"
+echo "Step step4b-get-types"
 echo "=============================================================================="
 echo
 source ./envs.bash
-python3 $BOOTLEG_PREP_CODE_DIR/bootleg_data_prep/wikidata/get_entity_descriptions.py \
+python3 $BOOTLEG_PREP_CODE_DIR/bootleg_data_prep/wikidata/get_types.py \
     --data $BOOTLEG_PREP_WIKIDATA_DIR \
     --out_dir wikidata_output \
-    --wikipedia_page_data $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump/alias_filtered_sentences \
+    --processes $BOOTLEG_PREP_PROCESS_COUNT_MAX \
     --qids $BOOTLEG_PREP_WIKIPEDIA_DIR/data/wiki_dump/alias_filtered_sentences/entity_db/entity_mappings/qid2title.json

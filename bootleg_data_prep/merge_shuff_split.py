@@ -87,7 +87,8 @@ def main():
 
     out_file_with = os.path.join(stats_dir, "alias_qid_traindata_withaugment.json")
     out_file_without = os.path.join(stats_dir, "alias_qid_traindata_withoutaugment.json")
-    print(f"Will output to {out_file_with} and {out_file_without}")
+    train_qidcnt_file = os.path.join(out_dir, "entity_db", "entity_mappings", "qid2cnt.json")
+    print(f"Will output to {out_file_with} and {out_file_without} and counts to {train_qidcnt_file}")
     alias_qid_with = collections.defaultdict(lambda: collections.defaultdict(int))
     alias_qid_without = collections.defaultdict(lambda: collections.defaultdict(int))
 
@@ -138,6 +139,7 @@ def main():
     # If data different lengths, this will reset random here
     print(f"Starting to write out {len(lines)} lines")
     start = time.time()
+    trainqid2cnt = collections.defaultdict(int)
     line_idx = 0
     total_removed = 0
     for hash_key, line in tqdm(lines):
@@ -156,6 +158,7 @@ def main():
                 # update train stats
                 if (key == os.path.join(out_dir, "train")):
                     for alias, qid, gold in zip(line["aliases"], line["qids"], line["gold"]):
+                        trainqid2cnt[qid] += 1
                         alias_qid_with[alias][qid] += 1
                         if gold:
                             alias_qid_without[alias][qid] += 1
@@ -176,6 +179,7 @@ def main():
 
     utils.dump_json_file(out_file_with, alias_qid_with)
     utils.dump_json_file(out_file_without, alias_qid_without)
+    utils.dump_json_file(train_qidcnt_file, trainqid2cnt)
     print(f"Finished writing files in {time.time() - start} seconds. Removed {total_removed} non-gold aliases from dev and test and train.")
     # Closing files
     for key in tqdm(splits):

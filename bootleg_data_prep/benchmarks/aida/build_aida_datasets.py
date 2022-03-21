@@ -299,7 +299,7 @@ def load_and_dump_sentences(args, qm):
     split = 'train'
     current_doc_lines = []
     current_doc_id = None
-    with open(args.dataset, 'r') as in_file:
+    with open(args.dataset, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             line = line.strip()
             if NEW_DOC_DELIM in line:
@@ -353,7 +353,7 @@ def load_and_dump_sentences(args, qm):
     all_qids = set()
     train = []
     out_path = os.path.join(out_dir, 'train.jsonl')
-    with open(out_path, 'w') as out_file:
+    with open(out_path, 'w', encoding='utf8') as out_file:
         sentence_counter = 0
         entity_mention_counter = 0
         anchor_counter = 0
@@ -373,7 +373,7 @@ def load_and_dump_sentences(args, qm):
 
     out_path = os.path.join(out_dir, 'dev_unif.jsonl')
     dev = []
-    with open(out_path, 'w') as out_file:
+    with open(out_path, 'w', encoding='utf8') as out_file:
         sentence_counter = 0
         entity_mention_counter = 0
         anchor_counter = 0
@@ -396,7 +396,7 @@ def load_and_dump_sentences(args, qm):
 
     out_path = os.path.join(out_dir, 'test.jsonl')
     test = []
-    with open(out_path, 'w') as out_file:
+    with open(out_path, 'w', encoding='utf8') as out_file:
         sentence_counter = 0
         entity_mention_counter = 0
         anchor_counter = 0
@@ -420,7 +420,7 @@ def load_and_dump_sentences(args, qm):
     print(f"{len(all_qids)} total QIDS across train/dev/test")
 
     # dump all QIDS
-    with open(os.path.join(args.out_dir, 'aida_qids.json'), 'w') as out_file:
+    with open(os.path.join(args.out_dir, 'aida_qids.json'), 'w', encoding='utf8') as out_file:
         json.dump(list(all_qids), out_file)
 
 

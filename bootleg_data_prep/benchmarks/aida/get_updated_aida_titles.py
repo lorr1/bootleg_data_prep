@@ -39,7 +39,7 @@ def read_current_pages(args):
     pageid_to_title = {}
     title_to_pageid = {}
     for file in pageid_files:
-        with open(file, "r") as reading_f:
+        with open(file, "r", encoding="utf-8") as reading_f:
             for line in reading_f:
                 data = json.loads(line)
                 pageid_to_title[data['id']] = data['title']
@@ -49,7 +49,7 @@ def read_current_pages(args):
 def load_aida_title_map(args):
     title_to_pageid = {}
     collisions = 0
-    with open(args.aida_map, 'r') as in_file:
+    with open(args.aida_map, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             items = line.strip().split("\t")
             if len(items) > 3: 
@@ -67,7 +67,7 @@ def load_aida_title_map(args):
 def get_redirects_map(args):
 
     old_title_to_new_title = {}
-    with open(args.redirects_map, 'r') as in_file:
+    with open(args.redirects_map, 'r', encoding="utf-8") as in_file:
 
         for line in in_file:
             items = line.strip().split("\t")
@@ -124,7 +124,7 @@ def build_map(args):
 
     # save to file 
     out_fpath = os.path.join(args.save_dir, 'aida_title_map.txt')
-    with open(out_fpath, 'w') as out_file:
+    with open(out_fpath, 'w', encoding='utf8') as out_file:
         for aida_title, new_title in updated_title_map.items():
             out_file.write(f"{aida_title}\t{new_title}\n")
 

@@ -36,7 +36,7 @@ def load_sentences(args):
     ''' Load sentences from fp ''' 
 
     original_urls = set()
-    with open(args.annotated_file, 'r') as in_file:
+    with open(args.annotated_file, 'r', encoding="utf-8") as in_file:
         for line in in_file:
             line = line.strip()         
             if len(line.split("\t")) > 4:
@@ -54,7 +54,7 @@ def load_sentences(args):
         else:
             print(f"{i}/{len(original_urls)}. {url} --> {title} CHANGED")
 
-    with open(os.path.join(args.out_dir, 'url_to_title.tsv'), 'w') as out_file:
+    with open(os.path.join(args.out_dir, 'url_to_title.tsv'), 'w', encoding='utf8') as out_file:
         for url, title in url_to_title.items():
             out_file.write(f"{url}\t{title}\n")
 

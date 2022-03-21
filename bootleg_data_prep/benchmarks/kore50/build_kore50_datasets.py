@@ -136,9 +136,9 @@ def write_output_file(sentences, args):
 
     out_dir = prep_utils.get_outdir(args.out_dir, args.sub_dir)
     if args.output_format == 'jsonl':
-        out_file = open(os.path.join(out_dir, 'test.jsonl'), 'w')
+        out_file = open(os.path.join(out_dir, 'test.jsonl'), 'w', encoding='utf8')
     else: 
-        out_file = open(os.path.join(out_dir, 'test.txt'), 'w')
+        out_file = open(os.path.join(out_dir, 'test.txt'), 'w', encoding='utf8')
 
     all_qids = set()
     none_count = 0    
@@ -167,7 +167,7 @@ def load_and_dump_sentences(args, qm):
     langid = args.langid
     sentences = []
     current_lines = []
-    with open(args.dataset, 'r') as in_file:
+    with open(args.dataset, 'r', encoding="utf-8") as in_file:
         for i, line in enumerate(in_file):
             line = line.strip()         
             if i == 0:
@@ -186,7 +186,7 @@ def load_and_dump_sentences(args, qm):
     print(f"{len(all_qids)} distinct QIDS. QID not found for {none_count} mentions.")
 
     # dump all QIDS
-    with open(os.path.join(args.out_dir, 'kore50_qids.json'), 'w') as out_file: 
+    with open(os.path.join(args.out_dir, 'kore50_qids.json'), 'w', encoding='utf8') as out_file:
         json.dump(list(all_qids), out_file, ensure_ascii=ENSURE_ASCII)
         
 

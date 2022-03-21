@@ -32,9 +32,9 @@ class EntitySymbolsSubclass(EntitySymbols):
         self.num_entities_with_pad_and_nocand = self.num_entities + 2
 
 def write_data_to_file(filename, data):
-    with open(filename, "w") as out_f:
+    with open(filename, "w", encoding='utf8') as out_f:
         for json_data in data:
-            out_f.write(ujson.dump(data, ensure_ascii=ENSURE_ASCII) + "\n")
+            out_f.write(ujson.dumps(json_data, ensure_ascii=ENSURE_ASCII) + "\n")
     return
 
 

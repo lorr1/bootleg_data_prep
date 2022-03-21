@@ -1,10 +1,15 @@
 source ./envs.bash
-mkdir -p $BOOTLEG_PREP_OUTPUT_DIR
-mkdir -p $BOOTLEG_PREP_OUTPUT_LOGS_DIR
-#./setup.bash
-./step0a-download-wikidata.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step0a-download-wikidata.log
+if [ "$1" == "download" ]; then
+  mkdir -p $BOOTLEG_PREP_OUTPUT_DIR
+  mkdir -p $BOOTLEG_PREP_OUTPUT_LOGS_DIR
+  ./setup.bash
+  ./step0a-download-wikidata.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step0a-download-wikidata.log
+  ./step1a-download-wikipedia.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step1a-download-wikipedia.log
+fi
+if [ "$1" != "continue" ]; then
+  ./delete_all_but_downloads.bash
+fi
 ./step0b-process-wikidata.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step0b-process-wikidata.log
-./step1a-download-wikipedia.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step1a-download-wikipedia.log
 ./step1b-process-wikipedia.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step1b-process-wikipedia.log
 ./step2a-map-titles-to-qids.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step2a-map-titles-to-qids.log
 ./step2b-create-aliases.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step2b-create-aliases.log

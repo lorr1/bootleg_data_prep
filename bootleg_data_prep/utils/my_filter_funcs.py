@@ -8,20 +8,20 @@ import os
 
 def prep_kg(args):
     all_triples_head = {}
-    for trip in open(os.path.join(args.prep_file), "r").readlines():
+    for trip in open(os.path.join(args.prep_file), "r", encoding="utf-8").readlines():
         head, pred, tail = trip.split()
         if head not in all_triples_head:
             all_triples_head[head] = []
         all_triples_head[head].append({"head": head, "pred": pred, "tail": tail})
     to_keep = set()
     if args.filter_file != "":
-        to_keep = set(json.load(open(args.filter_file, "r")))
+        to_keep = set(json.load(open(args.filter_file, "r", encoding="utf-8")))
     return {"all_triples_head": all_triples_head, "to_keep": to_keep}
 
 def prep_standard(args):
     to_keep = set()
     if args.filter_file != "":
-        res = json.load(open(args.filter_file, "r"))
+        res = json.load(open(args.filter_file, "r", encoding="utf-8"))
         if type(res) is dict:
             res = res.keys()
         to_keep = set(res)

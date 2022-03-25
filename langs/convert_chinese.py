@@ -94,7 +94,7 @@ def main():
     data_dir = Path(args.data_dir)
     converter = opencc.OpenCC(args.conversion)
     assert data_dir.exists(), f"{data_dir} does not exist"
-    # convert_text(data_dir=data_dir, converter=converter)
+    convert_text(data_dir=data_dir, converter=converter)
     convert_entity_db(data_dir=data_dir, converter=converter)
 
 

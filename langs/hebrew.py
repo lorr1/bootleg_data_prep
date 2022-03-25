@@ -6,20 +6,17 @@ import unicodedata
 import nltk
 import stanza
 from hebrew_tokenizer import tokenize
-from hebrew_tokenizer.groups import Groups
 
 PUNC = string.punctuation
 PUNC_TRANSLATION_TABLE = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
-STOPWORDS = {
+BASE_STOPWORDS = {
     'את', 'לא', 'של', 'אני', 'על', 'זה', 'עם', 'כל', 'הוא', 'אם', 'או', 'גם', 'יותר', 'יש', 'לי', 'מה', 'אבל', 'אז', 'טוב', 'רק', 'כי', 'שלי', 'היה',
     'אין', 'עוד', 'היא', 'אחד', 'עד', 'לך', 'כמו', 'להיות', 'אתה', 'כמה', 'אנחנו', 'הם', 'כבר', 'אפשר', 'תודה', 'שלא', 'אותו', 'מאוד', 'הרבה', 'ולא', 'ממש', 'לו',
     'מי', 'בית', 'שאני', 'יכול', 'שהוא', 'כך', 'הזה', 'איך', 'היום', 'קצת', 'עכשיו', 'שם', 'בכל', 'יהיה', 'תמיד', 'י', 'שלך', 'הכי', 'ש', 'בו', 'לעשות', 'צריך',
     'כן', 'פעם', 'לכם', 'ואני', 'משהו', 'אל', 'שלו', 'שיש', 'ו', 'וגם', 'אתכם', 'אחרי', 'בנושא', 'כדי', 'פשוט', 'לפני', 'שזה', 'אותי', 'אנו', 'למה', 'דבר', 'כאן', 'אולי'
 }
-EXTENDED_STOPWORDS = BASE_STOPWORDS = STOPWORDS
 WORDS_TO_AVOID = ['של']
 IGNORE_WORDS = {'של'}
-VERBS = {'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'}
 NOUNS = ['NN', 'NNS', 'NNP', 'NNPS', 'PRP']
 ENSURE_ASCII = False
 CATEGORY_LINE_START = '[[קטגוריה:'
@@ -65,12 +62,6 @@ def word_tokenize(sent):
     sent_tokenized = list(tokenize(sent))
     return [token[1] for token in sent_tokenized]
 
-def stem(text):
-    return text  # There are hebrew stemmers, but to date they are... less accurate.
-
-fullpath = os.path.expanduser((os.path.join('~/stanza_resources', 'he')))
-if not os.path.isdir(fullpath):
-    stanza.download('he')
 stanza_pos = stanza.Pipeline(lang='he', processors='tokenize,pos', use_gpu=os.getenv('BOOTLEG_PREP_USE_GPU').lower() == 'true')
 def pos_tag(tokens):
     res = []
@@ -78,9 +69,6 @@ def pos_tag(tokens):
     for tag in stanza_pos(tokens).iter_tokens():
         res.append((tag.words[0].text, tag.words[0].upos)) # this is shallow too, as mwt is not handled at all...
     return res
-
-def bigrams(tokens):
-    return nltk.bigrams(tokens)
 
 def ngrams(tags, n):
     return nltk.ngrams(tags, n)
@@ -194,39 +182,3 @@ gender_qid_map = {
     "Q859614" : 5, # bigender
     "somevalue": 5,
 }
-
-def clean_sentence_to_tokens(sentence, skip_verbs=True):
-    sentence_split = sentence.strip().split(' ')
-    # Remove PUNC from string
-    tokens = []
-    tokens_pos = []
-    for i, word in enumerate(sentence_split):
-        word = word.translate(PUNC_TRANSLATION_TABLE)
-        if len(word.strip()) > 0:
-            tokens.append(word)
-            tokens_pos.append(i)
-    # Unigrams for verb_tokens
-    verb_unigrams = []
-    verb_unigrams_pos = []
-    # Collect bigrams containing verb
-    verb_bigrams = []
-    verb_bigrams_pos = []
-    if not skip_verbs:
-        pos_tagged_tokens = pos_tag(tokens)
-        for i, t in zip(tokens_pos, pos_tagged_tokens):
-            if (t[0].lower() not in EXTENDED_STOPWORDS) and t[1] in VERBS:
-                verb_unigrams.append(stem(t[0].lower()))
-                verb_unigrams_pos.append(i)
-        for i, t_pair in zip(tokens_pos, bigrams(pos_tagged_tokens)):
-            pair_l, pair_r = t_pair
-            if (pair_l[1] in VERBS or pair_r[1] in VERBS) and (pair_l[0].lower() not in EXTENDED_STOPWORDS) and (pair_r[0].lower() not in EXTENDED_STOPWORDS):
-                verb_bigrams.append(" ".join([stem(pair_l[0].lower()), stem(pair_r[0].lower())]))
-                verb_bigrams_pos.append(i)
-    final_tokens = []
-    final_tokens_pos = []
-    for i, t in zip(tokens_pos, tokens):
-        if (t.lower() not in EXTENDED_STOPWORDS):
-            final_tokens.append(stem(t.lower()))
-            final_tokens_pos.append(i)
-    # tokens = [stem(t.lower()) for t in sentence.split(' ') if len(t.strip()) > 0 and (t.lower() not in STOPWORDS)]
-    return final_tokens, final_tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos

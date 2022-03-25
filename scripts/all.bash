@@ -10,7 +10,8 @@ if [ "$1" != "continue" ]; then
   ./delete_all_but_downloads.bash
 fi
 ./step0b-process-wikidata.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step0b-process-wikidata.log
-./step1b-process-wikipedia.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step1b-process-wikipedia.log
+./step1b-extract-wikipedia.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step1b-extract-wikipedia.log
+./step1c-process-wikipedia.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step1c-process-wikipedia.log
 ./step2a-map-titles-to-qids.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step2a-map-titles-to-qids.log
 ./step2b-create-aliases.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step2b-create-aliases.log
 ./step3a-curate-aliases.bash 2>&1 | tee $BOOTLEG_PREP_OUTPUT_LOGS_DIR/step3a-curate-aliases.log

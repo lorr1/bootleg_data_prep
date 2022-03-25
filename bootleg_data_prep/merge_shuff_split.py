@@ -46,14 +46,14 @@ def keep_only_gold_aliases(sent):
     # Remove all aliases that are not golds!
     new_sent = copy.deepcopy(sent)
     new_sent['aliases'] = []
-    new_sent['spans'] = []
+    new_sent['char_spans'] = []
     new_sent['qids'] = []
     new_sent['gold'] = []
     removed = 0
     for i in range(len(sent['gold'])):
         if sent['gold'][i] is True:
             new_sent['aliases'].append(sent['aliases'][i])
-            new_sent['spans'].append(sent['spans'][i])
+            new_sent['char_spans'].append(sent['char_spans'][i])
             new_sent['qids'].append(sent['qids'][i])
             new_sent['gold'].append(sent['gold'][i])
         else:
@@ -87,7 +87,7 @@ def main():
 
     out_file_with = os.path.join(stats_dir, "alias_qid_traindata_withaugment.json")
     out_file_without = os.path.join(stats_dir, "alias_qid_traindata_withoutaugment.json")
-    train_qidcnt_file = os.path.join(out_dir, "entity_db", "entity_mappings", "qid2cnt.json")
+    train_qidcnt_file = os.path.join(out_dir, "qid2cnt.json")
     print(f"Will output to {out_file_with} and {out_file_without} and counts to {train_qidcnt_file}")
     alias_qid_with = collections.defaultdict(lambda: collections.defaultdict(int))
     alias_qid_without = collections.defaultdict(lambda: collections.defaultdict(int))
@@ -144,10 +144,6 @@ def main():
     total_removed = 0
     for hash_key, line in tqdm(lines):
         line = json.loads(line.strip())
-        if 'gold' not in line:
-            assert 'anchor' in line
-            line['gold'] = line['anchor']
-            del line['anchor']
         spl = hash_key % 100
         for key in splits:
             if spl in splits[key]:

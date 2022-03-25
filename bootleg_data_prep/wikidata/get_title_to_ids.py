@@ -30,7 +30,7 @@ def get_arg_parser():
     parser.add_argument('--data', type = str, default = '/lfs/raiders8/0/lorr1/wikidata', help = 'path to output directory')
     parser.add_argument('--wikipedia_xml', type = str, default = '/lfs/raiders8/0/lorr1/enwiki-20201020-pages-articles-multistream.xml', help = 'path to xml wikipedia')
     parser.add_argument('--total_wikipedia_xml_lines', type = int, default = 1132098881, help = "For reporting progress of wikipedia xml readining (optional)")
-    parser.add_argument('--wikipedia_pageids', type = str, default = '/lfs/raiders8/0/lorr1/pageids/AA', help = 'path to output directory')
+    parser.add_argument('--wikipedia_pageids', type = str, default = '/lfs/raiders8/0/lorr1/pageids', help = 'path to output directory')
     parser.add_argument('--out_dir', type = str, default = '/lfs/raiders8/0/lorr1/title_mappings', help = 'path to output directory')
     return parser 
 
@@ -164,7 +164,6 @@ def main():
         os.makedirs(out_dir)
     # This will NOT contain redirects from Wikidata
     output_file = os.path.join(out_dir, "title_to_all_ids_raw.jsonl")
-    total_lines = 16849876
 
     wikipedia_titles_to_qid = read_in_wikipedia_title(args)
     wikipedia_titles_to_wpid = read_in_wikipedia_pageids(args)
@@ -175,11 +174,6 @@ def main():
     redirect_title_map = read_in_redirects(args.wikipedia_xml, args.total_wikipedia_xml_lines)
     assert len(redirect_title_map) > 0
     print('Writing down temp_redirects.json which may take a couple of minutes ...')
-    out_file = "temp_redicts.json"
-    with open(out_file, "w", encoding='utf8') as out_f:
-        json.dump(redirect_title_map, out_f, default=str, ensure_ascii=ENSURE_ASCII)
-    # with open(out_file, "r") as in_f:
-    #     redirect_title_map = ujson.load(in_f)
 
     # Add redirects from Wikidata
     wikititle2item = read_in_saved_title_file(output_file, total_lines)

@@ -27,7 +27,7 @@ from multiprocessing import Queue, Process
 import psutil
 import ujson as json
 from jsonlines import jsonlines
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 import bootleg_data_prep.utils.utils as utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
@@ -180,13 +180,11 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                     'sentence': sentence['sentence'], 
                     'aliases': [],
                     'qids': [],
-                    'spans': []
+                    'char_spans': []
                 }
-                num_words = len(sentence['sentence'].split())
-                if len(sentence['spans']) > 0 and type(sentence['spans'][0]) is str:
-                    sentence['spans'] = [list(map(int, s.split(":"))) for s in sentence["spans"]]
+                num_chars = len(sentence['sentence'])
                 # Iterate through the aliases in the sentence and check that they match the critera
-                for alias, title_raw, span in zip(sentence['aliases'], sentence['titles'], sentence['spans']):
+                for alias, title_raw, span in zip(sentence['aliases'], sentence['titles'], sentence['char_spans']):
                     title = title_raw
                     if title not in title_to_qid_gl:
                         title = unescape(title_raw)
@@ -201,7 +199,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                         discarded_counts['len_zero_alias'] += 1
                         discarded_values['len_zero_alias'][alias][title] += 1
                         continue
-                    if span[0] >= num_words:
+                    if span[0] >= num_chars or span[1] > num_chars:
                         discarded_counts['span_issue'] += 1
                         discarded_values['span_issue'][alias][title] += 1
                         continue
@@ -227,7 +225,7 @@ def subprocess(i, len_files, args, outdir, temp_outdir, in_filepath):
                     total_kept += 1
                     new_sent['aliases'].append(alias)
                     new_sent['qids'].append(qid)
-                    new_sent['spans'].append(span)
+                    new_sent['char_spans'].append(span)
                     filtered_aliases_to_qid_count[alias][qid] += 1
                     filtered_qid_count[qid] += 1
                 new_doc['sentences'].append(new_sent)
@@ -313,7 +311,7 @@ def main():
     title_to_qid, qid_to_all_titles, _, qid_to_title = prep_utils.load_qid_title_map(args.title_to_qid)
     print_memory()
     # launch subprocesses
-    files = glob.glob(f"{args.sentence_dir}/*/wiki_*")
+    files = glob.glob(f"{args.sentence_dir}/wiki_*")
     if args.test:
         files = files[:1]
     print(f"Loaded {len(files)} files from {args.sentence_dir}. Launching {args.processes} processes.")

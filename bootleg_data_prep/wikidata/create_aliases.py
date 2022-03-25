@@ -40,8 +40,7 @@ def get_aliases_from_table(alias_files, args):
     list_of_qid2alias = pool.map(load_alias_file, messages)
     return list_of_qid2alias
 
-def load_alias_file(message): 
-
+def load_alias_file(message):
     job_index, num_jobs, filename  = message
     qid2alias = {}
     for triple in utils.jsonl_generator(filename):
@@ -59,8 +58,7 @@ def get_aliases_from_values(value_files, args):
     list_of_qid2alias = pool.map(load_value_file, messages, chunksize=1)
     return list_of_qid2alias
 
-def load_value_file(message): 
-
+def load_value_file(message):
     job_index, num_jobs, filename  = message
     qid2alias = {}
     for triple in utils.jsonl_generator(filename):
@@ -82,8 +80,7 @@ def get_types_and_aliases_from_entities(entity_files, args):
     list_of_qid2type = [r['type'] for r in results]
     return list_of_qid2alias, list_of_qid2type
 
-def load_entity_file(message): 
-
+def load_entity_file(message):
     job_index, num_jobs, filename  = message
     qid2alias = {}
     qid2type = {}

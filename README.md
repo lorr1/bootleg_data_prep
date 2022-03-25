@@ -1,5 +1,23 @@
 ## Installation
-To run this code, you'll need to run `pip install -r requirements.txt` and then run `python3 setup.py develop`.
+To run this code, you will need to install Bootleg
+
+```
+git clone git@github.com:HazyResearch/bootleg bootleg
+cd bootleg
+python3 setup.py install
+cd ..
+```
+
+and then run
+
+```
+git clone git@github.com:lorr1/bootleg_data_prep.git bootleg_data_prep
+cd bootleg_data_prep
+pip install -r requirements.txt
+python3 setup.py develop
+cd ..
+```
+
 
 ## Setup
 To setup all the steps, you must modify `scripts/local_envs/set_my_env_vars.bash` to set the environment variables that you desire. Then, before you run any of the steps below, you will need to run `scripts/local_envs/setx.bash` (or otherwise set these environment variables). Lastly, before the very first time running these scripts, run `scripts/setup.bash`. This will first try to install the following packages for linux 
@@ -17,17 +35,7 @@ The entire process is a sequence of 8 steps that start from downloading the data
 This downloads wikidata and extracts it using `simple-wikidata-db` (modified from https://github.com/neelguha/simple-wikidata-db). This requires the correct langauge code for parsing.
 
 #### Step 1
-This download wikipedia and processes the data into two folders: `sentences` and `pageids`. This processor is based on https://attardi.github.io/wikiextractor/. In particular, this code handles template substitutions (see https://www.mediawiki.org/wiki/Help:Templates). While helpful, I found the need to define a few custom templates in order to accurately replace the template with the correct word. For example, I better handle the Nihongo template, I added the custom template below to the file `custom_templates.txt` and ran with the `--templates custom_templates.txt` flag.
-
-    ```
-    <page>
-        <title>Template:Nihongo</title>
-        <ns>10</ns>
-        <id>2868018</id>
-        <text>&lt;includeonly&gt;{{{1}}}&lt;/includeonly&gt;</text>
-    </page>
-    ```
-While not required, this may be helpful.
+This download wikipedia and processes the data from the WikiExtractor from [here](https://attardi.github.io/wikiextractor/). The last step parses the extractor output into two folders: `sentences` and `pageids`.
 
 #### Step 2
 (a) Get mapping of all wikipedia ids to QIDs. I manually set to `total_wikipedia_xml_lines` for progress bars via the `wc -l` command, but this is not required.

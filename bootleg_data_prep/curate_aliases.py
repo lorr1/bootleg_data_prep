@@ -26,10 +26,9 @@ import glob
 
 from tqdm import tqdm
 
-from bootleg_data_prep.language import get_lnrm
+from bootleg_data_prep.language import get_lnrm, ENSURE_ASCII
 from bootleg_data_prep.utils import utils
 import bootleg_data_prep.utils.data_prep_utils as prep_utils
-from language import *
 
 def get_arg_parser():
     parser = argparse.ArgumentParser(formatter_class=argparse.ArgumentDefaultsHelpFormatter)
@@ -70,22 +69,10 @@ def subprocess(all_args):
     i, total, args, out_dir, in_filepath = all_args
     hashed_outfilename = prep_utils.get_outfname(in_filepath, ending="json")
     outfilename = os.path.join(out_dir, os.path.splitext(hashed_outfilename)[0] + "_anchoraliases.json")
-    boldalias_outfilename = os.path.join(out_dir, os.path.splitext(hashed_outfilename)[0] + "_boldaliases.json")
-    acronymalias_outfilename = os.path.join(out_dir, os.path.splitext(hashed_outfilename)[0] + "_acronymaliases.json")
     print(f"Starting {i}/{total}. Reading in {in_filepath}. Ouputting to {outfilename}")
     aliases_to_title = defaultdict(lambda: defaultdict(int))
-    boldaliases_to_title = defaultdict(lambda: defaultdict(int))
-    acronymaliases_to_title = defaultdict(lambda: defaultdict(int))
     with jsonlines.open(in_filepath, 'r') as in_file:
         for page_obj in in_file:
-            for alias in page_obj.get("bold_aliases", []):
-                alias = get_lnrm(alias, not args.not_strip, not args.not_lower)
-                if len(alias) > 0:
-                    boldaliases_to_title[alias][page_obj["page_title"]] += 1
-            for alias in page_obj.get("acronym_aliases", []):
-                alias = get_lnrm(alias, not args.not_strip, not args.not_lower)
-                if len(alias) > 0:
-                    acronymaliases_to_title[alias][page_obj["page_title"]] += 1
             # aliases is a list of sentences with aliases, their gold wikipedia page title, the text, and spans
             for sentence in page_obj["aliases"]:
                 pairs = zip(sentence["aliases"], sentence["titles"])
@@ -95,12 +82,10 @@ def subprocess(all_args):
                     if len(alias) > 0:
                         aliases_to_title[alias][title] += 1
     utils.dump_json_file(outfilename, aliases_to_title)
-    utils.dump_json_file(boldalias_outfilename, boldaliases_to_title)
-    utils.dump_json_file(acronymalias_outfilename, acronymaliases_to_title)
     return
 
 
-def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_title, acronymaliases_to_title, title_to_qid, qid_to_all_titles, args):
+def filter_aliases_and_convert_to_qid(anchoraliases_to_title, title_to_qid, qid_to_all_titles, args):
     """ 
         1. We walk through each anchor alias-title pair and keep the ones that appear a minimum of two times.
         2. We union these with the bold alias-title pairs where the bold aliases appear in the first few sentences of a Wikipedia page.
@@ -112,13 +97,8 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
     """
     # aliases_to_title is {alias: {title: count}}
     total_pairs_anchor = sum([len(title_dict) for title_dict in anchoraliases_to_title.values()])
-    total_pairs_bold = sum([len(title_dict) for title_dict in boldaliases_to_title.values()])
-    total_pairs_acronym = sum([len(title_dict) for title_dict in acronymaliases_to_title.values()])
     vars(args)["original_anchor_alias_entity_pair_count"] = total_pairs_anchor
-    vars(args)["original_bold_alias_entity_pair_count"] = total_pairs_bold
-    vars(args)["original_acronym_alias_entity_pair_count"] = total_pairs_acronym
-    print(f"Extracted {total_pairs_anchor} anchor alias-title pairs and {total_pairs_bold} bold alias-title pairs from Wikipedia"
-          f" and {total_pairs_acronym} acronym alias-title pairs from Wikipedia. Filtering anchor alias-title pairs by frequency.")
+    print(f"Extracted {total_pairs_anchor} anchor alias-title pairs. Filtering anchor alias-title pairs by frequency.")
 
     # track important aliases/qids/etc
     filtered_aliasqid = defaultdict(lambda: defaultdict(int))  # The set of alias-QID pairs whose frequency >= args.min_frequency
@@ -142,20 +122,6 @@ def filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_tit
                     qid_unavailable[title] += count
             else:
                 unpopular_removed[alias][title_raw] += count
-    # union with bold aliases and acronym aliases, incrementing count again as the bold aliases link to the page they are on
-    for alias_dict in [boldaliases_to_title, acronymaliases_to_title]:
-        for alias, title_dict in tqdm(alias_dict.items()):
-            for title_raw, count in title_dict.items():
-                title = title_raw
-                if title not in title_to_qid:
-                    title = unescape(title_raw)
-                if title not in title_to_qid:
-                    title = escape(title_raw)
-                if title in title_to_qid:
-                    filtered_aliasqid[alias][title_to_qid[title]] += 1
-                    filtered_qids[title_to_qid[title]] += 1
-                else:
-                    qid_unavailable[title] += count
     # we increment the count here to represent that each page links to itself; as we compute counts later, this is just for sorting
     for qid in qid_to_all_titles:
         for title in qid_to_all_titles[qid]:
@@ -196,7 +162,6 @@ def merge_wikidata_aliases(args, aliases_to_qid, all_qids, wikidata_alias_to_qid
     """ We merge alias-qid pairs from Wikidata with the alias-qid pairs we've 
     extracted from Wikipedia. Note that we recompute QID counts in the next step for the candidate maps.
     """
-
     print("Adding wikidata aliases...")
     stats = defaultdict(int)
     new_qids_from_wikidata = set()
@@ -253,16 +218,12 @@ def main():
     # Aggregate alias-title counts from list and filter.
 
     list_of_anchoraliases_to_titles = [utils.load_json_file(f) for f in glob.glob(f"{temp_outdir}/*_anchoraliases.json")]
-    list_of_boldaliases_to_titles = [utils.load_json_file(f) for f in glob.glob(f"{temp_outdir}/*_boldaliases.json")]
-    list_of_acronymaliases_to_titles = [utils.load_json_file(f) for f in glob.glob(f"{temp_outdir}/*_acronymaliases.json")]
     print("Aggregating list of dictionaries.")
     anchoraliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_anchoraliases_to_titles)
-    boldaliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_boldaliases_to_titles)
-    acronymaliases_to_title = prep_utils.aggregate_list_of_nested_dictionaries(list_of_acronymaliases_to_titles)
     # filter aliases and convert to QID
-    aliases_to_qid, all_qids, qid_unavailable, unpopular_removed = filter_aliases_and_convert_to_qid(anchoraliases_to_title, boldaliases_to_title,
-                                                                                                     acronymaliases_to_title,
-                                                                                                     title_to_qid, qid_to_all_titles, args)
+    aliases_to_qid, all_qids, qid_unavailable, unpopular_removed = filter_aliases_and_convert_to_qid(
+        anchoraliases_to_title, title_to_qid, qid_to_all_titles, args
+    )
     for al in aliases_to_qid:
         assert len(al) > 0
 
@@ -287,14 +248,6 @@ def main():
     out_file = os.path.join(outdir, "wp_anchor_aliases_to_title.json")
     utils.dump_json_file(out_file, anchoraliases_to_title)
     vars(args)["out_anchor_aliases_to_title_file"] = out_file
-
-    out_file = os.path.join(outdir, "wp_bold_aliases_to_title.json")
-    utils.dump_json_file(out_file, boldaliases_to_title)
-    vars(args)["out_bold_aliases_to_title_file"] = out_file
-
-    out_file = os.path.join(outdir, "wp_acronym_aliases_to_title.json")
-    utils.dump_json_file(out_file, acronymaliases_to_title)
-    vars(args)["out_acronym_aliases_to_title_file"] = out_file
 
     out_file = os.path.join(outdir, "alias_to_qid_filter.json")
     utils.dump_json_file(out_file, aliases_to_qid_merged)

@@ -294,10 +294,8 @@ def subprocess(all_args):
             # print(qid_to_aliases_in_doc)
             new_sentences = []
             for sentence_idx, line in enumerate(doc['sentences']):
-                if len(line['spans']) > 0 and type(line['spans'][0]) is str:
-                    line['spans'] = [list(map(int, s.split(":"))) for s in line["spans"]]
 
-                orig_spans, orig_qids, orig_aliases, orig_sources = line["spans"], line["qids"], line["aliases"], ["gold"] * len(line["aliases"])
+                orig_spans, orig_qids, orig_aliases, orig_sources = line["char_spans"], line["qids"], line["aliases"], ["gold"] * len(line["aliases"])
                 added_alias["gold"] += len(orig_aliases)
 
                 for lf in lfs:
@@ -338,7 +336,7 @@ def subprocess(all_args):
                     'sentence': line['sentence'],
                     'aliases': final_aliases,
                     'unswap_aliases': final_orig_aliases,
-                    'spans': final_spans,
+                    'char_spans': final_spans,
                     'qids': final_qids,
                     'gold': [True if fs == "gold" else False for fs in final_sources],
                     'sources': final_sources

@@ -21,11 +21,9 @@ from multiprocessing import Pool
 import os
 from collections import defaultdict
 import argh
-import numpy as np
 from tqdm import tqdm
 
-# data prep
-from bootleg_data_prep.language import ENSURE_ASCII, gender_qid_map, pronoun_map, pronoun_possessive_map, UNKNOWN
+from bootleg_data_prep.language import ENSURE_ASCII, gender_qid_map, pronoun_map, pronoun_possessive_map, UNKNOWN, word_offset_tokenize
 from bootleg_data_prep.utils.classes.entity_symbols_prep import EntitySymbolsPrep
 
 # person_set, gender_map = np.load('/dfs/scratch0/lorr1/projects/bootleg-data/data/wikidata_mappings/person.npy', allow_pickle=True)
@@ -33,8 +31,7 @@ from bootleg_data_prep.utils.classes.entity_symbols_prep import EntitySymbolsPre
 
 person_path = os.environ.get("BOOTLEG_PREP_WIKIDATA_DIR", None)
 if person_path is None:
-    print("You must have $BOOTLEG_PREP_WIKIDATA_DIR environment variable set")
-    sys.exit()
+    raise ValueError("You must have $BOOTLEG_PREP_WIKIDATA_DIR environment variable set")
 
 def prepare_person_numpy():
     """utility function for preparing person.npy"""
@@ -112,7 +109,7 @@ def add_pronoun(doc, gender_id, swap_titles, only_first_prn):
     doc_title = doc.get('title')
     doc_alias = qid2alias_global.get(qid, "")
     doc_title_spl = doc_title.split()
-    doc_title_offset = len(doc_title.split())-1
+    doc_title_offset = len(doc_title)
     seed = str(qid[1:]) + str(doc_title)
     random.seed(seed)
     for sent in sentences:
@@ -122,10 +119,10 @@ def add_pronoun(doc, gender_id, swap_titles, only_first_prn):
             choice_name = random.randint(0, 2)
             if choice_name == 0:
                 title = doc_title_spl[0]
-                title_offset = 0
+                title_offset = len(title)
             elif choice_name == 1:
                 title = doc_title_spl[-1]
-                title_offset = 0
+                title_offset = len(title)
             else:
                 title = doc_title
                 title_offset = doc_title_offset
@@ -134,25 +131,20 @@ def add_pronoun(doc, gender_id, swap_titles, only_first_prn):
             title_offset = doc_title_offset
         # possessive title
         title_possessive = f"{title} 's"
-        title_possessive_offset = len(title_possessive.split())-1
+        title_possessive_offset = len(title_possessive)
 
-        if len(sent["aliases"]) > 0:
-            if type(sent["spans"][0]) is str:
-                sent["spans"] = [list(map(int, s.split(":"))) for s in sent["spans"]]
-            assert len(sent["spans"][0]) == 2
         if "gold" not in sent:
-            assert "anchor" in sent
-            sent["gold"] = sent["anchor"]
-            del sent["anchor"]
+            sent["gold"] = [True for _ in sent["aliases"]]
         if "sources" not in sent:
             sent["sources"] = ["gold" if a else "prn" for a in sent["gold"]]
         sentence = sent['sentence']
-        spans = sent['spans']
-        tokens = sentence.split()
+        spans = sent['char_spans']
         new_labels = []
         new_tokens = []
         found_prn = False
-        for i, token in enumerate(tokens):
+        running_offset = 0
+        for start_offset, end_offset in word_offset_tokenize(sentence):
+            token = sentence[start_offset:end_offset]
             # If the pronoun matches the gender of the doc
             pronoun_id = pronoun_map.get(token.lower(), -1)
             pronoun_possessive_id = pronoun_possessive_map.get(token.lower(), -1)
@@ -161,13 +153,16 @@ def add_pronoun(doc, gender_id, swap_titles, only_first_prn):
                 if swap_titles:
                     if pronoun_possessive_id == 0:
                         new_tokens.append(title)
-                        t = (doc_alias, doc_alias, qid, [i, i+title_offset+1], False, 'prn', title_offset)
+                        t = (doc_alias, doc_alias, qid, [running_offset+start_offset, running_offset+start_offset+title_offset], False, 'prn', title_offset)
+                        # Before it was start_offset, start_offset+len(token); now start_offset, start_offset+title_offset
+                        running_offset += title_offset-len(token)
                     else:
                         new_tokens.append(title_possessive)
-                        t = (doc_alias, doc_alias, qid, [i, i+title_possessive_offset+1], False, 'prn', title_possessive_offset)
+                        t = (doc_alias, doc_alias, qid, [running_offset+start_offset, running_offset+start_offset+title_possessive_offset], False, 'prn', title_possessive_offset)
+                        running_offset += title_possessive_offset-len(token)
                 else:
                     new_tokens.append(token)
-                    t = (doc_alias, doc_alias, qid, [i, i+1], False, 'prn', 0)
+                    t = (doc_alias, doc_alias, qid, [running_offset+start_offset, running_offset+end_offset], False, 'prn', 0)
                 new_labels.append(t)
                 found_prn = True
             else:
@@ -175,26 +170,18 @@ def add_pronoun(doc, gender_id, swap_titles, only_first_prn):
         if new_labels:
             # print("OLD", json.dumps(sent, indent=4))
             # need to re-sort
-            offsets = [0 for _ in sent['qids']]
-            new_labels.extend([(a, us_a, q, sp, h, sr, o) for a, us_a, q, sp, h, sr, o in zip(sent['aliases'],
+            new_labels.extend([(a, us_a, q, sp, h, sr) for a, us_a, q, sp, h, sr in zip(sent['aliases'],
                                                                                   sent['unswap_aliases'],
                                                                                   sent['qids'],
                                                                                   spans,
                                                                                   sent['gold'],
-                                                                                  sent['sources'],
-                                                                                  offsets)])
+                                                                                  sent['sources'])])
             new_labels = sorted(new_labels, key=lambda x: x[3][0])
-            # need to update spans as we replaced the pronouns with titles
-            to_add = 0
-            for j in range(len(new_labels)):
-                new_labels[j][3][0] += to_add
-                new_labels[j][3][1] += to_add
-                to_add += new_labels[j][6]
 
             sent['aliases'] = [t[0] for t in new_labels]
             sent['unswap_aliases'] = [t[1] for t in new_labels]
             sent['qids'] = [t[2] for t in new_labels]
-            sent['spans'] = [t[3] for t in new_labels]
+            sent['char_spans'] = [t[3] for t in new_labels]
             sent['gold'] = [t[4] for t in new_labels]
             sent['sources'] = [t[5] for t in new_labels]
             sent['sentence'] = ' '.join(new_tokens)

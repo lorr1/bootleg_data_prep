@@ -113,19 +113,9 @@ def subprocess_step1(all_args):
                 aliases = sentence['aliases']
                 qids = sentence['qids']
                 text = sentence['sentence']
-                spans = sentence['spans']
-                if len(spans) > 0 and type(spans[0]) is str:
-                    spans = [list(map(int, s.split(":"))) for s in spans]
+                spans = sentence['char_spans']
                 if 'gold' not in sentence:
-                    if 'anchor' in sentence:
-                        sentence['gold'] = sentence['anchor']
-                        del sentence['anchor']
-                    else:
-                        sentence['gold'] = [True for _ in range(len(aliases))]
-                if len(spans) > 0:
-                    # Filter out sentences with invalid spans
-                    if int(spans[-1][0]) >= len(text.split()):
-                        continue 
+                    sentence['gold'] = [True for _ in range(len(aliases))]
                 if eval(f'{args.sentence_filter_func}(args, aliases, qids, parent_qid, text, extras_global)'):
                     stats["filtered_func"] += 1
                     continue
@@ -253,13 +243,13 @@ def subprocess_step2(all_args):
             #         print("BAD SENTENCE OBJ")
             #         print(json.dumps(sent_obj, indent=4))
             # items = list(filter(lambda x:(not args.train_in_candidates) or ((x[0] in alias2qids) and (x[1] in [y[0] for y in alias2qids[x[0]]])),
-            #                     zip(sent_obj['aliases'], sent_obj['qids'], sent_obj['spans'], sent_obj['gold'])))
+            #                     zip(sent_obj['aliases'], sent_obj['qids'], sent_obj['char_spans'], sent_obj['gold'])))
             # # LAUREL
             sent_obj['unswap_aliases'] = sent_obj.get('unswap_aliases', sent_obj['aliases'])
             sent_obj['sources'] = sent_obj.get('sources', ['gold' for _ in range(len(sent_obj['aliases']))])
             items = list(filter(lambda x: (not args.train_in_candidates) or (x[2] in [y[0] for y in alias2qids[x[0]]]),
                                 zip(sent_obj['aliases'], sent_obj.get("unswap_aliases", sent_obj["aliases"]), sent_obj['qids'],
-                                    sent_obj['spans'], sent_obj['gold'], sent_obj["sources"])))
+                                    sent_obj['char_spans'], sent_obj['gold'], sent_obj["sources"])))
             temp_len = len(items)
             for x in items:
                 if x[2] not in qid2title:
@@ -279,7 +269,7 @@ def subprocess_step2(all_args):
                 new_sent_obj['aliases'] = aliases
                 new_sent_obj['unswap_aliases'] = unswap_aliases
                 new_sent_obj['qids'] = qids
-                new_sent_obj['spans'] = spans
+                new_sent_obj['char_spans'] = spans
                 new_sent_obj['gold'] = golds
                 new_sent_obj['sources'] = sources
                 out_file.write(json.dumps(new_sent_obj, ensure_ascii=ENSURE_ASCII) + '\n')

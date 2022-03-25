@@ -18,15 +18,11 @@ from collections import defaultdict
 import psutil
 import json
 import multiprocessing
-import logging
 import os
-import shutil
 import time
 
 from rich.progress import track
-from tqdm import tqdm
 
-import bootleg_data_prep.utils.utils as utils
 from bootleg.symbols.entity_symbols import EntitySymbols
 from bootleg.symbols.entity_profile import EntityProfile
 from bootleg.symbols.type_symbols import TypeSymbols
@@ -66,7 +62,6 @@ def create_entity_profile(args, entity_symbols):
         )
 
     # KG relations
-    kg_list = []
     kg_vocab = json.load(open(args.kg_vocab))
     all_relations = json.load(open(args.kg_triples))
     qid2relations = {}
@@ -119,7 +114,7 @@ def main():
     print(f"Saving entity profile to", os.path.join(load_dir, "entity_db_final"))
     entity_profile.save(os.path.join(load_dir, "entity_db_final"))
 
-    print(f"Finished generate_slices in {time.time() - gl_start} seconds.")
+    print(f"Finished create_entity_db in {time.time() - gl_start} seconds.")
 
 
 if __name__ == '__main__':

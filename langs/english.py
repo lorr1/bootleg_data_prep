@@ -3,18 +3,13 @@ import unicodedata
 import nltk
 from nltk import tokenize
 from nltk import corpus
-from nltk import PorterStemmer
 from nameparser import HumanName
 
 PUNC = string.punctuation
 PUNC_TRANSLATION_TABLE = str.maketrans(dict.fromkeys(PUNC))  # OR {key: None for key in string.punctuation}
 BASE_STOPWORDS = set(corpus.stopwords.words('english'))
-EXTENDED_STOPWORDS = BASE_STOPWORDS
-EXTENDED_STOPWORDS.add('also')
-EXTENDED_STOPWORDS.add('s')  # Often left dangling in the sentence due to word splitting
 WORDS_TO_AVOID = ['the', 'a', 'in', 'of', 'for', 'at', 'to', 'with', 'on', 'from']
 IGNORE_WORDS = {'The', 'the', 'Of', 'of', 'And', 'and', 'For', 'for', 'In', 'in', 'To', 'to'}  # maybe also try adding 'with', 'a', 'on', etc. ??
-VERBS = {'VB', 'VBD', 'VBG', 'VBN', 'VBP', 'VBZ'}
 NOUNS = ['NN', 'NNS', 'NNP', 'NNPS', 'PRP']
 ENSURE_ASCII = False
 CATEGORY_LINE_START = '[[Category:'
@@ -23,6 +18,14 @@ CATEGORY_LINE_CAPTURE = r'\[\[Category:([^\|]+).*\]\].*'
 STANDARD_NAMESPACE = {"category", "user", "help", "portal", "draft", "module", "file", "wikipedia", "wiktionary",
                       "wikt", "wp", "wt", "w", "cat", "image", "special", "template", "talk", "centralwikia",
                       "s", "creativecommons", "wikisource"}
+
+# try:
+#     STANZA_NLP = stanza.Pipeline(lang='en', processors='tokenize')
+# except stanza.pipeline.core.ResourcesFileNotFoundError:
+#     # Download
+#     stanza.download(lang='en')
+#     STANZA_NLP = stanza.Pipeline(lang='en', processors='tokenize')
+
 ##
 # Recognize only these namespaces in links
 # w: Internal links to the Wikipedia
@@ -31,22 +34,20 @@ STANDARD_NAMESPACE = {"category", "user", "help", "portal", "draft", "module", "
 #
 ACCEPTED_NAMESPACE = {'w', 'wiktionary', 'wikt'}
 
-def sent_tokenize(sents):
-    return tokenize.sent_tokenize(sents)
+def sent_tokenize(sent):
+    return tokenize.sent_tokenize(sent)
+
+def sent_offset_tokenize(sent):
+    return tokenize.punkt.PunktSentenceTokenizer().span_tokenize(sent)
+
+def word_offset_tokenize(sent):
+    return tokenize.WhitespaceTokenizer().span_tokenize(sent)
 
 def word_tokenize(sent):
     return tokenize.word_tokenize(sent)
 
-ps = PorterStemmer()
-
-def stem(text):
-    return ps.stem(text)
-
 def pos_tag(tokens):
     return nltk.pos_tag(tokens)
-
-def bigrams(tokens):
-    return nltk.bigrams(tokens)
 
 def ngrams(tags, n):
     return nltk.ngrams(tags, n)
@@ -145,57 +146,3 @@ gender_qid_map = {
     "Q859614" : 5, # bigender
     "somevalue": 5,
 }
-
-# Guess this implementation might be needed by some language?
-# def clean_sentence_to_tokens_multilingual(sentence):
-#     sentence_split = sentence.strip().split(' ')
-#     # Remove PUNC from string
-#     tokens = []
-#     tokens_pos = []
-#     for i, word in enumerate(sentence_split):
-#         word = word.translate(PUNC_TRANSLATION_TABLE)
-#         if len(word.strip()) > 0:
-#             tokens.append(word)
-#             tokens_pos.append(i)
-#     verb_unigrams = []
-#     verb_unigrams_pos = []
-#     verb_bigrams = []
-#     verb_bigrams_pos = []
-#     return tokens, tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos
-#
-
-def clean_sentence_to_tokens(sentence, skip_verbs=True):
-    sentence_split = sentence.strip().split(' ')
-    # Remove PUNC from string
-    tokens = []
-    tokens_pos = []
-    for i, word in enumerate(sentence_split):
-        word = word.translate(PUNC_TRANSLATION_TABLE)
-        if len(word.strip()) > 0:
-            tokens.append(word)
-            tokens_pos.append(i)
-    # Unigrams for verb_tokens
-    verb_unigrams = []
-    verb_unigrams_pos = []
-    # Collect bigrams containing verb
-    verb_bigrams = []
-    verb_bigrams_pos = []
-    if not skip_verbs:
-        pos_tagged_tokens = pos_tag(tokens)
-        for i, t in zip(tokens_pos, pos_tagged_tokens):
-            if (t[0].lower() not in EXTENDED_STOPWORDS) and t[1] in VERBS:
-                verb_unigrams.append(stem(t[0].lower()))
-                verb_unigrams_pos.append(i)
-        for i, t_pair in zip(tokens_pos, bigrams(pos_tagged_tokens)):
-            pair_l, pair_r = t_pair
-            if (pair_l[1] in VERBS or pair_r[1] in VERBS) and (pair_l[0].lower() not in EXTENDED_STOPWORDS) and (pair_r[0].lower() not in EXTENDED_STOPWORDS):
-                verb_bigrams.append(" ".join([stem(pair_l[0].lower()), stem(pair_r[0].lower())]))
-                verb_bigrams_pos.append(i)
-    final_tokens = []
-    final_tokens_pos = []
-    for i, t in zip(tokens_pos, tokens):
-        if (t.lower() not in EXTENDED_STOPWORDS):
-            final_tokens.append(stem(t.lower()))
-            final_tokens_pos.append(i)
-    # tokens = [stem(t.lower()) for t in sentence.split(' ') if len(t.strip()) > 0 and (t.lower() not in STOPWORDS)]
-    return final_tokens, final_tokens_pos, verb_unigrams, verb_unigrams_pos, verb_bigrams, verb_bigrams_pos
